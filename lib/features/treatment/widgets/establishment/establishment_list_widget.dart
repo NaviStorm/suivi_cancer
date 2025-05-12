@@ -1,31 +1,38 @@
 // lib/widgets/establishment_list_widget.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/services/treatment_service.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/screens/establishment/edit_establishment_screen.dart';
+import 'package:suivi_cancer/utils/logger.dart';
+
 
 class EstablishmentListWidget extends StatefulWidget {
+  const EstablishmentListWidget({super.key}); // <-- ici on accepte une key
+
   @override
-  _EstablishmentListWidgetState createState() => _EstablishmentListWidgetState();
+  EstablishmentListWidgetState createState() => EstablishmentListWidgetState();
 }
 
-class _EstablishmentListWidgetState extends State<EstablishmentListWidget> {
+class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
   List<Establishment> _establishments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadEstablishments();
+    loadEstablishments();
   }
 
-  Future<void> _loadEstablishments() async {
-    setState(() {
-      _isLoading = true;
+  Future<void> loadEstablishments() async {
+    Log.d('_load');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _isLoading = true;
+      });
     });
-    
+
     try {
       final establishments = await TreatmentService.getAllEstablishments();
       setState(() {
@@ -39,7 +46,7 @@ class _EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     }
   }
 
-  @override
+
   @override
   Widget build(BuildContext context) {
     // Code existant pour le widget...
@@ -145,7 +152,7 @@ class _EstablishmentListWidgetState extends State<EstablishmentListWidget> {
 
     if (result == true) {
       // Rafraîchir la liste des établissements
-      _loadEstablishments();
+      loadEstablishments();
     }
   }
 
@@ -185,7 +192,7 @@ class _EstablishmentListWidgetState extends State<EstablishmentListWidget> {
       await dbHelper.deleteEstablishment(id);
 
       // Rafraîchir la liste après suppression
-      _loadEstablishments();
+      loadEstablishments();
 
       // Afficher un message de confirmation
       ScaffoldMessenger.of(context).showSnackBar(

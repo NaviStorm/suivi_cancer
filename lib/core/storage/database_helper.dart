@@ -97,6 +97,71 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'doctor_contacts' créée");
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS health_professional_categories(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        isActive INTEGER NOT NULL DEFAULT 1
+      )
+      ''');
+
+// Création de la table des professionnels de santé
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS health_professionals(
+        id TEXT PRIMARY KEY,
+        firstName TEXT NOT NULL,
+        lastName TEXT NOT NULL,
+        categoryId TEXT NOT NULL,
+        specialtyDetails TEXT,
+        notes TEXT,
+        FOREIGN KEY (categoryId) REFERENCES health_professional_categories (id) ON DELETE CASCADE
+      )
+      ''');
+
+// Création de la table des contacts des professionnels de santé
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS health_professional_contacts(
+        id TEXT PRIMARY KEY,
+        healthProfessionalId TEXT NOT NULL,
+        type INTEGER NOT NULL,
+        value TEXT NOT NULL,
+        label TEXT,
+        isPrimary INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (healthProfessionalId) REFERENCES health_professionals (id) ON DELETE CASCADE
+      )
+      ''');
+
+// Création de la table des adresses des professionnels de santé
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS health_professional_addresses(
+        id TEXT PRIMARY KEY,
+        healthProfessionalId TEXT NOT NULL,
+        street TEXT,
+        city TEXT NOT NULL,
+        postalCode TEXT,
+        country TEXT DEFAULT 'France',
+        label TEXT,
+        isPrimary INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (healthProfessionalId) REFERENCES health_professionals (id) ON DELETE CASCADE
+      )
+      ''');
+
+// Création de la table de relation entre professionnels de santé et établissements
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS health_professional_establishments(
+        healthProfessionalId TEXT NOT NULL,
+        establishmentId TEXT NOT NULL,
+        role TEXT,
+        PRIMARY KEY (healthProfessionalId, establishmentId),
+        FOREIGN KEY (healthProfessionalId) REFERENCES health_professionals (id) ON DELETE CASCADE,
+        FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE
+      )
+      ''');
+
+    // Initialisation avec les catégories courantes de professionnels de santé
+    await _initializeHealthProfessionalCategories(db);
+
     // Table des établissements
     await db.execute('''
       CREATE TABLE establishments(
@@ -3579,4 +3644,587 @@ class DatabaseHelper {
 
     return results.isNotEmpty ? results.first : null;
   }
+
+  Future _initializeHealthProfessionalCategories(Database db) async {
+    Log.d("DatabaseHelper: Initialisation des catégories de professionnels de santé");
+
+    final categories = [
+      {
+        'id': Uuid().v4(),
+        'name': 'Médecin généraliste',
+        'description': 'Médecin de premier recours assurant le suivi médical global',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Pneumologue',
+        'description': 'Spécialiste des maladies respiratoires',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Cardiologue',
+        'description': 'Spécialiste des maladies cardiovasculaires',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'ORL',
+        'description': 'Spécialiste en oto-rhino-laryngologie',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Chirurgien',
+        'description': 'Médecin spécialisé dans les interventions chirurgicales',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Anesthésiste',
+        'description': 'Médecin spécialisé dans l\'anesthésie',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Oncologue',
+        'description': 'Spécialiste du traitement des cancers',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Radiologue',
+        'description': 'Spécialiste de l\'imagerie médicale',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Infirmier',
+        'description': 'Professionnel de santé assurant les soins infirmiers',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Kinésithérapeute',
+        'description': 'Spécialiste de la rééducation fonctionnelle',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Sage-femme',
+        'description': 'Professionnel de santé spécialisé dans le suivi de grossesse et l\'accouchement',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Dentiste',
+        'description': 'Spécialiste des soins dentaires',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Pharmacien',
+        'description': 'Spécialiste du médicament',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Psychologue',
+        'description': 'Spécialiste de la santé mentale',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Diététicien',
+        'description': 'Spécialiste de la nutrition',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Ergothérapeute',
+        'description': 'Spécialiste de la réadaptation',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Orthophoniste',
+        'description': 'Spécialiste des troubles de la communication',
+        'isActive': 1
+      },
+      {
+        'id': Uuid().v4(),
+        'name': 'Podologue',
+        'description': 'Spécialiste des affections du pied',
+        'isActive': 1
+      }
+    ];
+
+    // Insertion des catégories dans la base de données
+    for (var category in categories) {
+      await db.insert('health_professional_categories', category,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    Log.d("DatabaseHelper: ${categories.length} catégories de professionnels de santé initialisées");
+  }
+
+  Future<List<Map<String, dynamic>>> getPS() async {
+    Log.d("DatabaseHelper: Récupération des professionnels de santé");
+    final db = await database;
+    try {
+      // Récupérer tous les professionnels de santé
+      final List<Map<String, dynamic>> professionals = await db.query('health_professionals');
+      Log.d("DatabaseHelper: ${professionals.length} professionnels récupérés");
+
+      // Pour chaque professionnel, récupérer ses contacts, adresses et établissements
+      List<Map<String, dynamic>> result = [];
+
+      for (var professional in professionals) {
+        // Créer une copie modifiable du professionnel
+        final Map<String, dynamic> professionalCopy = Map<String, dynamic>.from(professional);
+
+        // Récupérer les contacts
+        final contacts = await db.query(
+          'health_professional_contacts',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [professional['id']],
+        );
+        Log.d('Récupération health_professional_contacts:[${contacts.toString()}]');
+
+        // Convertir chaque contact en Map modifiable
+        List<Map<String, dynamic>> contactsCopy = [];
+        for (var contact in contacts) {
+          contactsCopy.add(Map<String, dynamic>.from(contact));
+        }
+        professionalCopy['contacts'] = contactsCopy;
+
+        // Récupérer les adresses
+        final addresses = await db.query(
+          'health_professional_addresses',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [professional['id']],
+        );
+        Log.d('Récupération health_professional_addresses:[${addresses.toString()}]');
+
+        // Convertir chaque adresse en Map modifiable
+        List<Map<String, dynamic>> addressesCopy = [];
+        for (var address in addresses) {
+          addressesCopy.add(Map<String, dynamic>.from(address));
+        }
+        professionalCopy['addresses'] = addressesCopy;
+
+        // Récupérer les établissements
+        final establishmentLinks = await db.query(
+          'health_professional_establishments',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [professional['id']],
+        );
+        Log.d('Récupération health_professional_establishments:[${establishmentLinks.toString()}]');
+
+        List<Map<String, dynamic>> establishments = [];
+        for (var link in establishmentLinks) {
+          final establishmentResults = await db.query(
+            'establishments',
+            where: 'id = ?',
+            whereArgs: [link['establishmentId']],
+          );
+
+          if (establishmentResults.isNotEmpty) {
+            // Créer une copie modifiable de l'établissement
+            final Map<String, dynamic> establishment = Map<String, dynamic>.from(establishmentResults.first);
+            establishment['role'] = link['role'];
+            establishments.add(establishment);
+          }
+        }
+
+        professionalCopy['establishments'] = establishments;
+
+        // Récupérer la catégorie
+        final categoryResults = await db.query(
+          'health_professional_categories',
+          where: 'id = ?',
+          whereArgs: [professional['categoryId']],
+        );
+
+        if (categoryResults.isNotEmpty) {
+          professionalCopy['category'] = Map<String, dynamic>.from(categoryResults.first);
+        }
+
+        result.add(professionalCopy);
+      }
+
+      return result;
+    } catch (e) {
+      Log.d("DatabaseHelper: Erreur lors de la récupération des professionnels de santé: $e");
+      return [];
+    }
+  }
+
+  Future<bool> insertPS(Map<String, dynamic> healthProfessional) async {
+    Log.d("DatabaseHelper: Insertion d'un professionnel de santé");
+    final db = await database;
+
+      return await db.transaction((txn) async {
+        // Insérer le professionnel de santé de base
+        final professionalData = {
+          'id': healthProfessional['id'] ?? Uuid().v4(),
+          'firstName': healthProfessional['firstName'],
+          'lastName': healthProfessional['lastName'],
+          'categoryId': healthProfessional['categoryId'],
+          'specialtyDetails': healthProfessional['specialtyDetails'],
+          'notes': healthProfessional['notes'],
+        };
+
+        try {
+          await txn.insert('health_professionals', professionalData,
+              conflictAlgorithm: ConflictAlgorithm.replace);
+        } catch (e) {
+          Log.d('Erreur lors de l nsertion de health_professionals $e');
+        }
+        Log.d('Insertion de health_professionals OK');
+
+        // Insérer les contacts
+        if (healthProfessional['contacts'] != null) {
+          Log.d('Insertion Contact');
+          for (var contact in healthProfessional['contacts']) {
+            Log.d('    contact:[${healthProfessional['contacts']}]');
+            final contactData = {
+              'id': contact['id'] ?? Uuid().v4(),
+              'healthProfessionalId': professionalData['id'],
+              'type': contact['type'],
+              'value': contact['value'],
+              'label': contact['label'],
+              'isPrimary': contact['isPrimary'],
+            };
+            try {
+              Log.d('    contactData:[${contactData.toString()}]');
+              await txn.insert('health_professional_contacts', contactData,
+                  conflictAlgorithm: ConflictAlgorithm.replace);
+            } catch (e) {
+              Log.d('Erreur lors de l insertion de health_professional_contacts $e');
+            }
+            Log.d('Insertion de health_professional_contacts id:[${contact['id']}] healthProfessionalId:[${professionalData['id']} type:[${contact['type']} value:[${contact['value']} label:[${contact['label']} isPrimary:[${contact['isPrimary']}] OK');
+          }
+          Log.d('Insertion de health_professional_contacts OK');
+        }
+
+        // Insérer les adresses
+        if (healthProfessional['addresses'] != null) {
+          for (var address in healthProfessional['addresses']) {
+            final addressData = {
+              'id': address['id'] ?? Uuid().v4(),
+              'healthProfessionalId': professionalData['id'],
+              'street': address['street'],
+              'city': address['city'],
+              'postalCode': address['postalCode'],
+              'country': address['country'] ?? 'France',
+              'label': address['label'],
+              'isPrimary': address['isPrimary'],
+            };
+            try {
+              await txn.insert('health_professional_addresses', addressData,
+                  conflictAlgorithm: ConflictAlgorithm.replace);
+            } catch (e) {
+              Log.d('Erreur lors de l nsertion de health_professional_addresses $e');
+            }
+          }
+          Log.d('Insertion de health_professional_addresses OK');
+        }
+
+        // Lier aux établissements
+        if (healthProfessional['establishments'] != null) {
+          for (var establishment in healthProfessional['establishments']) {
+            final linkData = {
+              'healthProfessionalId': professionalData['id'],
+              'establishmentId': establishment['id'],
+              'role': establishment['role'],
+            };
+            try {
+              await txn.insert('health_professional_establishments', linkData,
+                  conflictAlgorithm: ConflictAlgorithm.replace);
+            }catch (e) {
+              Log.d('Erreur lors de l nsertion de health_professional_establishments $e');
+            }
+          }
+          Log.d('Insertion de health_professional_establishments OK');
+        }
+
+        return true; // Succès
+      });
+  }
+
+  Future<int> deleteHealthProfessional(String id) async {
+    Log.d("DatabaseHelper: Suppression du professionnel de santé avec ID $id");
+    final db = await database;
+
+    try {
+      // Vérifier d'abord si le professionnel existe
+      final List<Map<String, dynamic>> check = await db.query(
+        'health_professionals',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (check.isEmpty) {
+        Log.d("DatabaseHelper: Professionnel introuvable avec ID $id");
+        return 0;
+      }
+
+      // Les tables liées seront supprimées en cascade grâce aux contraintes FOREIGN KEY
+      final result = await db.delete(
+        'health_professionals',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      Log.d("DatabaseHelper: Professionnel supprimé avec succès, lignes affectées: $result");
+      return result;
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de la suppression du professionnel de santé: $e");
+      return -1;
+    }
+  }
+
+  Future<bool> updatePS(Map<String, dynamic> healthProfessional) async {
+    Log.d("DatabaseHelper: Mise à jour du professionnel de santé ${healthProfessional['id']}");
+    final db = await database;
+
+    try {
+      return await db.transaction((txn) async {
+        // Mettre à jour le professionnel de santé de base
+        final professionalData = {
+          'firstName': healthProfessional['firstName'],
+          'lastName': healthProfessional['lastName'],
+          'categoryId': healthProfessional['categoryId'],
+          'specialtyDetails': healthProfessional['specialtyDetails'],
+          'notes': healthProfessional['notes'],
+        };
+
+        await txn.update('health_professionals', professionalData,
+            where: 'id = ?', whereArgs: [healthProfessional['id']]);
+
+        // Supprimer les contacts existants
+        await txn.delete('health_professional_contacts',
+            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+
+        // Insérer les nouveaux contacts
+        if (healthProfessional['contacts'] != null) {
+          for (var contact in healthProfessional['contacts']) {
+            final contactData = {
+              'id': contact['id'] ?? Uuid().v4(),
+              'healthProfessionalId': healthProfessional['id'],
+              'type': contact['type'],
+              'value': contact['value'],
+              'label': contact['label'],
+              'isPrimary': contact['isPrimary'],
+            };
+            await txn.insert('health_professional_contacts', contactData,
+                conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+
+        // Supprimer les adresses existantes
+        await txn.delete('health_professional_addresses',
+            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+
+        // Insérer les nouvelles adresses
+        if (healthProfessional['addresses'] != null) {
+          for (var address in healthProfessional['addresses']) {
+            final addressData = {
+              'id': address['id'] ?? Uuid().v4(),
+              'healthProfessionalId': healthProfessional['id'],
+              'street': address['street'],
+              'city': address['city'],
+              'postalCode': address['postalCode'],
+              'country': address['country'] ?? 'France',
+              'label': address['label'],
+              'isPrimary': address['isPrimary'],
+            };
+            await txn.insert('health_professional_addresses', addressData,
+                conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        }
+
+        // Supprimer les liens avec les établissements existants
+        await txn.delete('health_professional_establishments',
+            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+
+        // Lier aux établissements
+        if (healthProfessional['establishments'] != null) {
+          Log.d('Traitement Etablissment du PS');
+          for (var establishment in healthProfessional['establishments']) {
+            Log.d('   establishment ${establishment.toString()}');
+            final linkData = {
+              'healthProfessionalId': healthProfessional['id'],
+              'establishmentId': establishment['id'],
+              'role': establishment['role'],
+            };
+            await txn.insert('health_professional_establishments', linkData,
+                conflictAlgorithm: ConflictAlgorithm.replace);
+          }
+        } else {
+          Log.d("Pad d'établissment pour le PS");
+        }
+
+        return true; // Succès
+      });
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de la mise à jour du professionnel de santé: $e");
+      return false;
+    }
+  }
+
+
+  Future<List<Map<String, dynamic>>> getPSContacts(String healthProfessionalId) async {
+    final db = await database;
+    return await db.query(
+      'health_professional_contacts',
+      where: 'healthProfessionalId = ?',
+      whereArgs: [healthProfessionalId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPSAddresses(String healthProfessionalId) async {
+    final db = await database;
+    return await db.query(
+      'health_professional_addresses',
+      where: 'healthProfessionalId = ?',
+      whereArgs: [healthProfessionalId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getPSEstablishments(String healthProfessionalId) async {
+    final db = await database;
+    // Récupérer les ID des établissements liés au PS
+    final links = await db.query(
+      'health_professional_establishments',
+      where: 'healthProfessionalId = ?',
+      whereArgs: [healthProfessionalId],
+    );
+
+    List<Map<String, dynamic>> result = [];
+
+    for (var link in links) {
+      final establishmentId = link['establishmentId'];
+      // Récupérer les détails de l'établissement
+      final establishments = await db.query(
+        'establishments',
+        where: 'id = ?',
+        whereArgs: [establishmentId],
+      );
+
+      if (establishments.isNotEmpty) {
+        // Ajouter le rôle à l'établissement
+        final establishment = Map<String, dynamic>.from(establishments.first);
+        establishment['role'] = link['role'];
+        result.add(establishment);
+      }
+    }
+
+    return result;
+  }
+
+  Future<Map<String, dynamic>?> getHealthProfessional(String id) async {
+    Log.d("DatabaseHelper: Récupération du professionnel de santé avec ID: $id");
+    final db = await database;
+
+    try {
+      final results = await db.query(
+        'health_professionals',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (results.isEmpty) {
+        return null;
+      }
+
+      final professional = results.first;
+      final Map<String, dynamic> completeProfile = Map.from(professional);
+
+      // Récupérer les contacts
+      final List<Map<String, dynamic>> contacts = await db.query(
+        'health_professional_contacts',
+        where: 'healthProfessionalId = ?',
+        whereArgs: [id],
+      );
+      completeProfile['contacts'] = contacts;
+
+      // Récupérer les adresses
+      final List<Map<String, dynamic>> addresses = await db.query(
+        'health_professional_addresses',
+        where: 'healthProfessionalId = ?',
+        whereArgs: [id],
+      );
+      completeProfile['addresses'] = addresses;
+
+      // Récupérer les établissements liés
+      final List<Map<String, dynamic>> establishments = await db.rawQuery('''
+      SELECT e.*, hpe.role
+      FROM establishments e
+      INNER JOIN health_professional_establishments hpe ON e.id = hpe.establishmentId
+      WHERE hpe.healthProfessionalId = ?
+    ''', [id]);
+      completeProfile['establishments'] = establishments;
+
+      // Récupérer la catégorie
+      final List<Map<String, dynamic>> categories = await db.query(
+        'health_professional_categories',
+        where: 'id = ?',
+        whereArgs: [professional['categoryId']],
+      );
+      if (categories.isNotEmpty) {
+        completeProfile['category'] = categories.first;
+      }
+
+      return completeProfile;
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de la récupération du professionnel de santé: $e");
+      return null;
+    }
+  }
+
+  // Insérer une catégorie
+  Future<int> insertHealthProfessionalCategory(Map<String, dynamic> category) async {
+    Log.d("DatabaseHelper: Insertion d'une catégorie de professionnel de santé");
+    final db = await database;
+
+    try {
+      final categoryData = {
+        'id': category['id'] ?? Uuid().v4(),
+        'name': category['name'],
+        'description': category['description'],
+        'isActive': category['isActive'] ? 1 : 0,
+      };
+
+      final result = await db.insert('health_professional_categories', categoryData,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+
+      Log.d("DatabaseHelper: Catégorie insérée avec succès, résultat: $result");
+      return result;
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de l'insertion de la catégorie: $e");
+      return -1;
+    }
+  }
+
+  // Récupérer toutes les catégories
+  Future<List<Map<String, dynamic>>> getHealthProfessionalCategories() async {
+    Log.d("DatabaseHelper: Récupération des catégories de professionnels de santé");
+    final db = await database;
+
+    try {
+      final categories = await db.query(
+        'health_professional_categories',
+        orderBy: 'name',
+      );
+
+      Log.d("DatabaseHelper: ${categories.length} catégories récupérées");
+      return categories;
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de la récupération des catégories: $e");
+      return [];
+    }
+  }
+
 }

@@ -36,6 +36,7 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     Log.d('build');
