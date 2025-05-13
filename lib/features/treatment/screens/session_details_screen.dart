@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
+import 'package:suivi_cancer/features/treatment/models/side_effect.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
-import 'package:suivi_cancer/features/treatment/screens/add_side_effect_screen.dart';
+import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
+import 'package:suivi_cancer/features/sideeffect/side_effects_list_screen.dart';
+import 'package:suivi_cancer/features/sideeffect/side_effects_list.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -25,12 +29,36 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   bool _isLoading = false;
   late Session _session;
   late Cycle _cycle;
+  List<SideEffect> _sideEffects = [];
+  bool _isLoadingSideEffects = false;
 
   @override
   void initState() {
     super.initState();
+    _loadSideEffects();
     _session = widget.session;
     _cycle = widget.cycle;
+  }
+
+  Future<void> _loadSideEffects() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final dbHelper = DatabaseHelper();
+      final sideEffectMaps = await dbHelper.getSideEffectsByEntity('session', widget.session.id);
+
+      setState(() {
+        _sideEffects = sideEffectMaps.map((map) => SideEffect.fromMap(map)).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Erreur lors du chargement des effets secondaires: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -52,6 +80,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           ),
         ],
       ),
+
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -80,7 +109,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 entityName: 'Séance du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
               ),
             ),
-          );
+          ).then((_) {
+            _loadSideEffects();
+          });
         },
         child: Icon(Icons.add),
         tooltip: 'Ajouter un effet secondaire',
@@ -198,6 +229,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
 
   Widget _buildPrerequisitesSection() {
+    Log.d('prerequisites:[${_session.prerequisites?.length}] appointments:[${_session.appointments?.length}]');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,7 +241,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           ),
         ),
         SizedBox(height: 8),
-        _session.prerequisites.isEmpty
+        _session.prerequisites.isEmpty && _session.appointments.isEmpty
             ? Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -224,7 +256,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             : ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
-                itemCount: _session.prerequisites.length,
+                itemCount: _session.prerequisites.length+_session.appointments.length,
                 itemBuilder: (context, index) {
                   final prerequisite = _session.prerequisites[index];
                   return Card(
@@ -248,30 +280,52 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
+  void _navigateToSideEffectsScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SideEffectsListScreen(
+          entityType: 'session',
+          entityId: widget.session.id,
+          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(widget.session.dateTime)}',
+        ),
+      ),
+    );
+
+    // Si des modifications ont été apportées, vous pouvez rafraîchir les données
+    if (result == true) {
+      // Rafraîchir les données si nécessaire
+    }
+  }
+
   Widget _buildSideEffectsSection() {
-    // À implémenter: affichage des effets secondaires liés à la séance
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Effets secondaires',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: 8),
-        // Placeholder pour les effets secondaires (à remplacer par votre implémentation)
-        Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Aucun effet secondaire enregistré',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+        // Si vous souhaitez conserver votre titre personnalisé au lieu d'utiliser celui du widget
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Effets secondaires',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+
+        // Utilisation du widget SideEffectsList avec showTitle=false puisque nous avons déjà un titre
+        SideEffectsList(
+          entityType: 'session',
+          entityId: _session.id,
+          sideEffects: _sideEffects,
+          isLoading: _isLoadingSideEffects,
+          onRefresh: _loadSideEffects,
+          onEdit: _editSideEffect,
+          onDelete: _deleteSideEffect,
+          onView: _viewSideEffect,
+          onAdd: _addSideEffect,
+          showTitle: false, // Ne pas afficher le titre du widget
         ),
       ],
     );
@@ -334,6 +388,160 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         return 'Hormonothérapie';
       case CureType.Combined:
         return 'Traitement combiné';
+    }
+  }
+
+  // TANDREU
+  void _addSideEffect() async {
+    Log.d('Ajout d\'un effet secondaire');
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddSideEffectScreen(
+          entityType: 'session',
+          entityId: _session.id.toString(),
+          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadSideEffects();
+    }
+  }
+
+  void _editSideEffect(SideEffect sideEffect) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddSideEffectScreen(
+          entityType: 'session',
+          entityId: _session.id.toString(),
+          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
+          sideEffect: sideEffect,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadSideEffects();
+    }
+  }
+
+  void _deleteSideEffect(SideEffect sideEffect) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer l\'effet secondaire'),
+        content: Text('Êtes-vous sûr de vouloir supprimer cet effet secondaire ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final dbHelper = DatabaseHelper();
+        await dbHelper.deleteSideEffect(sideEffect.id);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Effet secondaire supprimé')),
+        );
+
+        _loadSideEffects();
+      } catch (e) {
+        print("Erreur lors de la suppression: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la suppression')),
+        );
+      }
+    }
+  }
+
+  void _viewSideEffect(SideEffect sideEffect) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Détails de l\'effet secondaire',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Description',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(sideEffect.description),
+            SizedBox(height: 8),
+            Text(
+              'Sévérité',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(_getSeverityText(sideEffect.severity)),
+            SizedBox(height: 8),
+            Text(
+              'Date',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(DateFormat('dd/MM/yyyy').format(sideEffect.date)),
+            if (sideEffect.notes != null && sideEffect.notes!.isNotEmpty) ...[
+              SizedBox(height: 8),
+              Text(
+                'Notes',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(sideEffect.notes!),
+            ],
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Fermer'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getSeverityText(SideEffectSeverity severity) {
+    switch (severity) {
+      case SideEffectSeverity.Minor:
+        return 'Mineur';
+      case SideEffectSeverity.Moderate:
+        return 'Modéré';
+      case SideEffectSeverity.Serious:
+        return 'Sérieux';
+      case SideEffectSeverity.Severe:
+        return 'Sévère';
+      case SideEffectSeverity.Critical:
+        return 'Critique';
+      default:
+        return 'Inconnu';
     }
   }
 }

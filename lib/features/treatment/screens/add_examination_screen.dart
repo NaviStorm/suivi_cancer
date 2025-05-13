@@ -9,15 +9,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:suivi_cancer/features/treatment/models/document.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
-import 'package:suivi_cancer/features/treatment/screens/doctor/add_doctor_screen.dart';
+import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
 import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+
 
 // Enum pour le type de lien
 enum ExaminationLinkType {
@@ -70,7 +72,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   ExaminationType _selectedType = ExaminationType.PriseDeSang;
 
   Establishment? _selectedEstablishment;
-  Doctor? _selectedDoctor;
+  List<Establishment> _establishments = [];
+  PS? _selectedPrescripteur;
+  PS? _selectedExecutant; // Pour le médecin qui fera l'examen
+  List<PS> _healthProfessionals = [];
 
   // Variables pour les sessions et le type de lien
   String? _selectedSessionId;
@@ -81,9 +86,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   // Variables pour la relation temporelle avec la séance
   SessionTimeRelation _timeRelation = SessionTimeRelation.Before;
   int _timeOffset = 0; // Offset en heures
-
-  List<Establishment> _establishments = [];
-  List<Doctor> _doctors = [];
 
   // Liste des documents joints
   List<DocumentAttachment> _attachedDocuments = [];
@@ -142,8 +144,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
       // Charger les médecins
-      final doctorMaps = await dbHelper.getDoctors();
-      _doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+      final psMaps = await dbHelper.getPS();
+      _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
       // Charger les séances du cycle
       if (_linkType == ExaminationLinkType.SingleSession || _linkType == ExaminationLinkType.AllSessions) {
@@ -169,9 +171,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           _selectedEstablishment = _establishments.first;
         }
 
-        if (widget.examination!.doctor != null) {
-          _selectedDoctor = _doctors.firstWhereOrNull(
-                  (d) => d.id == widget.examination!.doctor!.id
+        if (widget.examination!.prescripteur != null) {
+          _selectedPrescripteur = _healthProfessionals.firstWhereOrNull(
+                  (d) => d.id == widget.examination!.prescripteur!.id
+          );
+        }
+        // Sélectionner l'autre médecin si présent
+        if (widget.examination!.executant != null) {
+          _selectedExecutant = _healthProfessionals.firstWhereOrNull(
+                (ps) => ps.id == widget.examination!.executant!.id
           );
         }
       } else if (_establishments.isNotEmpty) {
@@ -263,7 +271,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               _buildEstablishmentSelector(),
               SizedBox(height: 16),
 
-              _buildDoctorSelector(),
+              _buildPrescripteurSelector(),
+              SizedBox(height: 16),
+              _buildExecutantSelector(),
               SizedBox(height: 16),
 
               _buildDocumentsSection(),
@@ -715,7 +725,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     );
   }
 
-  Widget _buildDoctorSelector() {
+  Widget _buildPrescripteurSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -723,7 +733,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Médecin (optionnel)',
+              'Professionnel de santé (obligatoire)',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -732,7 +742,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             TextButton.icon(
               icon: Icon(Icons.add, size: 16),
               label: Text('Nouveau', style: TextStyle(fontSize: 12)),
-              onPressed: _addNewDoctor,
+              onPressed: _addNewPS,
               style: TextButton.styleFrom(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               ),
@@ -740,26 +750,71 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           ],
         ),
         SizedBox(height: 8),
-        DropdownButtonFormField<Doctor?>(
+        DropdownButtonFormField<PS>(
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
-          value: _selectedDoctor,
-          hint: Text('Sélectionner un médecin'),
-          onChanged: (Doctor? value) {
+          value: _selectedPrescripteur,
+          hint: Text('Sélectionner un professionnel de santé'),
+          onChanged: (PS? value) {
             setState(() {
-              _selectedDoctor = value;
+              _selectedPrescripteur = value;
+            });
+          },
+          items: _healthProfessionals.map((ps) => DropdownMenuItem<PS>(
+            value: ps,
+            child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
+          )).toList(),
+          validator: (value) {
+            if (value == null) {
+              return 'Veuillez sélectionner un professionnel de santé';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+// Ajouter un sélecteur pour le médecin qui fera l'examen
+  Widget _buildExecutantSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Médecin réalisant l\'examen (optionnel)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        DropdownButtonFormField<PS>(
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          value: _selectedExecutant,
+          hint: Text('Sélectionner un médecin'),
+          onChanged: (PS? value) {
+            setState(() {
+              _selectedExecutant = value;
             });
           },
           items: [
-            DropdownMenuItem<Doctor?>(
+            DropdownMenuItem<PS>(
               value: null,
               child: Text('Aucun', style: TextStyle(fontSize: 14)),
             ),
-            ..._doctors.map((doctor) => DropdownMenuItem(
-              value: doctor,
-              child: Text(doctor.fullName, style: TextStyle(fontSize: 14)),
+            ..._healthProfessionals.map((ps) => DropdownMenuItem<PS>(
+              value: ps,
+              child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
             )).toList(),
           ],
         ),
@@ -1217,29 +1272,25 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     }
   }
 
-  Future<void> _addNewDoctor() async {
+  Future<void> _addNewPS() async {
+    // Naviguer vers l'écran d'ajout de PS
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddDoctorScreen()),
+      MaterialPageRoute(builder: (context) => EditPSScreen()),
     );
-
-    if (result != null && result is Doctor) {
-      // Le médecin a été ajouté, on le charge dans la liste
+    if (result != null && result is PS) {
       setState(() {
-        _doctors.add(result);
-        _selectedDoctor = result;
+        _healthProfessionals.add(result);
+        _selectedPrescripteur = result;
       });
     } else if (result == true) {
-      // Recharger les médecins
+      // Recharger les professionnels de santé
       final dbHelper = DatabaseHelper();
-      final doctorMaps = await dbHelper.getDoctors();
-
+      final psMaps = await dbHelper.getPS();
       setState(() {
-        _doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
-
-        // Sélectionner automatiquement le nouveau médecin (dernier de la liste)
-        if (_doctors.isNotEmpty) {
-          _selectedDoctor = _doctors.last;
+        _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        if (_healthProfessionals.isNotEmpty) {
+          _selectedPrescripteur = _healthProfessionals.last;
         }
       });
     }
@@ -1395,7 +1446,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
-      'doctorId': _selectedDoctor?.id,
+      'prescripteurId': _selectedPrescripteur?.id,
+      'executantId': _selectedExecutant?.id,
       'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
       'prereqForSessionId': _linkType == ExaminationLinkType.SingleSession ?
@@ -1468,7 +1520,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
         'title': _titleController.text.trim(),
         'establishmentId': _selectedEstablishment!.id,
-        'doctorId': _selectedDoctor?.id,
+        'prescripteurId': _selectedPrescripteur?.id,
+        'executantId': _selectedExecutant?.id,
         'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       };
 
@@ -1629,7 +1682,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
         'dateTime': examDateTime.toIso8601String(),
         'establishmentId': _selectedEstablishment!.id,
-        'doctorId': _selectedDoctor?.id,
+        'prescripteurId': _selectedPrescripteur?.id,
+        'executantId': _selectedExecutant?.id,
         'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         'isCompleted': 0,
         'prereqForSessionId': session.id,
@@ -1673,7 +1727,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
-      'doctorId': _selectedDoctor?.id,
+      'prescripteurId': _selectedPrescripteur?.id,
+      'executantId': _selectedExecutant?.id,
       'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
       'prereqForSessionId': _linkType == ExaminationLinkType.SingleSession ? _selectedSessionId : null,

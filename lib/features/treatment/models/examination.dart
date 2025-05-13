@@ -1,6 +1,6 @@
 // lib/features/treatment/models/examination.dart
 import 'package:flutter/foundation.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
@@ -39,7 +39,8 @@ class Examination {
   final String? title; // Titre de l'examen
   final DateTime dateTime;
   final Establishment establishment;
-  final Doctor? doctor;
+  final PS? prescripteur; // Remplacer doctor par ps
+  final PS? executant;
   final List<Document> documents;
   final String? notes;
   final bool isCompleted;
@@ -53,7 +54,8 @@ class Examination {
     this.title,
     required this.dateTime,
     required this.establishment,
-    this.doctor,
+    this.prescripteur,
+    this.executant,
     this.documents = const [],
     this.notes,
     this.isCompleted = false,
@@ -68,7 +70,8 @@ class Examination {
     String? title,
     DateTime? dateTime,
     Establishment? establishment,
-    Doctor? doctor,
+    PS? prescripteur,
+    PS? executant,
     List<Document>? documents,
     String? notes,
     bool? isCompleted,
@@ -82,7 +85,8 @@ class Examination {
       title: title ?? this.title,
       dateTime: dateTime ?? this.dateTime,
       establishment: establishment ?? this.establishment,
-      doctor: doctor ?? this.doctor,
+      prescripteur: prescripteur ?? this.prescripteur,
+      executant: executant ?? this.executant,
       documents: documents ?? this.documents,
       notes: notes ?? this.notes,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -99,7 +103,8 @@ class Examination {
       'title': title,
       'dateTime': dateTime.toIso8601String(),
       'establishment': establishment.toMap(),
-      'doctor': doctor?.toMap(),
+      'prescripteur': prescripteur?.toMap(),
+      'executant': executant?.toMap(),
       'documents': documents.map((x) => x.toMap()).toList(),
       'notes': notes,
       'isCompleted': isCompleted ? 1 : 0,
@@ -121,7 +126,8 @@ class Examination {
         id: map['establishmentId'] ?? 'unknown',
         name: 'Établissement inconnu',
       ),
-      doctor: map['doctor'] != null ? Doctor.fromMap(map['doctor']) : null,
+      prescripteur: map['prescripteur'] != null ? PS.fromMap(map['prescripteur']) : null,
+      executant: map['executant'] != null ? PS.fromMap(map['executant']) : null,
       documents: map['documents'] != null
           ? List<Document>.from(map['documents'].map((x) => Document.fromMap(x)))
           : [],

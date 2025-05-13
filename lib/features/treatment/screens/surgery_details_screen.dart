@@ -5,7 +5,7 @@ import 'package:suivi_cancer/features/treatment/models/surgery.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
-import 'package:suivi_cancer/features/treatment/screens/add_side_effect_screen.dart';
+import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 
 class SurgeryDetailsScreen extends StatefulWidget {
   final Surgery surgery;

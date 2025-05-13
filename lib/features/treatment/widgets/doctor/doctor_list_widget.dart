@@ -2,75 +2,77 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart'; // Nouveau modèle
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/screens/doctor/edit_doctor_screen.dart';
+import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
 
 
 class DoctorListWidget extends StatefulWidget {
   const DoctorListWidget({Key? key}) : super(key: key);
 
   @override
-  State<DoctorListWidget> createState() => _DoctorListWidgetState();
+  State<DoctorListWidget> createState() => DoctorListWidgetState();
 }
 
-class _DoctorListWidgetState extends State<DoctorListWidget> {
-  List<Doctor> _doctors = [];
+class DoctorListWidgetState extends State<DoctorListWidget> {
+  List<PS> _professionals = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadDoctors();
+    loadPS();
   }
 
-  Future<void> _loadDoctors() async {
+  Future<void> loadPS() async {
     if (!mounted) return;
-
     setState(() {
       _isLoading = true;
     });
 
     try {
       final dbHelper = DatabaseHelper();
-      final doctorMaps = await dbHelper.getDoctors();
+      final psMaps = await dbHelper.getPS();
 
       if (!mounted) return;
-
       setState(() {
-        _doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+        _professionals = psMaps.map((map) => PS.fromMap(map)).toList();
         _isLoading = false;
       });
 
       // Débogage
-      for (var doctor in _doctors) {
-        print("Médecin: ${doctor.fullName}");
-        print("Contacts: ${doctor.contactInfos.length}");
-        for (var contact in doctor.contactInfos) {
-          print(" - ${contact.type}: ${contact.value}");
+      for (var professional in _professionals) {
+        print("Professionnel: ${professional.fullName}");
+        print("Contacts: ${professional.contacts?.length ?? 0}");
+        if (professional.contacts != null) {
+          for (var contact in professional.contacts!) {
+            print(" - ${contact.type}: ${contact.value}");
+          }
         }
       }
     } catch (e) {
-      print('Erreur lors du chargement des médecins: $e');
-
+      print('Erreur lors du chargement des professionnels: $e');
       if (!mounted) return;
-
       setState(() {
         _isLoading = false;
-        _doctors = [];
+        _professionals = [];
       });
     }
   }
 
-  void _editDoctor(Doctor doctor) async {
+  void _editPS(PS professional) async {
+    final psMap = professional.toMap();
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditDoctorScreen(doctor: doctor),
+        builder: (context) => EditPSScreen(ps: psMap),
       ),
     );
 
     if (result == true) {
-      _loadDoctors();
+      loadPS();
     }
   }
 
@@ -80,13 +82,13 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
       return Center(child: CircularProgressIndicator());
     }
 
-    if (_doctors.isEmpty) {
+    if (_professionals.isEmpty) {
       return Card(
         child: Padding(
           padding: EdgeInsets.all(16),
           child: Center(
             child: Text(
-              'Aucun médecin ajouté',
+              'Aucun professionnel de santé ajouté',
               style: TextStyle(color: Colors.grey[600]),
             ),
           ),
@@ -97,18 +99,17 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
     return ListView.builder(
       shrinkWrap: true,
       physics: NeverScrollableScrollPhysics(),
-      itemCount: _doctors.length,
+      itemCount: _professionals.length,
       itemBuilder: (context, index) {
-        final doctor = _doctors[index];
+        final professional = _professionals[index];
 
         // Trouver les contacts de téléphone et email
-        final phoneContacts = doctor.contactInfos
-            .where((contact) => contact.type == ContactType.Phone)
-            .toList();
-
-        final emailContacts = doctor.contactInfos
-            .where((contact) => contact.type == ContactType.Email)
-            .toList();
+        final phoneContacts = professional.contacts
+            ?.where((contact) => contact.type == 0) // Type téléphone
+            .toList() ?? [];
+        final emailContacts = professional.contacts
+            ?.where((contact) => contact.type == 1) // Type email
+            .toList() ?? [];
 
         final bool hasPhone = phoneContacts.isNotEmpty;
         final bool hasEmail = emailContacts.isNotEmpty;
@@ -116,8 +117,8 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
         return Card(
           margin: EdgeInsets.only(bottom: 8),
           child: ListTile(
-            title: Text(doctor.fullName),
-            subtitle: Text(doctor.specialty?.toString() ?? 'Non spécifiée'),
+            title: Text(professional.fullName),
+            subtitle: Text(professional.category?['name'] ?? 'Catégorie non spécifiée'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -128,7 +129,7 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
                     color: hasPhone ? Colors.blue : Colors.grey,
                   ),
                   onPressed: hasPhone
-                      ? () => _showContactOptions(context, phoneContacts, ContactType.Phone)
+                      ? () => _showContactOptions(context, phoneContacts, 0)
                       : null,
                 ),
                 // Icône d'email
@@ -138,25 +139,25 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
                     color: hasEmail ? Colors.blue : Colors.grey,
                   ),
                   onPressed: hasEmail
-                      ? () => _showContactOptions(context, emailContacts, ContactType.Email)
+                      ? () => _showContactOptions(context, emailContacts, 1)
                       : null,
                 ),
                 // Icône de modification
                 IconButton(
                   icon: Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _editDoctor(doctor),
+                  onPressed: () => _editPS(professional),
                 ),
                 // Icône de suppression
                 IconButton(
                   icon: Icon(Icons.delete, color: Colors.red),
                   onPressed: () {
-                    _confirmDelete(context, doctor);
+                    _confirmDelete(context, professional);
                   },
                 ),
               ],
             ),
             onTap: () {
-              // Navigation vers les détails du médecin
+              // Navigation vers les détails du professionnel
             },
           ),
         );
@@ -164,15 +165,16 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
     );
   }
 
+
   // Afficher une liste d'options si plusieurs contacts sont disponibles
-  void _showContactOptions(BuildContext context, List<ContactInfo> contacts, ContactType type) {
+  void _showContactOptions(BuildContext context, List<HealthProfessionalContact> contacts, int type) {
     if (contacts.isEmpty) return;
 
     if (contacts.length == 1) {
       // S'il n'y a qu'un seul contact, l'utiliser directement
-      if (type == ContactType.Phone) {
+      if (type == 0) { // Téléphone
         _makePhoneCall(contacts[0].value);
-      } else if (type == ContactType.Email) {
+      } else if (type == 1) { // Email
         _sendEmail(contacts[0].value);
       }
       return;
@@ -188,7 +190,7 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                type == ContactType.Phone ? 'Choisir un numéro de téléphone' : 'Choisir un email',
+                type == 0 ? 'Choisir un numéro de téléphone' : 'Choisir un email',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -198,16 +200,16 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
             Divider(),
             ...contacts.map((contact) => ListTile(
               leading: Icon(
-                type == ContactType.Phone ? Icons.phone : Icons.email,
+                type == 0 ? Icons.phone : Icons.email,
                 color: Colors.blue,
               ),
               title: Text(contact.value),
-              subtitle: Text(_getCategoryText(contact.category)),
+              subtitle: Text(contact.label ?? 'Non spécifié'),
               onTap: () {
                 Navigator.pop(context);
-                if (type == ContactType.Phone) {
+                if (type == 0) {
                   _makePhoneCall(contact.value);
-                } else if (type == ContactType.Email) {
+                } else if (type == 1) {
                   _sendEmail(contact.value);
                 }
               },
@@ -258,13 +260,13 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
     }
   }
 
-  void _confirmDelete(BuildContext context, Doctor doctor) {
+  void _confirmDelete(BuildContext context, PS professional) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Supprimer ce médecin?'),
+        title: Text('Supprimer ce professionnel?'),
         content: Text(
-            'Êtes-vous sûr de vouloir supprimer le Dr. ${doctor.firstName} ${doctor.lastName}? Cette action est irréversible.'
+            'Êtes-vous sûr de vouloir supprimer ${professional.firstName} ${professional.lastName}? Cette action est irréversible.'
         ),
         actions: [
           TextButton(
@@ -276,7 +278,7 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _deleteDoctor(doctor.id);
+              await _deletePS(professional.id);
             },
             child: Text('Supprimer'),
             style: TextButton.styleFrom(
@@ -288,17 +290,16 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
     );
   }
 
-  Future<void> _deleteDoctor(String id) async {
+
+  Future<void> _deletePS(String id) async {
     try {
       final dbHelper = DatabaseHelper();
-      await dbHelper.deleteDoctor(id);
-
+      await dbHelper.deleteHealthProfessional(id);
       // Rafraîchir la liste après suppression
-      _loadDoctors();
-
+      loadPS();
       // Afficher un message de confirmation
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Médecin supprimé avec succès')),
+        SnackBar(content: Text('Professionnel supprimé avec succès')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -307,6 +308,3 @@ class _DoctorListWidgetState extends State<DoctorListWidget> {
     }
   }
 }
-
-
-

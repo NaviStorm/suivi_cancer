@@ -1,5 +1,5 @@
 // lib/features/treatment/models/treatment.dart
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
@@ -9,7 +9,7 @@ class Treatment {
   final String id;
   final String label;
   final DateTime startDate;
-  final List<Doctor> doctors;
+  final List<PS> healthProfessionals;
   final List<Establishment> establishments;
   final List<Cycle> cycles;
   final List<Surgery> surgeries;
@@ -19,7 +19,7 @@ class Treatment {
     required this.id,
     required this.label,
     required this.startDate,
-    required this.doctors,
+    required this.healthProfessionals,
     required this.establishments,
     this.cycles = const [],
     this.surgeries = const [],
@@ -43,7 +43,7 @@ class Treatment {
       id: map['id'],
       label: map['label'],
       startDate: DateTime.parse(map['startDate']),
-      doctors: [], // Ces listes complexes nécessitent une implémentation plus avancée
+      healthProfessionals: [], // Ces listes complexes nécessitent une implémentation plus avancée
       establishments: [],
     );
   }

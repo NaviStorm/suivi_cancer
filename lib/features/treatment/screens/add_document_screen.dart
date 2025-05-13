@@ -47,6 +47,7 @@ class _AddDocumentScreenState extends State<AddDocumentScreen> {
   @override
   void initState() {
     super.initState();
+    Log.d('initState');
     _isEdit = widget.document != null;
 
     if (_isEdit) {
@@ -116,6 +117,7 @@ class _AddDocumentScreenState extends State<AddDocumentScreen> {
   }
 
   Future<void> _pickFile() async {
+    Log.d('_pickFile');
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: _getFileType(),

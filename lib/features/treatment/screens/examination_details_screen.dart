@@ -195,11 +195,11 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
               Icons.business,
               'Établissement: ${_examination.establishment.name}',
             ),
-            if (_examination.doctor != null) ...[
+            if (_examination.prescripteur != null) ...[
               SizedBox(height: 8),
               _buildInfoRow(
                 Icons.person,
-                'Médecin: ${_examination.doctor!.fullName}',
+                'Médecin: ${_examination.prescripteur!.fullName}',
               ),
             ],
             if (_examination.prereqForSessionId != null) ...[
@@ -742,6 +742,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   }
 
   Future<void> _pickFile() async {
+    Log.d('_pickFile');
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,

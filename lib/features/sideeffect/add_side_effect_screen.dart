@@ -3,21 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../../common/widgets/custom_text_field.dart';
-import '../../../common/widgets/date_time_picker.dart';
-import '../models/side_effect.dart';
-import '../../../core/storage/database_helper.dart';
+import '../../common/widgets/custom_text_field.dart';
+import '../../common/widgets/date_time_picker.dart';
+import '../treatment/models/side_effect.dart';
+import '../../core/storage/database_helper.dart';
 
 class AddSideEffectScreen extends StatefulWidget {
   final String entityType;
   final String entityId;
   final String entityName; // Pour afficher à quoi est lié l'effet secondaire
+  final SideEffect? sideEffect; // Paramètre optionnel pour la modification
 
   const AddSideEffectScreen({
     Key? key,
     required this.entityType,
     required this.entityId,
     required this.entityName,
+    this.sideEffect, // Null en mode création, non-null en mode modification
   }) : super(key: key);
 
   @override
@@ -32,11 +34,39 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
   SideEffectSeverity _severity = SideEffectSeverity.Moderate;
   bool _isLoading = false;
 
+  // Getter pour déterminer si on est en mode édition
+  bool get isEditing => widget.sideEffect != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialiser avec les valeurs existantes si en mode édition
+    if (isEditing) {
+      _descriptionController.text = widget.sideEffect!.description;
+      _notesController.text = widget.sideEffect!.notes ?? '';
+      _date = widget.sideEffect!.date;
+      _severity = widget.sideEffect!.severity;
+    } else {
+      _date = DateTime.now();
+      _severity = SideEffectSeverity.Moderate;
+    }
+  }
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ajouter un effet secondaire'),
+        title: Text(isEditing
+            ? 'Modifier un effet secondaire'
+            : 'Ajouter un effet secondaire'),
       ),
       body: Form(
         key: _formKey,
@@ -114,7 +144,7 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
                 onPressed: _isLoading ? null : _saveSideEffect,
                 child: _isLoading
                     ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Enregistrer'),
+                    : Text(isEditing ? 'Mettre à jour' : 'Enregistrer'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16),
                 ),
@@ -203,29 +233,55 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
       });
 
       try {
-        final sideEffect = SideEffect(
-          entityType: widget.entityType,
-          entityId: widget.entityId,
-          date: _date,
-          description: _descriptionController.text,
-          severity: _severity,
-          notes: _notesController.text.isNotEmpty ? _notesController.text : null,
-        );
-
         final dbHelper = DatabaseHelper();
-        final result = await dbHelper.insertSideEffect(sideEffect.toMap());
 
-        if (result != -1) {
-          // Succès
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Effet secondaire enregistré avec succès')),
+        if (isEditing) {
+          // Mode modification
+          final updatedSideEffect = SideEffect(
+            id: widget.sideEffect!.id, // Conserver l'ID existant
+            entityType: widget.entityType,
+            entityId: widget.entityId,
+            date: _date,
+            description: _descriptionController.text,
+            severity: _severity,
+            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
           );
-          Navigator.pop(context, true);
+
+          final result = await dbHelper.updateSideEffect(updatedSideEffect.toMap());
+
+          if (result > 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Effet secondaire mis à jour avec succès')),
+            );
+            Navigator.pop(context, true);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erreur lors de la mise à jour')),
+            );
+          }
         } else {
-          // Échec
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur lors de l\'enregistrement')),
+          // Mode création
+          final sideEffect = SideEffect(
+            entityType: widget.entityType,
+            entityId: widget.entityId,
+            date: _date,
+            description: _descriptionController.text,
+            severity: _severity,
+            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
           );
+
+          final result = await dbHelper.insertSideEffect(sideEffect.toMap());
+
+          if (result != -1) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Effet secondaire enregistré avec succès')),
+            );
+            Navigator.pop(context, true);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erreur lors de l\'enregistrement')),
+            );
+          }
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
