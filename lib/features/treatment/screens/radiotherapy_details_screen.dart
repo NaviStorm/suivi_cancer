@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
-import 'package:suivi_cancer/features/treatment/screens/add_side_effect_screen.dart';
+import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 
 class RadiotherapyDetailsScreen extends StatefulWidget {
   final Radiotherapy radiotherapy;

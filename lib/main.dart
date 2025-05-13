@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'common/theme/app_theme.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/home_screen.dart'; // Assurez-vous que ce fichier existe
 import 'core/notifications/notification_service.dart';
@@ -90,6 +92,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        const Locale('fr'), // Français
+        const Locale('en'), // Anglais
+        // Ajoutez d'autres langues selon vos besoins
+      ],
       title: 'Suivi Cancer',
       theme: AppTheme.lightTheme,
       home: HomeScreen(),

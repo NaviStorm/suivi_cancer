@@ -1,8 +1,9 @@
 // lib/features/treatment/screens/add_treatment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
+import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
@@ -37,7 +38,6 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   DateTime _startDate = DateTime.now();
   TreatmentType _selectedType = TreatmentType.Cycle;
   Establishment? _selectedEstablishment;
-  List<Doctor> _selectedDoctors = [];
 
   // Champs spécifiques au type de traitement
   CycleType _selectedCycleType = CycleType.Chemotherapy;
@@ -54,7 +54,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   DateTime _radiotherapyEndDate = DateTime.now().add(Duration(days: 37)); // Par défaut 30 jours après le début de la radiothérapie
 
   List<Establishment> _establishments = [];
-  List<Doctor> _doctors = [];
+  List<PS> _selectedHealthProfessionals = [];
+  List<PS> _healthProfessionals = [];
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -80,9 +81,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
       final establishmentMaps = await dbHelper.getEstablishments();
       _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
-      // Charger les médecins
-      final doctorMaps = await dbHelper.getDoctors();
-      _doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+      // Charger les professionnels de santé au lieu des médecins
+      final psMaps = await dbHelper.getPS();
+      _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
       // Définir l'établissement par défaut
       if (_establishments.isNotEmpty) {
@@ -155,7 +156,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               SizedBox(height: 16),
               _buildEstablishmentSection(),
               SizedBox(height: 16),
-              _buildDoctorSection(),
+              _buildHealthProfessionalSection(),
               SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveTreatment,
@@ -561,7 +562,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     );
   }
 
-  Widget _buildDoctorSection() {
+  Widget _buildHealthProfessionalSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -569,7 +570,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Médecins',
+              'Professionnels de santé',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -578,66 +579,65 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
             TextButton.icon(
               icon: Icon(Icons.add),
               label: Text('Nouveau'),
-              onPressed: _addNewDoctor,
+              onPressed: _addNewHealthProfessional,
             ),
           ],
         ),
         SizedBox(height: 8),
-        _buildDoctorMultiSelect(_selectedDoctors, (doctors) {
+        _buildHealthProfessionalMultiSelect(_selectedHealthProfessionals, (healthProfessionals) {
           setState(() {
-            _selectedDoctors = doctors;
+            _selectedHealthProfessionals = healthProfessionals;
           });
         }),
       ],
     );
   }
 
-  Widget _buildDoctorMultiSelect(List<Doctor> selectedDoctors, Function(List<Doctor>) onChanged) {
+  Widget _buildHealthProfessionalMultiSelect(List<PS> selectedHealthProfessionals, Function(List<PS>) onChanged) {
     return Card(
       margin: EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: EdgeInsets.all(8),
         child: Column(
           children: [
-            // Affichage des médecins sélectionnés
-            if (selectedDoctors.isNotEmpty)
+            // Affichage des professionnels de santé sélectionnés
+            if (selectedHealthProfessionals.isNotEmpty)
               Column(
-                children: selectedDoctors.map((doctor) => ListTile(
-                  title: Text(doctor.fullName),
+                children: selectedHealthProfessionals.map((ps) => ListTile(
+                  title: Text(ps.fullName),
+                  subtitle: ps.category != null ? Text(ps.category!['name']) : null,
                   trailing: IconButton(
                     icon: Icon(Icons.remove_circle_outline, color: Colors.red),
                     onPressed: () {
-                      onChanged(selectedDoctors.where((d) => d.id != doctor.id).toList());
+                      onChanged(selectedHealthProfessionals.where((p) => p.id != ps.id).toList());
                     },
                   ),
                 )).toList(),
               ),
-
-            // Dropdown pour ajouter un médecin
-            if (_doctors.isNotEmpty)
-              DropdownButton<Doctor>(
+            // Dropdown pour ajouter un professionnel de santé
+            if (_healthProfessionals.isNotEmpty)
+              DropdownButton<PS>(
                 isExpanded: true,
-                hint: Text('Ajouter un médecin'),
-                items: _doctors
-                    .where((doctor) => !selectedDoctors.any((d) => d.id == doctor.id))
-                    .map((doctor) {
-                  return DropdownMenuItem<Doctor>(
-                    value: doctor,
-                    child: Text(doctor.fullName),
+                hint: Text('Ajouter un professionnel de santé'),
+                items: _healthProfessionals
+                    .where((ps) => !selectedHealthProfessionals.any((p) => p.id == ps.id))
+                    .map((ps) {
+                  return DropdownMenuItem<PS>(
+                    value: ps,
+                    child: Text(ps.fullName),
                   );
                 }).toList(),
-                onChanged: (Doctor? value) {
+                onChanged: (PS? value) {
                   if (value != null) {
-                    onChanged([...selectedDoctors, value]);
+                    onChanged([...selectedHealthProfessionals, value]);
                   }
                 },
               ),
-
-            if (_doctors.isEmpty)
+            if (_healthProfessionals.isEmpty)
               Padding(
                 padding: EdgeInsets.all(8),
                 child: Text(
-                  'Aucun médecin disponible. Veuillez ajouter un médecin en cliquant sur "Nouveau".',
+                  'Aucun professionnel de santé disponible. Veuillez en ajouter un en cliquant sur "Nouveau".',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ),
@@ -646,6 +646,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
       ),
     );
   }
+
 
   Future<void> _addNewEstablishment() async {
     final result = await Navigator.push(
@@ -665,21 +666,21 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     }
   }
 
-  Future<void> _addNewDoctor() async {
+  Future<void> _addNewHealthProfessional() async {
     final result = await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => AddDoctorScreen())
+        MaterialPageRoute(builder: (context) => EditPSScreen())
     );
-
-    if (result != null && result is Doctor) {
+    if (result != null && result is PS) {
       // Recharger les données
       await _loadData();
-      // Ajouter le médecin à la liste des médecins sélectionnés
+      // Ajouter le professionnel de santé à la liste des professionnels sélectionnés
       setState(() {
-        _selectedDoctors = [..._selectedDoctors, result];
+        _selectedHealthProfessionals = [..._selectedHealthProfessionals, result];
       });
     }
   }
+
 
   Future<void> _saveTreatment() async {
     if (_formKey.currentState!.validate()) {
@@ -709,8 +710,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         await dbHelper.insertTreatment(treatmentData);
 
         // 2. Ajouter les relations avec les médecins
-        for (final doctor in _selectedDoctors) {
-          await dbHelper.linkTreatmentDoctor(treatmentId, doctor.id);
+        for (final ps in _selectedHealthProfessionals) {
+          await dbHelper.linkTreatmentHealthProfessional(treatmentId, ps.id);
         }
 
         // 3. Ajouter la relation avec l'établissement
@@ -811,8 +812,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     await dbHelper.insertSurgery(surgeryData);
 
     // Ajouter les médecins comme chirurgiens
-    for (final doctor in _selectedDoctors) {
-      await dbHelper.addSurgeonToSurgery(surgeryId, doctor.id);
+    for (final HealthProfessionals in _selectedHealthProfessionals) {
+      await dbHelper.addSurgeonToSurgery(surgeryId, HealthProfessionals.id);
     }
   }
 
@@ -835,8 +836,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     await dbHelper.insertRadiotherapy(radiotherapyData);
 
     // Ajouter les médecins comme radiothérapeutes
-    for (final doctor in _selectedDoctors) {
-      await dbHelper.addDoctorToRadiotherapy(radiotherapyId, doctor.id);
+    for (final HealthProfessionals in _selectedHealthProfessionals) {
+      await dbHelper.addDoctorToRadiotherapy(radiotherapyId, HealthProfessionals.id);
     }
 
     // Créer les sessions de radiothérapie

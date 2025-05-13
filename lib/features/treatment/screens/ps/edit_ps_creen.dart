@@ -179,6 +179,16 @@ class _EditPSScreenState extends State<EditPSScreen> {
                   ],
                 ),
               ),
+              // Bouton pour ajouter une nouvelle catégorie
+              ListTile(
+                leading: Icon(Icons.add_circle, color: Colors.blue),
+                title: Text('Ajouter une nouvelle catégorie'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddCategoryDialog(context);
+                },
+              ),
+              Divider(),
               Expanded(
                 child: ListView.builder(
                   itemCount: _categories.length,
@@ -205,6 +215,77 @@ class _EditPSScreenState extends State<EditPSScreen> {
       },
     );
   }
+
+  void _showAddCategoryDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    bool isActive = true;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Nouvelle catégorie'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                controller: nameController,
+                label: 'Nom de la catégorie',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un nom';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              CustomTextField(
+                controller: descriptionController,
+                label: 'Description',
+                maxLines: 3,
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Text('Actif'),
+                  SizedBox(width: 8),
+                  Switch(
+                    value: isActive,
+                    onChanged: (value) {
+                      setState(() {
+                        isActive = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                _saveNewCategory(
+                  nameController.text,
+                  descriptionController.text,
+                  isActive,
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _addContact() {
     showModalBottomSheet(
@@ -754,5 +835,42 @@ class _EditPSScreenState extends State<EditPSScreen> {
       ),
     );
   }
+
+  Future<void> _saveNewCategory(String name, String description, bool isActive) async {
+    try {
+      final newCategoryId = Uuid().v4();
+      final category = {
+        'id': newCategoryId,
+        'name': name,
+        'description': description,
+        'isActive': isActive ? 1 : 0,
+      };
+
+      // Insérer dans la base de données
+      final result = await DatabaseHelper().insertHealthProfessionalCategory(category);
+
+      if (result > 0) {
+        // Mettre à jour la liste des catégories
+        final updatedCategories = await DatabaseHelper().getHealthProfessionalCategories();
+        setState(() {
+          _categories = updatedCategories;
+          _selectedCategoryId = newCategoryId; // Sélectionner automatiquement la nouvelle catégorie
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Catégorie ajoutée avec succès')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'ajout de la catégorie')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
+  }
+
 }
 

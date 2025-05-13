@@ -1,24 +1,22 @@
 // lib/features/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/features/treatment/models/treatment.dart';
+import 'package:suivi_cancer/features/treatment/models/cycle.dart';
+import 'package:suivi_cancer/features/treatment/models/surgery.dart';
+import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
+import 'package:suivi_cancer/features/treatment/models/establishment.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/health_professionals_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/treatment_details_screen.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 
-import 'package:suivi_cancer/features/treatment/models/treatment.dart';
-import 'package:suivi_cancer/features/treatment/models/cycle.dart';
-import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
-import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/surgery_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_screen.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/utils/logger.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -56,15 +54,16 @@ class _HomeScreenState extends State<HomeScreen> {
         final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
         // Charger les médecins associés
-        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
-        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
-
+//        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
+//        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
+        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
         // Créer l'objet traitement
         final treatment = Treatment(
           id: treatmentId,
           label: map['label'],
           startDate: DateTime.parse(map['startDate']),
-          doctors: doctors,
+          healthProfessionals: healthProfessionals,
           establishments: establishments,
         );
 
@@ -320,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                    if (treatment.doctors.isNotEmpty)
+                    if (treatment.healthProfessionals.isNotEmpty)
                       Padding(
                         padding: EdgeInsets.only(top: 4),
                         child: Row(
@@ -329,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Médecins: ${treatment.doctors.map((d) => d.fullName).join(", ")}',
+                                'Professionnels: ${treatment.healthProfessionals.map((ps) => ps.fullName).join(", ")}',
                                 style: TextStyle(color: Colors.grey[600]),
                                 overflow: TextOverflow.ellipsis,
                               ),

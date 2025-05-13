@@ -991,14 +991,14 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             ),
           ],
         ),
-        if (examination.doctor != null)
+        if (examination.prescripteur != null)
           Row(
             children: [
               Icon(Icons.person, size: 10, color: Colors.indigo),
               SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  examination.doctor!.fullName,
+                  examination.prescripteur!.fullName,
                   style: TextStyle(fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1126,9 +1126,9 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           'Établissement: ${examination.establishment.name}',
           style: TextStyle(fontSize: 12, color: Colors.grey[800]),
         ),
-        if (examination.doctor != null)
+        if (examination.prescripteur != null)
           Text(
-            'Médecin: ${examination.doctor!.fullName}',
+            'Médecin: ${examination.prescripteur!.fullName}',
             style: TextStyle(fontSize: 12, color: Colors.grey[800]),
           ),
         if (examination.notes != null && examination.notes!.isNotEmpty)

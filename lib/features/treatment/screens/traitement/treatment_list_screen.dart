@@ -5,7 +5,7 @@ import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
 import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 import 'package:suivi_cancer/features/treatment/models/treatment.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
@@ -51,15 +51,15 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
         final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
         // Charger les médecins associés
-        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
-        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
+        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
         // Créer l'objet traitement
         final treatment = Treatment(
           id: treatmentId,
           label: map['label'],
           startDate: DateTime.parse(map['startDate']),
-          doctors: doctors,
+          healthProfessionals: healthProfessionals,
           establishments: establishments,
         );
 

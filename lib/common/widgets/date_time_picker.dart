@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'custom_text_field.dart';
+import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/utils/fctDate.dart';
 
 class DateTimePicker extends StatelessWidget {
   final String label;
@@ -24,11 +28,14 @@ class DateTimePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    Log.d('Création écran DateTimePicker ${this.label}');
+
     final TextEditingController controller = TextEditingController(
       text: initialValue != null
           ? showTime
-              ? DateFormat('dd/MM/yyyy HH:mm').format(initialValue!)
-              : DateFormat('dd/MM/yyyy').format(initialValue!)
+              ? DateFormat(getFmtDateTime()).format(initialValue!)
+              : DateFormat(getFmtDate()).format(initialValue!)
           : '',
     );
 
@@ -84,5 +91,6 @@ class DateTimePicker extends StatelessWidget {
       },
     );
   }
+
 }
 

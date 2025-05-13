@@ -5,6 +5,7 @@ import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_radiotherapy_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_surgery_screen.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
@@ -90,6 +91,22 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
         );
       }
 
+      // Charger les professionnels de santé associés
+      final psMaps = await dbHelper.getTreatmentHealthProfessionals(_treatment!.id);
+      final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+
+      // Mettre à jour le traitement avec les professionnels de santé
+      _treatment = Treatment(
+        id: _treatment!.id,
+        label: _treatment!.label,
+        startDate: _treatment!.startDate,
+        healthProfessionals: healthProfessionals,
+        establishments: _treatment!.establishments,
+        cycles: _treatment!.cycles,
+        surgeries: _treatment!.surgeries,
+        radiotherapies: _treatment!.radiotherapies,
+      );
+
       setState(() {
         _cycles = cycles; // Mise à jour de _cycles avec la liste complète
         _isLoading = false;
@@ -156,6 +173,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
         controller: _tabController,
         children: [
           _buildCyclesTab(),
+          _buildHealthProfessionalsSection(),
           _buildSurgeriesTab(),
           _buildRadiotherapiesTab(),
         ],
@@ -278,6 +296,43 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHealthProfessionalsSection() {
+    if (_treatment!.healthProfessionals.isEmpty) {
+      return Card(
+        margin: EdgeInsets.symmetric(vertical: 8),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Aucun professionnel de santé associé'),
+        ),
+      );
+    }
+
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Professionnels de santé',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            ...(_treatment!.healthProfessionals.map((ps) => ListTile(
+              title: Text(ps.fullName),
+              subtitle: ps.category != null ? Text(ps.category!['name']) : null,
+              leading: Icon(Icons.person),
+            )).toList()),
+          ],
+        ),
+      ),
     );
   }
 

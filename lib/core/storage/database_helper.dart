@@ -204,6 +204,17 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'treatment_doctors' créée");
 
+    await db.execute('''
+  CREATE TABLE IF NOT EXISTS treatment_health_professionals(
+    treatmentId TEXT NOT NULL,
+    healthProfessionalId TEXT NOT NULL,
+    PRIMARY KEY (treatmentId, healthProfessionalId),
+    FOREIGN KEY (treatmentId) REFERENCES treatments (id) ON DELETE CASCADE,
+    FOREIGN KEY (healthProfessionalId) REFERENCES health_professionals (id) ON DELETE CASCADE
+  )
+''');
+    Log.d("DatabaseHelper: Table 'treatment_health_professionals' créée");
+
 
     // Table de relation entre traitements et établissements
     await db.execute('''
@@ -447,17 +458,20 @@ class DatabaseHelper {
     otherType TEXT,
     dateTime TEXT NOT NULL,
     establishmentId TEXT NOT NULL,
-    doctorId TEXT,
+    prescripteurId TEXT,
+    executantId TEXT,
     notes TEXT,
     isCompleted INTEGER NOT NULL DEFAULT 0,
     prereqForSessionId TEXT,
     examGroupId TEXT,
     FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
     FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE,
-    FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE SET NULL,
+    FOREIGN KEY (prescripteurId) REFERENCES health_professionals (id) ON DELETE SET NULL,
+    FOREIGN KEY (executantId) REFERENCES health_professionals (id) ON DELETE SET NULL,
     FOREIGN KEY (prereqForSessionId) REFERENCES sessions (id) ON DELETE SET NULL
   )
 ''');
+    Log.d("DatabaseHelper: Table 'examinations' créée");
   }
 
   // Pour les futures mises à jour
@@ -861,6 +875,14 @@ class DatabaseHelper {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<int> linkTreatmentHealthProfessional(String treatmentId, String healthProfessionalId) async {
+    final db = await database;
+    return await db.insert('treatment_health_professionals', {
+      'treatmentId': treatmentId,
+      'healthProfessionalId': healthProfessionalId
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<int> linkTreatmentEstablishment(String treatmentId, String establishmentId) async {
     final db = await database;
     return await db.insert('treatment_establishments', {
@@ -885,6 +907,14 @@ class DatabaseHelper {
     );
   }
 
+  Future<int> unlinkTreatmentHealthProfessional(String treatmentId, String healthProfessionalId) async {
+    final db = await database;
+    return await db.delete('treatment_health_professionals',
+        where: 'treatmentId = ? AND healthProfessionalId = ?',
+        whereArgs: [treatmentId, healthProfessionalId]
+    );
+  }
+
   // Méthodes pour récupérer les médecins et établissements liés à un traitement
   Future<List<Map<String, dynamic>>> getTreatmentDoctors(String treatmentId) async {
     final db = await database;
@@ -893,6 +923,15 @@ class DatabaseHelper {
       INNER JOIN treatment_doctors td ON d.id = td.doctorId
       WHERE td.treatmentId = ?
     ''', [treatmentId]);
+  }
+
+  Future<List<Map<String, dynamic>>> getTreatmentHealthProfessionals(String treatmentId) async {
+    final db = await database;
+    return await db.rawQuery('''
+    SELECT hp.* FROM health_professionals hp
+    INNER JOIN treatment_health_professionals thp ON hp.id = thp.healthProfessionalId
+    WHERE thp.treatmentId = ?
+  ''', [treatmentId]);
   }
 
   Future<List<Map<String, dynamic>>> getTreatmentEstablishments(String treatmentId) async {
@@ -1061,7 +1100,11 @@ class DatabaseHelper {
           Log.d("La base de données peut être ouverte en lecture/écriture");
           await db.close();
         } catch (e) {
-          Log.d("Erreur lors de l'ouverture de la base de données : $e");
+          if (!e.toString().contains("not an error")) {
+            Log.d("Erreur lors de l'ouverture de la base de données : $e");
+          } else {
+            Log.d("La base de données peut être ouverte en lecture/écriture (ignoré faux positif)");
+          }
         }
       }
     } catch (e) {
@@ -2861,19 +2904,21 @@ class DatabaseHelper {
       CREATE TABLE examinations(
         id TEXT PRIMARY KEY,
         cycleId TEXT NOT NULL,
-        title TEXT,
+        title TEXT NOT NULL,
         type INTEGER NOT NULL,
         otherType TEXT,
         dateTime TEXT NOT NULL,
         establishmentId TEXT NOT NULL,
-        doctorId TEXT,
+        prescripteurId TEXT,
+        executantId TEXT,
         notes TEXT,
         isCompleted INTEGER NOT NULL DEFAULT 0,
         prereqForSessionId TEXT,
         examGroupId TEXT,
         FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
         FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE,
-        FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE SET NULL,
+        FOREIGN KEY (prescripteurId) REFERENCES health_professionals (id) ON DELETE SET NULL,
+        FOREIGN KEY (executantId) REFERENCES health_professionals (id) ON DELETE SET NULL,
         FOREIGN KEY (prereqForSessionId) REFERENCES sessions (id) ON DELETE SET NULL
       )
     ''');
@@ -2962,16 +3007,22 @@ class DatabaseHelper {
         CREATE TABLE examinations(
           id TEXT PRIMARY KEY,
           cycleId TEXT NOT NULL,
+          title TEXT NOT NULL,
           type INTEGER NOT NULL,
           otherType TEXT,
           dateTime TEXT NOT NULL,
           establishmentId TEXT NOT NULL,
-          doctorId TEXT,
+          prescripteurId TEXT,
+          executantId TEXT,
           notes TEXT,
           isCompleted INTEGER NOT NULL DEFAULT 0,
+          prereqForSessionId TEXT,
+          examGroupId TEXT,
           FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
           FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE,
-          FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE SET NULL
+          FOREIGN KEY (prescripteurId) REFERENCES health_professionals (id) ON DELETE SET NULL,
+          FOREIGN KEY (executantId) REFERENCES health_professionals (id) ON DELETE SET NULL,
+          FOREIGN KEY (prereqForSessionId) REFERENCES sessions (id) ON DELETE SET NULL
         )
       ''');
         Log.d("DatabaseHelper: Table 'examinations' créée");
@@ -3561,15 +3612,28 @@ class DatabaseHelper {
           }
 
           // Récupérer le médecin si présent
-          if (exam['doctorId'] != null) {
+          if (exam['prescripteurId'] != null) {
             final doctors = await db.query(
-              'doctors',
+              'prescripteurId',
               where: 'id = ?',
-              whereArgs: [exam['doctorId']],
+              whereArgs: [exam['prescripteurId']],
             );
 
             if (doctors.isNotEmpty) {
-              enrichedExam['doctor'] = doctors.first;
+              enrichedExam['prescripteur'] = doctors.first;
+            }
+          }
+
+          // Récupérer le médecin si présent
+          if (exam['executantId'] != null) {
+            final doctors = await db.query(
+              'executantId',
+              where: 'id = ?',
+              whereArgs: [exam['executantId']],
+            );
+
+            if (doctors.isNotEmpty) {
+              enrichedExam['executant'] = doctors.first;
             }
           }
 
@@ -4194,7 +4258,7 @@ class DatabaseHelper {
         'id': category['id'] ?? Uuid().v4(),
         'name': category['name'],
         'description': category['description'],
-        'isActive': category['isActive'] ? 1 : 0,
+        'isActive': category['isActive'],
       };
 
       final result = await db.insert('health_professional_categories', categoryData,
