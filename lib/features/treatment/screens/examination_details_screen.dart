@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
@@ -741,7 +742,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
     }
   }
 
-  Future<void> _pickFile() async {
+  Future _pickFile() async {
     Log.d('_pickFile');
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -755,25 +756,17 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
         final fileExtension = fileName.split('.').last.toLowerCase();
 
         // Déterminer le type de document
-        DocumentType docType;
+        DocumentType docType = DocumentType.PDF; // Valeur par défaut
         switch (fileExtension) {
           case 'pdf':
             docType = DocumentType.PDF;
+            // Vérifier si le PDF est protégé par mot de passe
+            if (await _isPdfPasswordProtected(filePath)) {
+              await _handlePasswordProtectedPdf(filePath, fileName);
+              return;
+            }
             break;
-          case 'jpg':
-          case 'jpeg':
-          case 'png':
-            docType = DocumentType.Image;
-            break;
-          case 'doc':
-          case 'docx':
-            docType = DocumentType.Word;
-            break;
-          case 'txt':
-            docType = DocumentType.Text;
-            break;
-          default:
-            docType = DocumentType.Other;
+        // Autres types de documents...
         }
 
         await _processDocument(filePath, fileName, docType);
@@ -783,6 +776,148 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       _showErrorMessage("Impossible de sélectionner le fichier");
     }
   }
+
+  Future<bool> _isPdfPasswordProtected(String filePath) async {
+    try {
+      // Utiliser la bibliothèque Syncfusion pour vérifier si le PDF est protégé
+      final bytes = await File(filePath).readAsBytes();
+      try {
+        // Essayer d'ouvrir le document sans mot de passe
+        final document = PdfDocument(inputBytes: bytes);
+        document.dispose();
+        return false; // Le document s'est ouvert sans mot de passe
+      } catch (e) {
+        // Si une exception est levée, le document est probablement protégé
+        return true;
+      }
+    } catch (e) {
+      Log.e("Erreur lors de la vérification de la protection du PDF: $e");
+      return false;
+    }
+  }
+
+  Future _handlePasswordProtectedPdf(String filePath, String fileName) async {
+    // Demander à l'utilisateur s'il souhaite supprimer la protection
+    final choice = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Document protégé par mot de passe'),
+        content: Text('Ce document PDF est protégé par un mot de passe. Souhaitez-vous supprimer cette protection ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Conserver la protection'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Supprimer la protection'),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == true) {
+      // L'utilisateur souhaite supprimer la protection
+      final password = await _askForPdfPassword();
+      if (password != null && password.isNotEmpty) {
+        final decryptedFilePath = await _decryptPdf(filePath, fileName, password);
+        if (decryptedFilePath != null) {
+          await _processDocument(decryptedFilePath, fileName, DocumentType.PDF);
+        }
+      }
+    } else if (choice == false) {
+      // L'utilisateur souhaite conserver la protection
+      await _processDocument(filePath, fileName, DocumentType.PDF);
+    }
+  }
+
+
+  Future<String?> _askForPdfPassword() async {
+    final controller = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Saisir le mot de passe'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: 'Mot de passe',
+            hintText: 'Entrez le mot de passe du document',
+          ),
+          obscureText: true,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: Text('Valider'),
+          ),
+        ],
+      ),
+    );
+
+    return password;
+  }
+
+
+  Future<String?> _decryptPdf(String filePath, String fileName, String password) async {
+    try {
+      // Créer un dossier temporaire pour stocker le fichier décrypté
+      final appDir = await getApplicationDocumentsDirectory();
+      final tempDir = Directory('${appDir.path}/temp');
+      if (!await tempDir.exists()) {
+        await tempDir.create(recursive: true);
+      }
+
+      // Générer un nom de fichier unique pour le fichier décrypté
+      final uniqueId = Uuid().v4();
+      final decryptedFilePath = '${tempDir.path}/$uniqueId.pdf';
+
+      // Lire le fichier PDF protégé
+      final bytes = await File(filePath).readAsBytes();
+
+      // Ouvrir le document avec le mot de passe fourni
+      try {
+        final document = PdfDocument(
+          inputBytes: bytes,
+          password: password,
+        );
+
+        // Obtenir la sécurité du document
+        final security = document.security;
+
+        // Supprimer les mots de passe
+        security.userPassword = '';
+        security.ownerPassword = '';
+
+        // Effacer les permissions de sécurité
+        security.permissions.clear();
+
+        // Sauvegarder le document sans protection
+        final decryptedBytes = await document.save();
+        document.dispose();
+
+        // Écrire le fichier décrypté
+        await File(decryptedFilePath).writeAsBytes(decryptedBytes);
+
+        _showMessage('Protection par mot de passe supprimée avec succès');
+        return decryptedFilePath;
+      } catch (e) {
+        Log.e("Erreur lors du décryptage du PDF: $e");
+        _showErrorMessage("Mot de passe incorrect ou document non déchiffrable");
+        return null;
+      }
+    } catch (e) {
+      Log.e("Erreur lors du traitement du PDF protégé: $e");
+      _showErrorMessage("Impossible de traiter le document protégé");
+      return null;
+    }
+  }
+
 
   Future<void> _processDocument(String sourcePath, String fileName, DocumentType docType) async {
     try {
@@ -838,6 +973,9 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       } else {
         _showErrorMessage("Erreur lors de l'enregistrement du document");
       }
+
+      // Nettoyage
+      await _cleanupTempFiles();
     } catch (e) {
       Log.e("Erreur lors du traitement du document: $e");
       _showErrorMessage("Impossible de traiter le document");
@@ -1203,5 +1341,17 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  Future _cleanupTempFiles() async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final tempDir = Directory('${appDir.path}/temp');
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (e) {
+      Log.e("Erreur lors du nettoyage des fichiers temporaires: $e");
+    }
   }
 }
