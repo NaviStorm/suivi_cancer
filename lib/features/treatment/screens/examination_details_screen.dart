@@ -742,6 +742,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   }
 
   Future<void> _pickFile() async {
+    Log.d('_pickFile');
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,

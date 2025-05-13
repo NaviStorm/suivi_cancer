@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Ajoutez cet import
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
+import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
+import 'package:suivi_cancer/features/treatment/widgets/add_medication_intake_dialog.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_examination_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_session_screen.dart';
@@ -36,15 +38,16 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   List<Session> _sessions = [];
   List<Examination> _examinations = [];
   List<Document> _documents = [];
+  List<MedicationIntake> _medicationIntakes = [];
 
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
     super.initState();
-    // Initialiser les données de localisation pour le français
+    // Initialiser les donnÃ©es de localisation pour le franÃ§ais
     initializeDateFormatting('fr_FR', null).then((_) {
-      // Les données de localisation sont maintenant initialisées
+      // Les donnÃ©es de localisation sont maintenant initialisÃ©es
       _cycle = widget.cycle;
       _sessions = _cycle.sessions ?? [];
       _refreshCycleData();
@@ -59,16 +62,16 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               (s) => s.id == examination.prereqForSessionId,
         );
       } catch (e) {
-        return 'Associé à une séance';
+        return 'AssociÃ© Ã  une sÃ©ance';
       }
 
       if (examination.dateTime.isBefore(relatedSession.dateTime)) {
-        return 'Prérequis pour séance';
+        return 'PrÃ©requis pour sÃ©ance';
       } else {
-        return 'Suivi de séance';
+        return 'Suivi de sÃ©ance';
       }
     }
-    return 'Associé à une séance';
+    return 'AssociÃ© Ã  une sÃ©ance';
   }
 
 
@@ -78,19 +81,19 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     });
 
     try {
-      // Récupérer les informations à jour du cycle
+      // RÃ©cupÃ©rer les informations Ã  jour du cycle
       final cycleMap = await _dbHelper.getCycle(_cycle.id);
 
       if (cycleMap != null) {
-        print("Données du cycle récupérées : $cycleMap");
+        print("DonnÃ©es du cycle rÃ©cupÃ©rÃ©es : $cycleMap");
 
-        // Mettre à jour les propriétés du cycle
+        // Mettre Ã  jour les propriÃ©tÃ©s du cycle
         _cycle = Cycle(
           id: cycleMap['id'] as String,
           type: CureType.values[cycleMap['type'] as int],
           startDate: DateTime.parse(cycleMap['startDate'] as String),
           endDate: DateTime.parse(cycleMap['endDate'] as String),
-          establishment: _cycle.establishment, // Conserver l'établissement existant
+          establishment: _cycle.establishment, // Conserver l'Ã©tablissement existant
           sessionCount: cycleMap['sessionCount'] as int,
           sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
           isCompleted: cycleMap['isCompleted'] == 1,
@@ -98,37 +101,37 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         );
       }
 
-      // Charger les séances
-      print("Chargement des séances pour le cycle ID : ${_cycle.id}");
+      // Charger les sÃ©ances
+      print("Chargement des sÃ©ances pour le cycle ID : ${_cycle.id}");
       final sessionMaps = await _dbHelper.getSessionsByCycle(_cycle.id);
-      print("Séances trouvées : ${sessionMaps.length}");
+      print("SÃ©ances trouvÃ©es : ${sessionMaps.length}");
 
       _sessions = [];
 
-      print("Nombre de séances trouvées : ${sessionMaps.length}");
+      print("Nombre de sÃ©ances trouvÃ©es : ${sessionMaps.length}");
 
       for (var sessionMap in sessionMaps) {
-        print("Session chargée : ${sessionMap['id']} - ${sessionMap['dateTime']}");
+        print("Session chargÃ©e : ${sessionMap['id']} - ${sessionMap['dateTime']}");
 
         try {
-          // Vérifier que tous les champs nécessaires sont présents
+          // VÃ©rifier que tous les champs nÃ©cessaires sont prÃ©sents
           if (sessionMap['id'] == null || sessionMap['dateTime'] == null ||
               sessionMap['cycleId'] == null || sessionMap['establishmentId'] == null) {
-            print("⚠️ Session incomplète, champs manquants : $sessionMap");
+            print("âš ï¸ Session incomplÃ¨te, champs manquants : $sessionMap");
             continue;
           }
 
-          // Récupérer l'établissement de la session
+          // RÃ©cupÃ©rer l'Ã©tablissement de la session
           final sessionId = sessionMap['id'] as String;
           final establishmentId = sessionMap['establishmentId'] as String;
           final establishmentMap = await _dbHelper.getEstablishment(establishmentId);
 
           if (establishmentMap == null) {
-            print("⚠️ Établissement non trouvé pour ID : $establishmentId");
-            // Utiliser l'établissement du cycle comme fallback
+            print("âš ï¸ Ã‰tablissement non trouvÃ© pour ID : $establishmentId");
+            // Utiliser l'Ã©tablissement du cycle comme fallback
             var establishment = _cycle.establishment;
 
-            // Créer la session avec l'établissement du cycle
+            // CrÃ©er la session avec l'Ã©tablissement du cycle
             Session session = Session(
               id: sessionId,
               dateTime: DateTime.parse(sessionMap['dateTime'] as String),
@@ -136,17 +139,17 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               establishmentId: establishmentId,
               establishment: establishment,
               notes: sessionMap['notes'] as String?,
-              medications: [], // Charger les médicaments séparément
+              medications: [], // Charger les mÃ©dicaments sÃ©parÃ©ment
             );
 
             session.isCompleted = sessionMap['isCompleted'] == 1;
             _sessions.add(session);
-            print("Session ajoutée avec l'établissement du cycle");
+            print("Session ajoutÃ©e avec l'Ã©tablissement du cycle");
           } else {
-            // L'établissement a été trouvé, créer la session normalement
+            // L'Ã©tablissement a Ã©tÃ© trouvÃ©, crÃ©er la session normalement
             final establishment = Establishment.fromMap(establishmentMap);
 
-            // Créer la session
+            // CrÃ©er la session
             Session session = Session(
               id: sessionMap['id'] as String,
               dateTime: DateTime.parse(sessionMap['dateTime'] as String),
@@ -154,20 +157,20 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               establishmentId: establishmentId,
               establishment: establishment,
               notes: sessionMap['notes'] as String?,
-              medications: [], // Charger les médicaments séparément
+              medications: [], // Charger les mÃ©dicaments sÃ©parÃ©ment
             );
 
             session.isCompleted = sessionMap['isCompleted'] == 1;
             _sessions.add(session);
-            print("Session ajoutée avec son propre établissement");
+            print("Session ajoutÃ©e avec son propre Ã©tablissement");
           }
         } catch (sessionError) {
-          print("⚠️ Erreur lors de la création de la session : $sessionError");
+          print("âš ï¸ Erreur lors de la crÃ©ation de la session : $sessionError");
           // Continuer avec la prochaine session
         }
       }
 
-      // Charger les médicaments pour chaque session
+      // Charger les mÃ©dicaments pour chaque session
       List<Session> updatedSessions = [];
       for (var session in _sessions) {
         try {
@@ -175,19 +178,19 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           if (medicationMaps.isNotEmpty) {
             final medications = medicationMaps.map((map) => Medication.fromMap(map)).toList();
 
-            // Créer une nouvelle session avec les médicaments mis à jour
+            // CrÃ©er une nouvelle session avec les mÃ©dicaments mis Ã  jour
             Session updatedSession = session.copyWith(medications: medications);
             updatedSessions.add(updatedSession);
           } else {
             updatedSessions.add(session);
           }
         } catch (e) {
-          print("⚠️ Erreur lors du chargement des médicaments : $e");
+          print("âš ï¸ Erreur lors du chargement des mÃ©dicaments : $e");
           updatedSessions.add(session);
         }
       }
 
-      // Trier les séances par date
+      // Trier les sÃ©ances par date
       _sessions.sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
       // Charger les examens
@@ -196,29 +199,33 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       // Charger les documents
       _documents = await _loadDocuments();
 
+      // Charger les prises de mÃ©dicaments
+      final medicationIntakeMaps = await _dbHelper.getMedicationIntakesByCycle(_cycle.id);
+      _medicationIntakes = medicationIntakeMaps.map((map) => MedicationIntake.fromMap(map)).toList();
+
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
-      print("❌ Erreur lors du chargement des données du cycle: $e");
+      print("âŒ Erreur lors du chargement des donnÃ©es du cycle: $e");
       setState(() {
         _isLoading = false;
       });
-      _showErrorMessage("Impossible de charger les données du cycle");
+      _showErrorMessage("Impossible de charger les donnÃ©es du cycle");
     }
   }
 
   Future<List<Examination>> _loadExaminations() async {
     try {
-      // Ajouter un log pour déboguer
+      // Ajouter un log pour dÃ©boguer
       print("Chargement des examens pour le cycle : ${_cycle.id}");
 
       final examinationMaps = await _dbHelper.getExaminationsByCycle(_cycle.id);
 
-      // Ajouter un log pour voir combien d'examens sont récupérés
-      print("Nombre d'examens trouvés : ${examinationMaps.length}");
+      // Ajouter un log pour voir combien d'examens sont rÃ©cupÃ©rÃ©s
+      print("Nombre d'examens trouvÃ©s : ${examinationMaps.length}");
 
-      // Afficher les détails des examens pour déboguer
+      // Afficher les dÃ©tails des examens pour dÃ©boguer
       for (var map in examinationMaps) {
         print("Examen ID: ${map['id']}, Titre: ${map['title']}, Type: ${map['type']}");
       }
@@ -226,7 +233,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       return examinationMaps.map((map) => Examination.fromMap(map)).toList();
     } catch (e) {
       Log.e("Erreur lors du chargement des examens: $e");
-      print("Exception détaillée: $e");
+      print("Exception dÃ©taillÃ©e: $e");
       return [];
     }
   }
@@ -245,12 +252,12 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Détails du cycle', style: TextStyle(fontSize: 16)),
+        title: Text('DÃ©tails du cycle', style: TextStyle(fontSize: 16)),
         actions: [
-          // Toggle pour masquer/afficher les événements passés
+          // Toggle pour masquer/afficher les Ã©vÃ©nements passÃ©s
           IconButton(
             icon: Icon(_hideCompletedEvents ? Icons.visibility_off : Icons.visibility),
-            tooltip: _hideCompletedEvents ? "Afficher les événements passés" : "Masquer les événements passés",
+            tooltip: _hideCompletedEvents ? "Afficher les Ã©vÃ©nements passÃ©s" : "Masquer les Ã©vÃ©nements passÃ©s",
             onPressed: () {
               setState(() {
                 _hideCompletedEvents = !_hideCompletedEvents;
@@ -294,7 +301,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           ? null
           : FloatingActionButton(
         child: Icon(Icons.add),
-        tooltip: 'Ajouter un événement',
+        tooltip: 'Ajouter un Ã©vÃ©nement',
         onPressed: _showAddEventDialog,
       ),
     );
@@ -307,7 +314,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            'Calendrier des événements',
+            'Calendrier des Ã©vÃ©nements',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -331,12 +338,12 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Filtrer les événements'),
+        title: Text('Filtrer les Ã©vÃ©nements'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SwitchListTile(
-              title: Text('Masquer les événements terminés'),
+              title: Text('Masquer les Ã©vÃ©nements terminÃ©s'),
               value: _hideCompletedEvents,
               onChanged: (value) {
                 setState(() {
@@ -367,14 +374,14 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ajouter un événement',
+            Text('Ajouter un Ã©vÃ©nement',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             ListTile(
               leading: Icon(Icons.event_note, color: Colors.blue),
-              title: Text('Nouvelle séance', style: TextStyle(fontSize: 14)),
-              subtitle: Text('Planifier une séance de traitement', style: TextStyle(fontSize: 12)),
+              title: Text('Nouvelle sÃ©ance', style: TextStyle(fontSize: 14)),
+              subtitle: Text('Planifier une sÃ©ance de traitement', style: TextStyle(fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 _navigateToAddSession();
@@ -392,10 +399,19 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             ListTile(
               leading: Icon(Icons.description, color: Colors.green),
               title: Text('Nouveau document', style: TextStyle(fontSize: 14)),
-              subtitle: Text('Ordonnance, résultat, compte-rendu...', style: TextStyle(fontSize: 12)),
+              subtitle: Text('Ordonnance, rÃ©sultat, compte-rendu...', style: TextStyle(fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 _navigateToAddDocument();
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.medication, color: Colors.lightBlue),
+              title: Text('Nouvelle prise de mÃ©dicament', style: TextStyle(fontSize: 14)),
+              subtitle: Text('Enregistrer une prise de mÃ©dicament', style: TextStyle(fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToAddMedicationIntake();
               },
             ),
           ],
@@ -435,7 +451,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                     ),
                   ),
                   child: Text(
-                    _cycle.isCompleted ? 'Terminé' : 'En cours',
+                    _cycle.isCompleted ? 'TerminÃ©' : 'En cours',
                     style: TextStyle(
                       color: _cycle.isCompleted ? Colors.green : Colors.blue,
                       fontSize: 12,
@@ -448,7 +464,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             Divider(height: 24),
             _buildInfoRow(
               Icons.calendar_today,
-              'Début: ${DateFormat('dd/MM/yyyy').format(_cycle.startDate)}',
+              'DÃ©but: ${DateFormat('dd/MM/yyyy').format(_cycle.startDate)}',
             ),
             SizedBox(height: 8),
             _buildInfoRow(
@@ -458,7 +474,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             SizedBox(height: 8),
             _buildInfoRow(
               Icons.medical_services,
-              'Séances prévues: ${_cycle.sessionCount}',
+              'SÃ©ances prÃ©vues: ${_cycle.sessionCount}',
             ),
             SizedBox(height: 8),
             _buildInfoRow(
@@ -468,7 +484,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             SizedBox(height: 8),
             _buildInfoRow(
               Icons.business,
-              'Établissement: ${_cycle.establishment.name}',
+              'Ã‰tablissement: ${_cycle.establishment.name}',
             ),
 
             if (_cycle.conclusion != null && _cycle.conclusion!.isNotEmpty) ...[
@@ -510,17 +526,17 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
   }
 
-// Modifications supplémentaires pour la méthode _buildChronologicalTimeline
+// Modifications supplÃ©mentaires pour la mÃ©thode _buildChronologicalTimeline
   Widget _buildChronologicalTimeline() {
-    // Ajouter un log au début
-    print("Construction de la chronologie avec ${_sessions.length} séances");
+    // Ajouter un log au dÃ©but
+    print("Construction de la chronologie avec ${_sessions.length} sÃ©ances");
 
-    // Combiner toutes les "dates importantes" : séances + examens + documents
+    // Combiner toutes les "dates importantes" : sÃ©ances + examens + documents
     List<Map<String, dynamic>> allEvents = [];
 
-    // Ajouter les séances
+    // Ajouter les sÃ©ances
     for (var session in _sessions) {
-      print("Traitement de la séance : ${session.id} - ${session.dateTime} - Terminée : ${session.isCompleted}");
+      print("Traitement de la sÃ©ance : ${session.id} - ${session.dateTime} - TerminÃ©e : ${session.isCompleted}");
 
       if (_hideCompletedEvents && session.isCompleted) continue;
 
@@ -528,17 +544,17 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         'date': session.dateTime,
         'type': 'session',
         'object': session,
-        'title': 'Séance ${_getSessionNumberInCycle(session)}',
+        'title': 'SÃ©ance ${_getSessionNumberInCycle(session)}',
         'icon': Icons.medical_services,
         'color': Colors.blue,
         'isPast': session.dateTime.isBefore(DateTime.now()),
         'isCompleted': session.isCompleted,
       });
-      print("Séance ajoutée à la chronologie");
+      print("SÃ©ance ajoutÃ©e Ã  la chronologie");
     }
 
-    // Ajouter un log après avoir ajouté toutes les séances
-    print("Nombre total d'événements après ajout des séances : ${allEvents.length}");
+    // Ajouter un log aprÃ¨s avoir ajoutÃ© toutes les sÃ©ances
+    print("Nombre total d'Ã©vÃ©nements aprÃ¨s ajout des sÃ©ances : ${allEvents.length}");
 
     // Ajouter les examens
     for (var exam in _examinations) {
@@ -556,9 +572,9 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       });
     }
 
-    // Ajouter les documents comme des événements à leur date d'ajout
+    // Ajouter les documents comme des Ã©vÃ©nements Ã  leur date d'ajout
     for (var doc in _documents) {
-      if (_hideCompletedEvents) continue; // Les documents sont toujours "complétés"
+      if (_hideCompletedEvents) continue; // Les documents sont toujours "complÃ©tÃ©s"
 
       allEvents.add({
         'date': doc.dateAdded,
@@ -567,12 +583,27 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         'title': doc.name,
         'icon': _getDocumentTypeIcon(doc.type),
         'color': _getDocumentTypeColor(doc.type),
-        'isPast': true, // Les documents sont toujours dans le passé
+        'isPast': true, // Les documents sont toujours dans le passÃ©
         'isCompleted': true,
       });
     }
 
-    // Trier les événements par date
+    // Ajouter les prises de mÃ©dicaments
+    for (var intake in _medicationIntakes) {
+      if (_hideCompletedEvents && intake.isCompleted) continue;
+      allEvents.add({
+        'date': intake.dateTime,
+        'type': 'medication_intake',
+        'object': intake,
+        'title': 'Prise de ${intake.medicationName}',
+        'icon': Icons.medication,
+        'color': Colors.lightBlue,
+        'isPast': intake.dateTime.isBefore(DateTime.now()),
+        'isCompleted': intake.isCompleted,
+      });
+    }
+
+    // Trier les Ã©vÃ©nements par date
     allEvents.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
 
     if (allEvents.isEmpty) {
@@ -590,7 +621,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               ),
               SizedBox(height: 16),
               Text(
-                'Aucun événement programmé',
+                'Aucun Ã©vÃ©nement programmÃ©',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -599,7 +630,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                'Utilisez le bouton + pour ajouter des séances ou des examens à ce cycle',
+                'Utilisez le bouton + pour ajouter des sÃ©ances ou des examens Ã  ce cycle',
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontSize: 14,
@@ -612,7 +643,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       );
     }
 
-    // Grouper les événements par mois
+    // Grouper les Ã©vÃ©nements par mois
     Map<String, List<Map<String, dynamic>>> eventsByMonth = {};
     for (var event in allEvents) {
       final date = event['date'] as DateTime;
@@ -635,7 +666,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête du mois
+            // En-tÃªte du mois
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: Text(
@@ -648,7 +679,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               ),
             ),
 
-            // Événements du mois
+            // Ã‰vÃ©nements du mois
             ListView.builder(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
@@ -666,18 +697,18 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
   }
 
-// Ajoutez cette méthode à la classe _CycleDetailsScreenState
+// Ajoutez cette mÃ©thode Ã  la classe _CycleDetailsScreenState
   Future<void> _toggleExaminationCompleted(Examination examination) async {
     try {
-      // Inverser l'état de complétion
+      // Inverser l'Ã©tat de complÃ©tion
       final bool newCompletionState = !examination.isCompleted;
 
-      // Mettre à jour dans la base de données
+      // Mettre Ã  jour dans la base de donnÃ©es
       await _dbHelper.updateExaminationCompletionStatus(examination.id, newCompletionState);
 
-      // Mettre à jour l'UI
+      // Mettre Ã  jour l'UI
       setState(() {
-        // Comme Examination est probablement immuable, on doit créer une nouvelle instance
+        // Comme Examination est probablement immuable, on doit crÃ©er une nouvelle instance
         final index = _examinations.indexWhere((e) => e.id == examination.id);
         if (index >= 0) {
           _examinations[index] = examination.copyWith(isCompleted: newCompletionState);
@@ -687,12 +718,12 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       // Afficher un message de confirmation
       _showMessage(
           newCompletionState
-              ? 'Examen marqué comme terminé'
-              : 'Examen marqué comme non terminé'
+              ? 'Examen marquÃ© comme terminÃ©'
+              : 'Examen marquÃ© comme non terminÃ©'
       );
     } catch (e) {
-      print("Erreur lors de la mise à jour de l'état de l'examen: $e");
-      _showErrorMessage("Une erreur est survenue lors de la mise à jour");
+      print("Erreur lors de la mise Ã  jour de l'Ã©tat de l'examen: $e");
+      _showErrorMessage("Une erreur est survenue lors de la mise Ã  jour");
     }
   }
 
@@ -705,22 +736,22 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     final Color color = event['color'] as Color;
     final String type = event['type'] as String;
 
-    // Déterminer la couleur de fond en fonction de l'état
-    // Déterminer la couleur de fond et la bordure en fonction du type et de l'état
+    // DÃ©terminer la couleur de fond en fonction de l'Ã©tat
+    // DÃ©terminer la couleur de fond et la bordure en fonction du type et de l'Ã©tat
     Color backgroundColor = Colors.transparent;
     BoxBorder? border;
 
     if (type == 'session') {
       if (isCompleted) {
-        // Séance terminée
+        // SÃ©ance terminÃ©e
         backgroundColor = Colors.grey[100]!;
         border = Border.all(color: Colors.grey[300]!, width: 1);
       } else if (isPast) {
-        // Séance passée mais non terminée
-        backgroundColor = Colors.grey[300]!; // ~5% d'opacité
+        // SÃ©ance passÃ©e mais non terminÃ©e
+        backgroundColor = Colors.grey[300]!; // ~5% d'opacitÃ©
         border = Border.all(color: Colors.amber[300]!, width: 1);
       } else {
-        // Séance à venir
+        // SÃ©ance Ã  venir
         backgroundColor = Colors.white;
         border = Border.all(color: Colors.black, width: 1);
       }
@@ -729,11 +760,11 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       final examination = event['object'] as Examination;
 
       if (examination.type == ExaminationType.PriseDeSang) {
-        // Couleur jaune très pâle pour les prises de sang
-        backgroundColor = Color(0xFFFFF9C4); // Jaune très pâle
+        // Couleur jaune trÃ¨s pÃ¢le pour les prises de sang
+        backgroundColor = Color(0xFFFFF9C4); // Jaune trÃ¨s pÃ¢le
         border = Border.all(color: Colors.amber[300]!, width: 1);
       } else if (examination.type == ExaminationType.Injection) {
-        backgroundColor = Colors.lightGreen.shade50; // Vert très pâle
+        backgroundColor = Colors.lightGreen.shade50; // Vert trÃ¨s pÃ¢le
         border = Border.all(color: Colors.amber[300]!, width: 1);
       } else if (isCompleted) {
         backgroundColor = Colors.grey.withAlpha(13);
@@ -745,164 +776,265 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
         backgroundColor = Colors.white;
         border = Border.all(color: Colors.red[200]!, width: 1);
       }
+    } else if (type == 'medication_intake') {
+      // Couleur bleu trÃ¨s pÃ¢le pour les prises de mÃ©dicament
+      backgroundColor = Color(0xFFE3F2FD); // Bleu trÃ¨s pÃ¢le
+      border = Border.all(color: Colors.blue[100]!, width: 1);
     } else {
-      // Autres types d'événements (examens, documents)
+      // Autres types d'Ã©vÃ©nements (examens, documents)
       if (isCompleted) {
-        backgroundColor = Colors.grey.withAlpha(13); // ~5% d'opacité
+        backgroundColor = Colors.grey.withAlpha(13); // ~5% d'opacitÃ©
       } else if (isPast) {
-        backgroundColor = Colors.amber.withAlpha(13); // ~5% d'opacité
+        backgroundColor = Colors.amber.withAlpha(13); // ~5% d'opacitÃ©
       }
       border = Border.all(color: Colors.grey[200]!, width: 1);
     }
 
-    // Contenu spécifique au type d'événement
+    // Contenu spÃ©cifique au type d'Ã©vÃ©nement
     Widget eventContent;
     if (type == 'session') {
       eventContent = _buildDetailedSessionPreview(event['object'] as Session);
     } else if (type == 'examination') {
       eventContent = _buildDetailedExaminationPreview(event['object'] as Examination);
+    } else if (type == 'medication_intake') {
+      eventContent = _buildDetailedMedicationIntakePreview(event['object'] as MedicationIntake);
     } else { // document
       eventContent = _buildDetailedDocumentPreview(event['object'] as Document);
     }
 
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 3), // Marges réduites
-      elevation: 1, // Élévation réduite pour un look plus léger
-      color: backgroundColor,
-      child: InkWell(
-        onTap: () => _navigateToEventDetails(event),
-        borderRadius: BorderRadius.circular(4), // Coins moins arrondis
-        child: Padding(
-          padding: EdgeInsets.all(8), // Padding réduit
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Date - Taille réduite
-              Container(
-                width: 50, // Largeur réduite
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      DateFormat('dd').format(date),
-                      style: TextStyle(
-                        fontSize: 16, // Taille réduite
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM', 'fr_FR').format(date).toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10, // Taille réduite
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 2), // Espacement réduit
-                    Text(
-                      DateFormat('HH:mm').format(date),
-                      style: TextStyle(
-                        fontSize: 10, // Taille réduite
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    // Cas spécial pour les prises de médicament
+    if (type == 'medication_intake') {
+      final intake = event['object'] as MedicationIntake;
 
-              // Séparateur vertical - Plus fin
-              Container(
-                height: 60, // Hauteur réduite
-                width: 1,
-                color: Colors.grey.withOpacity(0.2),
-                margin: EdgeInsets.symmetric(horizontal: 4), // Marges réduites
-              ),
-
-              // Icône - Plus petite
-              Container(
-                margin: EdgeInsets.only(right: 8, top: 2), // Marges réduites
-                padding: EdgeInsets.all(6), // Padding réduit
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 14, color: color), // Icône plus petite
-              ),
-
-              // Contenu - optimisé pour montrer plus de détails
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 12, // Taille réduite
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        // Ajouter une icône de case à cocher pour les séances et examens
-                        if (type == 'session' || type == 'examination')
-                          GestureDetector(
-                            onTap: () {
-                              if (type == 'session') {
-                                _toggleSessionCompleted(event['object'] as Session);
-                              } else if (type == 'examination') {
-                                _toggleExaminationCompleted(event['object'] as Examination);
-                              }
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isCompleted ? Colors.green.withAlpha(20) : Colors.grey.withAlpha(10),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                isCompleted ? Icons.check_circle : Icons.check_circle_outline,
-                                size: 16,
-                                color: isCompleted ? Colors.green : Colors.grey,
-                              ),
-                            ),
-                          ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1), // Padding réduit
-                          decoration: BoxDecoration(
-                            color: isCompleted ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            isCompleted ? 'Terminé' : (isPast ? 'En retard' : 'À venir'),
-                            style: TextStyle(
-                              fontSize: 9, // Taille réduite
-                              color: isCompleted ? Colors.green : (isPast ? Colors.amber.shade900 : Colors.grey[700]),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 2), // Espacement réduit
-                    // Détails spécifiques au type d'événement
-                    eventContent,
-                  ],
-                ),
-              ),
-            ],
+      return Card(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+        elevation: 1,
+        color: backgroundColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(
+            color: Colors.black,
+            width: 0,
           ),
         ),
-      ),
-    );
+        child: InkWell(
+          onTap: () => _navigateToEventDetails(event),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                // Date et heure
+                Text(
+                  DateFormat('dd/MM HH:mm').format(date),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(width: 8),
+
+                // Icône médicament
+                Icon(Icons.medication, size: 16, color: Colors.blue),
+                SizedBox(width: 8),
+
+                // Nom du médicament
+                Expanded(
+                  child: Text(
+                    'Prise ${intake.medicationName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                // Icône de validation et statut
+                InkWell(
+                  onTap: () => _toggleMedicationIntakeCompleted(intake),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isCompleted ? Icons.check_circle : Icons.circle_outlined,
+                        color: isCompleted ? Colors.green : Colors.grey,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        isCompleted ? 'Terminé' : 'En retard',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isCompleted ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Card(
+        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+        // Marges rÃ©duites
+        elevation: 1,
+        // Ã‰lÃ©vation rÃ©duite pour un look plus lÃ©ger
+        color: backgroundColor,
+        child: InkWell(
+          onTap: () => _navigateToEventDetails(event),
+          borderRadius: BorderRadius.circular(4), // Coins moins arrondis
+          child: Padding(
+            padding: EdgeInsets.all(8), // Padding rÃ©duit
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Date - Taille rÃ©duite
+                Container(
+                  width: 50, // Largeur rÃ©duite
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        DateFormat('dd').format(date),
+                        style: TextStyle(
+                          fontSize: 16, // Taille rÃ©duite
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('MMM', 'fr_FR').format(date).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10, // Taille rÃ©duite
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 2), // Espacement rÃ©duit
+                      Text(
+                        DateFormat('HH:mm').format(date),
+                        style: TextStyle(
+                          fontSize: 10, // Taille rÃ©duite
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // SÃ©parateur vertical - Plus fin
+                Container(
+                  height: 60, // Hauteur rÃ©duite
+                  width: 1,
+                  color: Colors.grey.withOpacity(0.2),
+                  margin: EdgeInsets.symmetric(
+                      horizontal: 4), // Marges rÃ©duites
+                ),
+
+                // IcÃ´ne - Plus petite
+                Container(
+                  margin: EdgeInsets.only(right: 8, top: 2), // Marges rÃ©duites
+                  padding: EdgeInsets.all(6), // Padding rÃ©duit
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                      icon, size: 14, color: color), // IcÃ´ne plus petite
+                ),
+
+                // Contenu - optimisÃ© pour montrer plus de dÃ©tails
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 12, // Taille rÃ©duite
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Ajouter une icÃ´ne de case Ã  cocher pour les sÃ©ances et examens
+                          if (type == 'session' || type == 'examination')
+                            GestureDetector(
+                              onTap: () {
+                                if (type == 'session') {
+                                  _toggleSessionCompleted(
+                                      event['object'] as Session);
+                                } else if (type == 'examination') {
+                                  _toggleExaminationCompleted(
+                                      event['object'] as Examination);
+                                }
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isCompleted ? Colors.green.withAlpha(
+                                      20) : Colors.grey.withAlpha(10),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Icon(
+                                  isCompleted ? Icons.check_circle : Icons
+                                      .check_circle_outline,
+                                  size: 16,
+                                  color: isCompleted ? Colors.green : Colors
+                                      .grey,
+                                ),
+                              ),
+                            ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1), // Padding rÃ©duit
+                            decoration: BoxDecoration(
+                              color: isCompleted
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isCompleted ? 'TerminÃ©' : (isPast
+                                  ? 'En retard'
+                                  : 'Ã€ venir'),
+                              style: TextStyle(
+                                fontSize: 9, // Taille rÃ©duite
+                                color: isCompleted ? Colors.green : (isPast
+                                    ? Colors.amber.shade900
+                                    : Colors.grey[700]),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 2), // Espacement rÃ©duit
+                      // DÃ©tails spÃ©cifiques au type d'Ã©vÃ©nement
+                      eventContent,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 
-// Affichage détaillé d'une séance avec plus d'informations
+// Affichage dÃ©taillÃ© d'une sÃ©ance avec plus d'informations
   Widget _buildDetailedSessionPreview(Session session) {
-    // Récupérer les médicaments groupés par type
+    // RÃ©cupÃ©rer les mÃ©dicaments groupÃ©s par type
     final List<Medication> standardMeds = session.medications.where((m) => !m.isRinsing).toList();
     final List<Medication> rinsingMeds = session.medications.where((m) => m.isRinsing).toList();
     Log.d('session:${session.id}');
@@ -930,7 +1062,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'Médic: ${standardMeds.map((m) => m.name).join(", ")}',
+                  'MÃ©dic: ${standardMeds.map((m) => m.name).join(", ")}',
                   style: TextStyle(fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -945,7 +1077,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  'Rinçage: ${rinsingMeds.map((m) => m.name).join(", ")}',
+                  'RinÃ§age: ${rinsingMeds.map((m) => m.name).join(", ")}',
                   style: TextStyle(fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -973,7 +1105,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
   }
 
-// Affichage détaillé d'un examen
+// Affichage dÃ©taillÃ© d'un examen
   Widget _buildDetailedExaminationPreview(Examination examination) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1040,7 +1172,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
   }
 
-// Affichage détaillé d'un document
+// Affichage dÃ©taillÃ© d'un document
   Widget _buildDetailedDocumentPreview(Document document) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1068,7 +1200,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             ),
             if (document.size != null) ...[
               Text(
-                ' • ${_formatFileSize(document.size!)}',
+                ' â€¢ ${_formatFileSize(document.size!)}',
                 style: TextStyle(fontSize: 10, color: Colors.grey[600]),
               ),
             ],
@@ -1094,17 +1226,52 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
   }
 
+  Widget _buildDetailedMedicationIntakePreview(MedicationIntake intake) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.access_time, size: 10, color: Colors.grey[600]),
+            SizedBox(width: 4),
+            Text(
+              DateFormat('HH:mm').format(intake.dateTime),
+              style: TextStyle(fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        if (intake.notes != null && intake.notes!.isNotEmpty)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.notes, size: 10, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  intake.notes!,
+                  style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
   Widget _buildSessionPreview(Session session) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Établissement: ${session.establishment.name}',
+          'Ã‰tablissement: ${session.establishment.name}',
           style: TextStyle(fontSize: 12, color: Colors.grey[800]),
         ),
         if (session.medications.isNotEmpty)
           Text(
-            'Médicaments: ${session.medications.length}',
+            'MÃ©dicaments: ${session.medications.length}',
             style: TextStyle(fontSize: 12, color: Colors.grey[800]),
           ),
         if (session.notes != null && session.notes!.isNotEmpty)
@@ -1123,12 +1290,12 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Établissement: ${examination.establishment.name}',
+          'Ã‰tablissement: ${examination.establishment.name}',
           style: TextStyle(fontSize: 12, color: Colors.grey[800]),
         ),
         if (examination.prescripteur != null)
           Text(
-            'Médecin: ${examination.prescripteur!.fullName}',
+            'MÃ©decin: ${examination.prescripteur!.fullName}',
             style: TextStyle(fontSize: 12, color: Colors.grey[800]),
           ),
         if (examination.notes != null && examination.notes!.isNotEmpty)
@@ -1171,7 +1338,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       child: _isCompletingCycle
           ? CircularProgressIndicator(color: Colors.white)
           : Text(
-        'Marquer le cycle comme terminé',
+        'Marquer le cycle comme terminÃ©',
         style: TextStyle(fontSize: 14),
       ),
     );
@@ -1179,8 +1346,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
 
   // Actions de navigation et d'interactions
   void _navigateToEditCycle() {
-    // TODO: Implémenter l'écran d'édition du cycle
-    _showMessage("La fonctionnalité d'édition du cycle sera disponible prochainement");
+    // TODO: ImplÃ©menter l'Ã©cran d'Ã©dition du cycle
+    _showMessage("La fonctionnalitÃ© d'Ã©dition du cycle sera disponible prochainement");
   }
 
   void _navigateToAddSession() async {
@@ -1213,7 +1380,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   void _navigateToAddExamination() async {
-    // Afficher une boîte de dialogue pour choisir le type d'examen à ajouter
+    // Afficher une boÃ®te de dialogue pour choisir le type d'examen Ã  ajouter
     final examinationType = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
@@ -1231,23 +1398,23 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               ListTile(
                 leading: Icon(Icons.calendar_today, color: Colors.blue),
                 title: Text('Pour le cycle entier', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Examen lié au traitement global', style: TextStyle(fontSize: 12)),
+                subtitle: Text('Examen liÃ© au traitement global', style: TextStyle(fontSize: 12)),
                 onTap: () => Navigator.pop(context, 'cycle'),
                 dense: true,
               ),
               Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.event_note, color: Colors.purple),
-                title: Text('Pour une séance spécifique', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Prérequis pour une séance particulière', style: TextStyle(fontSize: 12)),
+                title: Text('Pour une sÃ©ance spÃ©cifique', style: TextStyle(fontSize: 14)),
+                subtitle: Text('PrÃ©requis pour une sÃ©ance particuliÃ¨re', style: TextStyle(fontSize: 12)),
                 onTap: () => Navigator.pop(context, 'session'),
                 dense: true,
               ),
               Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.calendar_month, color: Colors.teal),
-                title: Text('Pour toutes les séances', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Même examen pour chaque séance', style: TextStyle(fontSize: 12)),
+                title: Text('Pour toutes les sÃ©ances', style: TextStyle(fontSize: 14)),
+                subtitle: Text('MÃªme examen pour chaque sÃ©ance', style: TextStyle(fontSize: 12)),
                 onTap: () => Navigator.pop(context, 'all_sessions'),
                 dense: true,
               ),
@@ -1264,21 +1431,21 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
 
     if (examinationType == null) {
-      // L'utilisateur a annulé
+      // L'utilisateur a annulÃ©
       return;
     }
 
-    // Si l'utilisateur choisit une séance spécifique, on lui demande de sélectionner la séance
+    // Si l'utilisateur choisit une sÃ©ance spÃ©cifique, on lui demande de sÃ©lectionner la sÃ©ance
     String? selectedSessionId;
     if (examinationType == 'session' && _sessions.isNotEmpty) {
       selectedSessionId = await _showSessionSelectionDialog();
       if (selectedSessionId == null) {
-        // L'utilisateur a annulé la sélection de la séance
+        // L'utilisateur a annulÃ© la sÃ©lection de la sÃ©ance
         return;
       }
     }
 
-    // Naviguer vers l'écran d'ajout d'examen avec les paramètres appropriés
+    // Naviguer vers l'Ã©cran d'ajout d'examen avec les paramÃ¨tres appropriÃ©s
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -1291,7 +1458,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     );
 
     if (result == true) {
-      // L'examen a été ajouté avec succès, rafraîchir les données
+      // L'examen a Ã©tÃ© ajoutÃ© avec succÃ¨s, rafraÃ®chir les donnÃ©es
       _refreshCycleData();
     }
   }
@@ -1301,14 +1468,14 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Lier l\'examen à...'),
+        title: Text('Lier l\'examen Ã ...'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: Icon(Icons.medical_services, color: Colors.blue),
               title: Text('Cycle entier'),
-              subtitle: Text('Examen général lié au cycle de traitement'),
+              subtitle: Text('Examen gÃ©nÃ©ral liÃ© au cycle de traitement'),
               onTap: () {
                 Navigator.pop(context);
                 _navigateToAddExaminationForCycle();
@@ -1316,8 +1483,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             ),
             ListTile(
               leading: Icon(Icons.event_note, color: Colors.purple),
-              title: Text('Prérequis de séance'),
-              subtitle: Text('Examen nécessaire avant une séance spécifique'),
+              title: Text('PrÃ©requis de sÃ©ance'),
+              subtitle: Text('Examen nÃ©cessaire avant une sÃ©ance spÃ©cifique'),
               onTap: () {
                 Navigator.pop(context);
                 _showSessionSelectionDialog();
@@ -1336,8 +1503,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   void _navigateToAddExaminationForCycle() async {
-    // TODO: Implémenter l'écran d'ajout d'examen pour le cycle
-    _showMessage("La fonctionnalité d'ajout d'examen pour le cycle sera disponible prochainement");
+    // TODO: ImplÃ©menter l'Ã©cran d'ajout d'examen pour le cycle
+    _showMessage("La fonctionnalitÃ© d'ajout d'examen pour le cycle sera disponible prochainement");
   }
 
   Future<String?> _showSessionSelectionDialog() async {
@@ -1345,7 +1512,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Sélectionner une séance'),
+          title: Text('SÃ©lectionner une sÃ©ance'),
           content: Container(
             width: double.maxFinite,
             child: ListView.builder(
@@ -1363,7 +1530,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                     color: isCompleted ? Colors.grey : Colors.blue,
                   ),
                   title: Text(
-                    'Séance ${index + 1}/${_cycle.sessionCount}',
+                    'SÃ©ance ${index + 1}/${_cycle.sessionCount}',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -1371,7 +1538,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    '$date à $time',
+                    '$date Ã  $time',
                     style: TextStyle(
                       fontSize: 12,
                       color: isCompleted ? Colors.grey : null,
@@ -1399,17 +1566,17 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
 
 
   void _navigateToAddExaminationForSession(Session session) async {
-    // TODO: Implémenter l'écran d'ajout d'examen pour une séance
-    _showMessage("La fonctionnalité d'ajout d'examen prérequis sera disponible prochainement");
+    // TODO: ImplÃ©menter l'Ã©cran d'ajout d'examen pour une sÃ©ance
+    _showMessage("La fonctionnalitÃ© d'ajout d'examen prÃ©requis sera disponible prochainement");
 
-    // Code de navigation à implémenter
+    // Code de navigation Ã  implÃ©menter
     /*
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AddExaminationScreen(
           cycleId: _cycle.id,
-          sessionId: session.id, // Session comme prérequis
+          sessionId: session.id, // Session comme prÃ©requis
         ),
       ),
     );
@@ -1421,8 +1588,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   void _navigateToAddDocument() async {
-    // TODO: Implémenter l'écran d'ajout de document
-    _showMessage("La fonctionnalité d'ajout de document sera disponible prochainement");
+    // TODO: ImplÃ©menter l'Ã©cran d'ajout de document
+    _showMessage("La fonctionnalitÃ© d'ajout de document sera disponible prochainement");
 
     // Exemple de code pour la navigation
     /*
@@ -1460,7 +1627,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       );
 
       if (result == true) {
-        // Si l'examen a été modifié ou supprimé, rafraîchir les données
+        // Si l'examen a Ã©tÃ© modifiÃ© ou supprimÃ©, rafraÃ®chir les donnÃ©es
         _refreshCycleData();
       }
     } else if (type == 'document') {
@@ -1468,9 +1635,35 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     }
   }
 
+  void _navigateToAddMedicationIntake() async {
+    // Ici, vous naviguerez vers un Ã©cran d'ajout de prise de mÃ©dicament
+    // Pour l'instant, nous allons simuler cela avec un dialogue
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AddMedicationIntakeDialog(cycleId: _cycle.id),
+    );
+
+    if (result != null) {
+      // Ajouter la prise de mÃ©dicament Ã  la base de donnÃ©es
+      final medicationIntake = {
+        'id': result['id'],
+        'dateTime': result['dateTime'].toIso8601String(),
+        'cycleId': _cycle.id,
+        'medicationId': result['medicationId'],
+        'medicationName': result['medicationName'],
+        'isCompleted': result['isCompleted'] ? 1 : 0,
+        'notes': result['notes'],
+      };
+
+      await _dbHelper.insertMedicationIntake(medicationIntake);
+      _refreshCycleData();
+    }
+  }
+
   void _openDocument(Document document) {
-    // TODO: Implémenter l'ouverture de document
-    _showMessage("La fonctionnalité d'ouverture de document sera disponible prochainement");
+    // TODO: ImplÃ©menter l'ouverture de document
+    _showMessage("La fonctionnalitÃ© d'ouverture de document sera disponible prochainement");
 
     // Exemple de code pour la navigation
     /*
@@ -1486,8 +1679,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   void _downloadDocument(Document document) {
-    // TODO: Implémenter le téléchargement de document
-    _showMessage("La fonctionnalité de téléchargement de document sera disponible prochainement");
+    // TODO: ImplÃ©menter le tÃ©lÃ©chargement de document
+    _showMessage("La fonctionnalitÃ© de tÃ©lÃ©chargement de document sera disponible prochainement");
   }
 
   Future<void> _confirmDeleteCycle() async {
@@ -1495,7 +1688,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Supprimer le cycle',
-        content: 'Êtes-vous sûr de vouloir supprimer ce cycle et toutes ses séances ? Cette action est irréversible.',
+        content: 'ÃŠtes-vous sÃ»r de vouloir supprimer ce cycle et toutes ses sÃ©ances ? Cette action est irrÃ©versible.',
         confirmText: 'Supprimer',
         cancelText: 'Annuler',
         isDestructive: true,
@@ -1505,7 +1698,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     if (confirmed == true) {
       try {
         await _dbHelper.deleteCycle(_cycle.id);
-        _showMessage('Cycle supprimé avec succès');
+        _showMessage('Cycle supprimÃ© avec succÃ¨s');
         Navigator.pop(context, true);
       } catch (e) {
         Log.e("Erreur lors de la suppression du cycle: $e");
@@ -1519,7 +1712,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Terminer le cycle',
-        content: 'Êtes-vous sûr de vouloir marquer ce cycle comme terminé ?',
+        content: 'ÃŠtes-vous sÃ»r de vouloir marquer ce cycle comme terminÃ© ?',
         confirmText: 'Confirmer',
         cancelText: 'Annuler',
         isDestructive: false,
@@ -1537,7 +1730,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           'isCompleted': 1,
         });
 
-        _showMessage('Cycle marqué comme terminé');
+        _showMessage('Cycle marquÃ© comme terminÃ©');
 
         setState(() {
           _cycle = Cycle(
@@ -1557,7 +1750,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           _isCompletingCycle = false;
         });
       } catch (e) {
-        Log.e("Erreur lors de la mise à jour du cycle: $e");
+        Log.e("Erreur lors de la mise Ã  jour du cycle: $e");
         _showErrorMessage("Impossible de terminer le cycle");
         setState(() {
           _isCompletingCycle = false;
@@ -1566,7 +1759,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     }
   }
 
-  // Méthodes utilitaires
+  // MÃ©thodes utilitaires
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message, style: TextStyle(fontSize: 14))),
@@ -1585,13 +1778,13 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   String _getCycleTypeLabel(CureType type) {
     switch (type) {
       case CureType.Chemotherapy:
-        return 'Chimiothérapie';
+        return 'ChimiothÃ©rapie';
       case CureType.Immunotherapy:
-        return 'Immunothérapie';
+        return 'ImmunothÃ©rapie';
       case CureType.Hormonotherapy:
-        return 'Hormonothérapie';
+        return 'HormonothÃ©rapie';
       case CureType.Combined:
-        return 'Traitement combiné';
+        return 'Traitement combinÃ©';
     }
   }
 
@@ -1610,9 +1803,9 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       case ExaminationType.PriseDeSang:
         return 'Prise de sang';
       case ExaminationType.Echographie:
-        return 'Échographie';
+        return 'Ã‰chographie';
       case ExaminationType.EpreuveEffort:
-        return 'Épreuve d\'effort';
+        return 'Ã‰preuve d\'effort';
       case ExaminationType.EFR:
         return 'EFR';
       case ExaminationType.Autre:
@@ -1690,7 +1883,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     }
   }
 
-// Méthode helper pour obtenir le numéro de la séance dans le cycle
+// MÃ©thode helper pour obtenir le numÃ©ro de la sÃ©ance dans le cycle
   String _getSessionNumberInCycle(Session session) {
     final index = _sessions.indexWhere((s) => s.id == session.id);
     if (index >= 0) {
@@ -1699,14 +1892,14 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     return '';
   }
 
-// Méthode pour formater la taille du fichier
+// MÃ©thode pour formater la taille du fichier
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-// Icône détaillée pour le type de document
+// IcÃ´ne dÃ©taillÃ©e pour le type de document
   IconData _getDocumentDetailsIcon(DocumentType type) {
     switch (type) {
       case DocumentType.PDF:
@@ -1725,13 +1918,13 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
 // Baculer rdv a termine et plus a en retard
   Future<void> _toggleSessionCompleted(Session session) async {
     try {
-      // Inverser l'état de complétion
+      // Inverser l'Ã©tat de complÃ©tion
       final bool newCompletionState = !session.isCompleted;
 
-      // Mettre à jour dans la base de données
+      // Mettre Ã  jour dans la base de donnÃ©es
       await _dbHelper.updateSessionCompletionStatus(session.id, newCompletionState);
 
-      // Mettre à jour l'UI
+      // Mettre Ã  jour l'UI
       setState(() {
         session.isCompleted = newCompletionState;
       });
@@ -1739,12 +1932,38 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       // Afficher un message de confirmation
       _showMessage(
           newCompletionState
-              ? 'Séance marquée comme terminée'
-              : 'Séance marquée comme non terminée'
+              ? 'SÃ©ance marquÃ©e comme terminÃ©e'
+              : 'SÃ©ance marquÃ©e comme non terminÃ©e'
       );
     } catch (e) {
-      print("Erreur lors de la mise à jour de l'état de la séance: $e");
-      _showErrorMessage("Une erreur est survenue lors de la mise à jour");
+      print("Erreur lors de la mise Ã  jour de l'Ã©tat de la sÃ©ance: $e");
+      _showErrorMessage("Une erreur est survenue lors de la mise Ã  jour");
     }
   }
+
+  Future<void> _toggleMedicationIntakeCompleted(MedicationIntake intake) async {
+    try {
+      // Inverser l'Ã©tat de complÃ©tion
+      final bool newCompletionState = !intake.isCompleted;
+      // Mettre Ã  jour dans la base de donnÃ©es
+      await _dbHelper.updateMedicationIntakeCompletionStatus(intake.id, newCompletionState);
+      // Mettre Ã  jour l'UI
+      setState(() {
+        final index = _medicationIntakes.indexWhere((i) => i.id == intake.id);
+        if (index >= 0) {
+          _medicationIntakes[index] = intake.copyWith(isCompleted: newCompletionState);
+        }
+      });
+      // Afficher un message de confirmation
+      _showMessage(
+          newCompletionState
+              ? 'MÃ©dicament marquÃ© comme pris'
+              : 'MÃ©dicament marquÃ© comme non pris'
+      );
+    } catch (e) {
+      print("Erreur lors de la mise Ã  jour de l'Ã©tat de la prise de mÃ©dicament: $e");
+      _showErrorMessage("Une erreur est survenue lors de la mise Ã  jour");
+    }
+  }
+
 }
