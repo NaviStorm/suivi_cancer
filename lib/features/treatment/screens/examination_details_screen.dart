@@ -16,6 +16,7 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_examination_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/utils/fctDate.dart';
 import 'package:suivi_cancer/services/document_import_service.dart';
 
 class ExaminationDetailsScreen extends StatefulWidget {
@@ -186,12 +187,12 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
             Divider(height: 32),
             _buildInfoRow(
               Icons.calendar_today,
-              'Date: ${DateFormat('dd/MM/yyyy').format(_examination.dateTime)}',
+              'Date: ${DateFormat(getFmtDate()).format(_examination.dateTime)}',
             ),
             SizedBox(height: 8),
             _buildInfoRow(
               Icons.access_time,
-              'Heure: ${DateFormat('HH:mm').format(_examination.dateTime)}',
+              'Heure: ${DateFormat(getFmtTime()).format(_examination.dateTime)}',
             ),
             SizedBox(height: 8),
             _buildInfoRow(
@@ -311,8 +312,8 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   Widget _buildRelatedSessionSection() {
     if (_relatedSession == null) return SizedBox.shrink();
     
-    final sessionDate = DateFormat('dd/MM/yyyy').format(_relatedSession!.dateTime);
-    final sessionTime = DateFormat('HH:mm').format(_relatedSession!.dateTime);
+    final sessionDate = DateFormat(getFmtDate() ).format(_relatedSession!.dateTime);
+    final sessionTime = DateFormat(getFmtTime()).format(_relatedSession!.dateTime);
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +386,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Ajouté le ${DateFormat('dd/MM/yyyy').format(document.dateAdded)}',
+              'Ajouté le ${DateFormat(getFmtDate()).format(document.dateAdded)}',
               style: TextStyle(fontSize: 12),
             ),
             if (document.description != null && document.description!.isNotEmpty)
@@ -435,9 +436,9 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   String _getSessionTimeRelationLabel() {
     if (_examination.prereqForSessionId != null && _relatedSession != null) {
       if (_examination.dateTime.isBefore(_relatedSession!.dateTime)) {
-        return 'Prérequis pour la séance du ${DateFormat('dd/MM/yyyy').format(_relatedSession!.dateTime)}';
+        return 'Prérequis pour la séance du ${DateFormat(getFmtDate()).format(_relatedSession!.dateTime)}';
       } else {
-        return 'Suivi de la séance du ${DateFormat('dd/MM/yyyy').format(_relatedSession!.dateTime)}';
+        return 'Suivi de la séance du ${DateFormat(getFmtDate()).format(_relatedSession!.dateTime)}';
       }
     }
     return 'Associé à une séance';

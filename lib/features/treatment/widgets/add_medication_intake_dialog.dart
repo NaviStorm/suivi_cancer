@@ -8,6 +8,7 @@ import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/utils/fctDate.dart';
 
 
 // lib/features/treatment/widgets/add_medication_intake_dialog.dart
@@ -230,7 +231,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
               // Date et heure
               ListTile(
                 title: Text('Date et heure'),
-                subtitle: Text(DateFormat('dd/MM/yyyy à HH:mm').format(_selectedDateTime)),
+                subtitle: Text(getLocalizedDateTimeFormat(_selectedDateTime)),
                 trailing: Icon(Icons.calendar_today),
                 onTap: _selectDate,
               ),

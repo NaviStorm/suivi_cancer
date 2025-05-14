@@ -1,8 +1,9 @@
 ﻿// lib/features/treatment/screens/cycle_details_screen.dart
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Ajoutez cet import
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
@@ -19,6 +20,8 @@ import 'package:suivi_cancer/features/treatment/screens/add_session_screen.dart'
 import 'package:suivi_cancer/features/treatment/screens/session_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/examination_details_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/utils/fctDate.dart';
+
 
 
 
@@ -37,6 +40,9 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   bool _isCompletingCycle = false;
   bool _hideCompletedEvents = false;
 
+  final currentLocale = ui.PlatformDispatcher.instance.locale.toString() ?? Intl.getCurrentLocale();
+
+
   List<Session> _sessions = [];
   List<Examination> _examinations = [];
   List<Document> _documents = [];
@@ -54,6 +60,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
       _sessions = _cycle.sessions ?? [];
       _refreshCycleData();
     });
+    Log.d('currentLocale:[${currentLocale}]');
   }
 
   String _getSessionTimeRelationLabel(Examination examination) {
@@ -663,7 +670,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     Map<String, List<Map<String, dynamic>>> eventsByMonth = {};
     for (var event in allEvents) {
       final date = event['date'] as DateTime;
-      final monthKey = DateFormat('yyyy-MM').format(date);
+      final monthKey = DateFormat('yyyy-MM', currentLocale).format(date);
       if (!eventsByMonth.containsKey(monthKey)) {
         eventsByMonth[monthKey] = [];
       }
@@ -686,7 +693,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: Text(
-                DateFormat('MMMM yyyy').format(monthDate),
+                DateFormat('MMMM yyyy', currentLocale).format(monthDate),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -841,7 +848,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               children: [
                 // Date et heure
                 Text(
-                  DateFormat('dd/MM HH:mm').format(date),
+                  DateFormat('dd/MM HH:mm', currentLocale).format(date),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -913,7 +920,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        DateFormat('dd').format(date),
+                        DateFormat('dd', currentLocale).format(date),
                         style: TextStyle(
                           fontSize: 16, // Taille réduite
                           fontWeight: FontWeight.bold,
@@ -921,7 +928,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                         ),
                       ),
                       Text(
-                        DateFormat('MMM', 'fr_FR').format(date).toUpperCase(),
+                        DateFormat('MMM', currentLocale).format(date).toUpperCase(),
                         style: TextStyle(
                           fontSize: 10, // Taille réduite
                           fontWeight: FontWeight.w500,
@@ -930,7 +937,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                       ),
                       SizedBox(height: 2), // Espacement réduit
                       Text(
-                        DateFormat('HH:mm').format(date),
+                        DateFormat('HH:mm', currentLocale).format(date),
                         style: TextStyle(
                           fontSize: 10, // Taille réduite
                           color: Colors.grey[600],
@@ -1289,7 +1296,7 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Date: ${DateFormat('dd/MM/yyyy à HH:mm').format(intake.dateTime)}'),
+              Text('Date: ${DateFormat('dd/MM/yyyy à HH:mm', currentLocale).format(intake.dateTime)}'),
               SizedBox(height: 12),
               Text('Médicaments:', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
@@ -1679,8 +1686,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
               itemCount: _sessions.length,
               itemBuilder: (context, index) {
                 final session = _sessions[index];
-                final date = DateFormat('dd/MM/yyyy').format(session.dateTime);
-                final time = DateFormat('HH:mm').format(session.dateTime);
+                final date = DateFormat('dd/MM/yyyy', currentLocale).format(session.dateTime);
+                final time = DateFormat('HH:mm', currentLocale).format(session.dateTime);
                 final isCompleted = session.isCompleted;
 
                 return ListTile(

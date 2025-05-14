@@ -83,8 +83,8 @@ class DateTimePicker extends StatelessWidget {
           }
 
           controller.text = showTime
-              ? DateFormat('dd/MM/yyyy HH:mm').format(selectedDateTime)
-              : DateFormat('dd/MM/yyyy').format(selectedDateTime);
+              ? getLocalizedDateTimeFormat(selectedDateTime)
+              : DateFormat(getFmtDate()).format(selectedDateTime);
 
           onDateTimeSelected(selectedDateTime);
         }
