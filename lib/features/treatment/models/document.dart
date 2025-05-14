@@ -1,5 +1,6 @@
 // lib/features/treatment/models/document.dart
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 enum DocumentType {
   PDF,
@@ -46,6 +47,12 @@ class Document {
       description: description ?? this.description,
       size: size ?? this.size,
     );
+  }
+
+  // Ajouter une méthode pour obtenir le chemin absolu
+  Future<String> getAbsolutePath() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return '${appDir.path}/$path';
   }
 
   Map<String, dynamic> toMap() {

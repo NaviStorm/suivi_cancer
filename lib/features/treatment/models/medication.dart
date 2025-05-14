@@ -1,5 +1,6 @@
 // lib/features/treatment/models/medication.dart
 import 'package:flutter/foundation.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 class Medication {
   final String id;
@@ -53,6 +54,7 @@ class Medication {
   }
 
   factory Medication.fromMap(Map<String, dynamic> map) {
+    Log.d('${map['isRinsing']}');
     return Medication(
       id: map['id'],
       name: map['name'],
@@ -60,7 +62,7 @@ class Medication {
       unit: map['unit'],
       duration: map['duration'] != null ? Duration(minutes: map['duration']) : null,
       notes: map['notes'],
-      isRinsing: map['isRinsing'] ?? false,
+      isRinsing: (map['isRinsing'] is int) ? map['isRinsing'] == 1 : false,
     );
   }
 

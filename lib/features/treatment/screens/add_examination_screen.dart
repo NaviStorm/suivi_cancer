@@ -19,6 +19,7 @@ import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
 import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/services/document_import_service.dart';
 
 
 // Enum pour le type de lien
@@ -66,6 +67,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _notesController = TextEditingController();
+
+  final DocumentImportService _documentService = DocumentImportService();
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
@@ -938,32 +941,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   void _previewImageDocument(DocumentAttachment attachment) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppBar(
-              title: Text(attachment.document.name),
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            Flexible(
-              child: Image.file(
-                File(attachment.document.path),
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    _documentService.viewImageDocument(context, attachment.document);
   }
 
   void _removeDocument(int index) {
@@ -972,282 +950,28 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     });
   }
 
-  Future<void> _showAddDocumentDialog() async {
-    final action = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: Text('Ajouter un document'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, 'camera'),
-            child: ListTile(
-              leading: Icon(Icons.camera_alt, color: Colors.blue),
-              title: Text('Prendre une photo'),
-              dense: true,
-            ),
-          ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, 'gallery'),
-            child: ListTile(
-              leading: Icon(Icons.photo_library, color: Colors.green),
-              title: Text('Choisir une image'),
-              dense: true,
-            ),
-          ),
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, 'file'),
-            child: ListTile(
-              leading: Icon(Icons.upload_file, color: Colors.orange),
-              title: Text('Sélectionner un fichier'),
-              dense: true,
-            ),
-          ),
-        ],
-      ),
-    );
+  Future _showAddDocumentDialog() async {
+    final action = await _documentService.showAddDocumentDialog(context);
 
     if (action == null) return;
 
+    Document? document;
     if (action == 'camera') {
-      await _takePicture();
+      document = await _documentService.takePicture(context);
     } else if (action == 'gallery') {
-      await _pickImage();
+      document = await _documentService.pickImage(context);
     } else if (action == 'file') {
-      await _pickFile();
-      _showMessage('Fonctionnalité à venir');
-      // TODO: Implémenter la sélection de fichier
+      document = await _documentService.pickFile(context);
     }
-  }
 
-  Future<void> _takePicture() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        await _processCapturedImage(image);
-      }
-    } catch (e) {
-      Log.e("Erreur lors de la prise de photo: $e");
-      _showErrorMessage("Impossible de prendre une photo");
-    }
-  }
-
-  Future<void> _pickImage() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        await _processCapturedImage(image);
-      }
-    } catch (e) {
-      Log.e("Erreur lors de la sélection d'image: $e");
-      _showErrorMessage("Impossible de sélectionner une image");
-    }
-  }
-
-  Future<void> _pickFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt'],
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.first.path!);
-        final fileName = result.files.first.name;
-        final fileExtension = fileName.split('.').last.toLowerCase();
-
-        // Déterminer le type de document
-        DocumentType docType;
-        switch (fileExtension) {
-          case 'pdf':
-            docType = DocumentType.PDF;
-            break;
-          case 'jpg':
-          case 'jpeg':
-          case 'png':
-            docType = DocumentType.Image;
-            break;
-          case 'doc':
-          case 'docx':
-            docType = DocumentType.Word;
-            break;
-          case 'txt':
-            docType = DocumentType.Text;
-            break;
-          default:
-            docType = DocumentType.Other;
-        }
-
-        // Obtenir un nom pour le document
-        final docName = await _getDocumentName('Document', fileName);
-        if (docName == null) return; // L'utilisateur a annulé
-
-        // Obtenir une description pour le document
-        final docDescription = await _getDocumentDescription();
-
-        // Créer un dossier dans l'application pour stocker les fichiers
-        final appDir = await getApplicationDocumentsDirectory();
-        final documentsDir = Directory('${appDir.path}/documents');
-        if (!await documentsDir.exists()) {
-          await documentsDir.create(recursive: true);
-        }
-
-        // Générer un nom de fichier unique
-        final uniqueId = Uuid().v4();
-        final newFileName = '$uniqueId.$fileExtension';
-        final filePath = '${documentsDir.path}/$newFileName';
-
-        // Copier le fichier dans le dossier de l'application
-        await file.copy(filePath);
-
-        // Créer le document
-        final document = Document(
-          id: uniqueId,
-          name: docName,
-          path: filePath,
-          dateAdded: DateTime.now(),
-          type: docType,
-          description: docDescription,
-          size: await file.length(),
-        );
-
-        // Ajouter le document à la liste des documents attachés
-        setState(() {
-          _attachedDocuments.add(DocumentAttachment(
-            document: document,
-            isNew: true,
-          ));
-        });
-
-        _showMessage('Document ajouté avec succès');
-      }
-    } catch (e) {
-      Log.e("Erreur lors de la sélection du fichier: $e");
-      _showErrorMessage("Impossible de sélectionner le fichier");
-    }
-  }
-
-
-  Future<void> _processCapturedImage(XFile image) async {
-    try {
-      // Obtenir un nom pour le document
-      final docName = await _getDocumentName('Image', image.name);
-      if (docName == null) return;  // L'utilisateur a annulé
-
-      // Obtenir une description pour le document
-      final docDescription = await _getDocumentDescription();
-
-      // Créer un dossier dans l'application pour stocker les images
-      final appDir = await getApplicationDocumentsDirectory();
-      final documentsDir = Directory('${appDir.path}/documents');
-      if (!await documentsDir.exists()) {
-        await documentsDir.create(recursive: true);
-      }
-
-      // Générer un nom de fichier unique
-      final uniqueId = Uuid().v4();
-      final fileName = '$uniqueId.jpg';
-      final filePath = '${documentsDir.path}/$fileName';
-
-      // Copier l'image dans le dossier de l'application
-      final imageFile = File(image.path);
-      await imageFile.copy(filePath);
-
-      // Créer le document
-      final document = Document(
-        id: uniqueId,
-        name: docName,
-        path: filePath,
-        dateAdded: DateTime.now(),
-        type: DocumentType.Image,
-        description: docDescription,
-        size: await imageFile.length(),
-      );
-
-      // Ajouter le document à la liste des documents attachés
+    if (document != null) {
       setState(() {
         _attachedDocuments.add(DocumentAttachment(
-          document: document,
+          document: document!,
           isNew: true,
         ));
       });
-
-      _showMessage('Image ajoutée avec succès');
-    } catch (e) {
-      Log.e("Erreur lors du traitement de l'image: $e");
-      _showErrorMessage("Impossible de traiter l'image");
     }
-  }
-
-  Future<String?> _getDocumentName(String type, String defaultName) async {
-    final controller = TextEditingController(text: defaultName);
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Nom du document'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: 'Nom',
-            hintText: 'Entrez un nom pour ce document',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (controller.text.trim().isNotEmpty) {
-                Navigator.pop(context, controller.text.trim());
-              }
-            },
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<String?> _getDocumentDescription() async {
-    final controller = TextEditingController();
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Description (optionnelle)'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: 'Description',
-            hintText: 'Entrez une description pour ce document',
-          ),
-          maxLines: 2,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, ''),
-            child: Text('Ignorer'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _addNewEstablishment() async {

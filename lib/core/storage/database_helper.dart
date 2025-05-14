@@ -1007,7 +1007,7 @@ class DatabaseHelper {
 
     final db = await openDatabase(path);
     final version = await db.getVersion();
-    print("Version actuelle de la base de données: $version");
+    print("Version actuelle de la base de données: $version dbPath:[${dbPath.toString()}] path:[${path.toString()}]");
 
     await db.close();
   }

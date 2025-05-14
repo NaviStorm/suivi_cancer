@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 
 class AddMedicationIntakeDialog extends StatefulWidget {
@@ -35,6 +36,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
   }
   
   Future<void> _loadMedications() async {
+    Log.d('_loadMedications');
     setState(() {
       _isLoading = true;
     });
@@ -46,7 +48,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
         _isLoading = false;
       });
     } catch (e) {
-      print("Erreur lors du chargement des médicaments: $e");
+      Log.d("Erreur lors du chargement des médicaments: $e");
       setState(() {
         _isLoading = false;
       });
