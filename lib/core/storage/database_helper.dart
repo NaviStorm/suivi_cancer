@@ -474,19 +474,28 @@ class DatabaseHelper {
     Log.d("DatabaseHelper: Table 'examinations' créée");
 
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS medication_intakes(
+      CREATE TABLE medication_intakes(
         id TEXT PRIMARY KEY,
         dateTime TEXT NOT NULL,
         cycleId TEXT NOT NULL,
-        medicationId TEXT NOT NULL,
-        medicationName TEXT NOT NULL,
         isCompleted INTEGER NOT NULL DEFAULT 0,
         notes TEXT,
-        FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
+        FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE
+      )
+    ''');
+    Log.d("DatabaseHelper: Table 'medication_intakes' créée");
+
+    await db.execute('''
+      CREATE TABLE medication_intake_items(
+        id TEXT PRIMARY KEY,
+        intakeId TEXT NOT NULL,
+        medicationId TEXT NOT NULL,
+        medicationName TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (intakeId) REFERENCES medication_intakes (id) ON DELETE CASCADE,
         FOREIGN KEY (medicationId) REFERENCES medications (id) ON DELETE CASCADE
       )
-      ''');
-    Log.d("DatabaseHelper: Table 'medication_intakes' créée");
+    ''');
 
   }
 
@@ -4341,54 +4350,97 @@ class DatabaseHelper {
 
   // Insérer une prise de médicament
   Future<int> insertMedicationIntake(Map<String, dynamic> intake) async {
-    Log.d("DatabaseHelper: Insertion d'une prise de médicament");
     final db = await database;
-    try {
-      final result = await db.insert('medication_intakes', intake, conflictAlgorithm: ConflictAlgorithm.replace);
-      Log.d("DatabaseHelper: Prise de médicament insérée avec succès, résultat: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion de la prise de médicament: $e");
-      return -1;
+
+    // Extraire les médicaments pour les stocker séparément
+    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(intake['medications']);
+
+    // Créer une copie de l'intake sans les médicaments pour la table principale
+    Map<String, dynamic> intakeData = Map<String, dynamic>.from(intake);
+    intakeData.remove('medications');
+
+    // Stocker les données de base de la prise
+    int result = await db.insert('medication_intakes', intakeData);
+
+    // Stocker chaque médicament dans une table de relation
+    for (var med in medications) {
+      await db.insert('medication_intake_items', {
+        'intakeId': intake['id'],
+        'medicationId': med['medicationId'],
+        'medicationName': med['medicationName'],
+        'quantity': med['quantity'],
+      });
     }
+
+    return result;
   }
 
   // Récupérer les prises de médicaments pour un cycle
   Future<List<Map<String, dynamic>>> getMedicationIntakesByCycle(String cycleId) async {
-    Log.d("DatabaseHelper: Récupération des prises de médicaments pour le cycle $cycleId");
     final db = await database;
-    try {
-      final results = await db.query(
-          'medication_intakes',
-          where: 'cycleId = ?',
-          whereArgs: [cycleId],
-          orderBy: 'dateTime DESC'
+
+    // Récupérer les prises de médicaments pour ce cycle
+    final List<Map<String, dynamic>> intakes = await db.query(
+      'medication_intakes',
+      where: 'cycleId = ?',
+      whereArgs: [cycleId],
+    );
+
+    // Pour chaque prise, récupérer les médicaments associés
+    List<Map<String, dynamic>> result = [];
+    for (var intake in intakes) {
+      final List<Map<String, dynamic>> medications = await db.query(
+        'medication_intake_items',
+        where: 'intakeId = ?',
+        whereArgs: [intake['id']],
       );
-      Log.d("DatabaseHelper: ${results.length} prises de médicaments récupérées");
-      return results;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des prises de médicaments: $e");
-      return [];
+
+      Map<String, dynamic> completeIntake = Map<String, dynamic>.from(intake);
+      completeIntake['medications'] = medications;
+
+      result.add(completeIntake);
     }
+
+    return result;
   }
 
   // Mettre à jour une prise de médicament
   Future<int> updateMedicationIntake(Map<String, dynamic> intake) async {
-    Log.d("DatabaseHelper: Mise à jour de la prise de médicament avec ID ${intake['id']}");
     final db = await database;
-    try {
-      final result = await db.update(
-          'medication_intakes',
-          intake,
-          where: 'id = ?',
-          whereArgs: [intake['id']]
-      );
-      Log.d("DatabaseHelper: Prise de médicament mise à jour avec succès, lignes affectées: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de la prise de médicament: $e");
-      return -1;
+
+    // Extraire les médicaments
+    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(intake['medications']);
+
+    // Créer une copie de l'intake sans les médicaments
+    Map<String, dynamic> intakeData = Map<String, dynamic>.from(intake);
+    intakeData.remove('medications');
+
+    // Mettre à jour les données de base
+    await db.update(
+      'medication_intakes',
+      intakeData,
+      where: 'id = ?',
+      whereArgs: [intake['id']],
+    );
+
+    // Supprimer les anciens médicaments
+    await db.delete(
+      'medication_intake_items',
+      where: 'intakeId = ?',
+      whereArgs: [intake['id']],
+    );
+
+    // Ajouter les nouveaux médicaments
+    for (var med in medications) {
+      await db.insert('medication_intake_items', {
+        'intakeId': intake['id'],
+        'medicationId': med['medicationId'],
+        'medicationName': med['medicationName'],
+        'quantity': med['quantity'],
+      });
     }
+
+    return 1;
   }
 
   // Supprimer une prise de médicament

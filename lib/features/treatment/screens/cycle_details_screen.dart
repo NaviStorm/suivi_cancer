@@ -1,15 +1,17 @@
 ﻿// lib/features/treatment/screens/cycle_details_screen.dart
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart'; // Ajoutez cet import
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
-import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
+import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
+import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
 import 'package:suivi_cancer/features/treatment/widgets/add_medication_intake_dialog.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_examination_screen.dart';
@@ -591,11 +593,25 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     // Ajouter les prises de médicaments
     for (var intake in _medicationIntakes) {
       if (_hideCompletedEvents && intake.isCompleted) continue;
+
+      // Obtenir un label formaté pour les médicaments
+      String medicationsLabel = "";
+      if (intake.medications.isNotEmpty) {
+        medicationsLabel = intake.medications
+            .map((med) => "${med.quantity}x${med.medicationName}")
+            .join(", ");
+
+        // Tronquer si trop long
+        if (medicationsLabel.length > 25) {
+          medicationsLabel = medicationsLabel.substring(0, 22) + "...";
+        }
+      }
+
       allEvents.add({
         'date': intake.dateTime,
         'type': 'medication_intake',
         'object': intake,
-        'title': 'Prise de ${intake.medicationName}',
+        'title': medicationsLabel,
         'icon': Icons.medication,
         'color': Colors.lightBlue,
         'isPast': intake.dateTime.isBefore(DateTime.now()),
@@ -805,7 +821,6 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
     // Cas spécial pour les prises de médicament
     if (type == 'medication_intake') {
       final intake = event['object'] as MedicationIntake;
-
       return Card(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 3),
         elevation: 1,
@@ -818,7 +833,8 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
           ),
         ),
         child: InkWell(
-          onTap: () => _navigateToEventDetails(event),
+          onTap: () => _showMedicationIntakeDetails(intake),
+          onLongPress: () => _showMedicationIntakeOptions(intake),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -833,15 +849,13 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                   ),
                 ),
                 SizedBox(width: 8),
-
                 // Icône médicament
                 Icon(Icons.medication, size: 16, color: Colors.blue),
                 SizedBox(width: 8),
-
-                // Nom du médicament
+                // Nom des médicaments avec quantités
                 Expanded(
                   child: Text(
-                    'Prise ${intake.medicationName}',
+                    intake.getFormattedLabel(),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -849,7 +863,6 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-
                 // Icône de validation et statut
                 InkWell(
                   onTap: () => _toggleMedicationIntakeCompleted(intake),
@@ -1227,17 +1240,22 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   Widget _buildDetailedMedicationIntakePreview(MedicationIntake intake) {
+    // Obtenir le label formaté avec les quantités
+    String medicationText = intake.getFormattedLabel();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.access_time, size: 10, color: Colors.grey[600]),
+            Icon(Icons.medication, size: 10, color: Colors.blue[700]),
             SizedBox(width: 4),
-            Text(
-              DateFormat('HH:mm').format(intake.dateTime),
-              style: TextStyle(fontSize: 10),
-              overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: Text(
+                medicationText,
+                style: TextStyle(fontSize: 10),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -1258,6 +1276,147 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
             ],
           ),
       ],
+    );
+  }
+
+  void _showMedicationIntakeDetails(MedicationIntake intake) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Détails de la prise de médicament'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Date: ${DateFormat('dd/MM/yyyy à HH:mm').format(intake.dateTime)}'),
+              SizedBox(height: 12),
+              Text('Médicaments:', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              ...intake.medications.map((med) => Padding(
+                padding: EdgeInsets.only(left: 8, bottom: 4),
+                child: Text('• ${med.quantity}x ${med.medicationName}'),
+              )),
+              SizedBox(height: 12),
+              Text('Statut: ${intake.isCompleted ? "Prise effectuée" : "À prendre"}'),
+              if (intake.notes != null && intake.notes!.isNotEmpty) ...[
+                SizedBox(height: 12),
+                Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text(intake.notes!),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMedicationIntakeOptions(MedicationIntake intake) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(Icons.edit),
+            title: Text('Modifier'),
+            onTap: () {
+              Navigator.pop(context);
+              _editMedicationIntake(intake);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.copy),
+            title: Text('Dupliquer'),
+            onTap: () {
+              Navigator.pop(context);
+              _duplicateMedicationIntake(intake);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete),
+            title: Text('Supprimer'),
+            onTap: () {
+              Navigator.pop(context);
+              _confirmDeleteMedicationIntake(intake);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editMedicationIntake(MedicationIntake intake) async {
+    final result = await showDialog<MedicationIntake>(
+      context: context,
+      builder: (context) => AddMedicationIntakeDialog(
+        cycleId: _cycle.id,
+        medicationIntake: intake,
+      ),
+    );
+
+    if (result != null) {
+      // Mettre à jour la prise de médicament dans la base de données
+      await _dbHelper.updateMedicationIntake(result.toMap());
+      _refreshCycleData();
+    }
+  }
+
+  void _duplicateMedicationIntake(MedicationIntake intake) async {
+    // Créer une copie de la prise avec un nouvel ID
+    final newIntake = MedicationIntake(
+      id: Uuid().v4(),
+      dateTime: DateTime.now(),
+      cycleId: _cycle.id,
+      medications: intake.medications,
+      isCompleted: false,
+      notes: intake.notes,
+    );
+
+    // Utiliser showDialog au lieu de Navigator.push
+    final result = await showDialog<MedicationIntake>(
+      context: context,
+      builder: (context) => AddMedicationIntakeDialog(
+        cycleId: _cycle.id,
+        medicationIntake: newIntake,
+      ),
+    );
+
+    if (result != null) {
+      await _dbHelper.insertMedicationIntake(result.toMap());
+      _refreshCycleData();
+    }
+  }
+
+  void _confirmDeleteMedicationIntake(MedicationIntake intake) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer la prise'),
+        content: Text('Êtes-vous sûr de vouloir supprimer cette prise de médicament ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _dbHelper.deleteMedicationIntake(intake.id);
+              _refreshCycleData();
+            },
+            child: Text('Supprimer'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1636,27 +1795,24 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
   }
 
   void _navigateToAddMedicationIntake() async {
-    // Ici, vous naviguerez vers un écran d'ajout de prise de médicament
-    // Pour l'instant, nous allons simuler cela avec un dialogue
-
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showDialog<MedicationIntake>(
       context: context,
       builder: (context) => AddMedicationIntakeDialog(cycleId: _cycle.id),
     );
 
     if (result != null) {
-      // Ajouter la prise de médicament Ã  la base de données
-      final medicationIntake = {
-        'id': result['id'],
-        'dateTime': result['dateTime'].toIso8601String(),
-        'cycleId': _cycle.id,
-        'medicationId': result['medicationId'],
-        'medicationName': result['medicationName'],
-        'isCompleted': result['isCompleted'] ? 1 : 0,
-        'notes': result['notes'],
-      };
+      // Vérifier si dateTime est déjà une chaîne
+      final dateTimeValue = result.dateTime;
+      final dateTimeString = dateTimeValue is String
+          ? dateTimeValue
+          : dateTimeValue.toIso8601String();
 
-      await _dbHelper.insertMedicationIntake(medicationIntake);
+      // Créer une copie de la map avec la dateTime correcte
+      final Map<String, dynamic> resultMap = result.toMap();
+      resultMap['dateTime'] = dateTimeString;
+
+      // Utiliser la map mise à jour
+      await _dbHelper.insertMedicationIntake(resultMap);
       _refreshCycleData();
     }
   }
