@@ -3280,7 +3280,16 @@ class DatabaseHelper {
   }
 
 
-// Méthode pour mettre à jour le statut d'un examen
+  Future<List<Map<String, dynamic>>> getEntitiesLinkedToDocument(String documentId) async {
+    final db = await database;
+    return await db.rawQuery('''
+    SELECT entityType, entityId 
+    FROM entity_documents 
+    WHERE documentId = ?
+  ''', [documentId]);
+  }
+
+  // Méthode pour mettre à jour le statut d'un examen
   Future<int> updateExaminationCompletionStatus(String examinationId, bool isCompleted) async {
     Log.d("DatabaseHelper: Mise à jour du statut de l'examen $examinationId");
     final db = await database;
@@ -3309,6 +3318,7 @@ class DatabaseHelper {
 
       return await db.transaction((txn) async {
         // Supprimer d'abord toutes les liaisons
+        Log.d('Suppression du lien dans entity_documents avec documentId:[$documentId}]');
         await txn.delete(
           'entity_documents',
           where: 'documentId = ?',
@@ -3316,6 +3326,7 @@ class DatabaseHelper {
         );
 
         // Puis supprimer le document lui-même
+        Log.d('Suppression du documents avec is:[$documentId}]');
         final result = await txn.delete(
           'documents',
           where: 'id = ?',

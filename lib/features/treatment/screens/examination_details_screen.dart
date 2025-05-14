@@ -698,11 +698,11 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
 
   Future<void> _confirmRemoveDocument(Document document) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showDialog(
       context: context,
       builder: (context) => ConfirmationDialog(
         title: 'Supprimer le document',
-        content: 'Êtes-vous sûr de vouloir supprimer ce document de l\'examen ?',
+        content: 'Êtes-vous sûr de vouloir supprimer ce document de l\'examen ? Cette action est irréversible.',
         confirmText: 'Supprimer',
         cancelText: 'Annuler',
         isDestructive: true,
@@ -711,19 +711,36 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
     if (confirmed == true) {
       try {
-        // Supprimer le lien entre le document et l'examen
+        // 1. Supprimer le lien entre le document et l'examen
         await _dbHelper.unlinkDocumentFromEntity('examination', _examination.id, document.id);
-        
-        // Recharger les documents
+
+        // 2. Vérifier si le document est lié à d'autres entités
+        final linkedEntities = await _dbHelper.getEntitiesLinkedToDocument(document.id);
+
+        // Si le document n'est lié à aucune autre entité, le supprimer complètement
+        if (linkedEntities.isEmpty) {
+          // 3. Supprimer le fichier du disque
+          final absolutePath = await _documentService.getAbsolutePath(document.path);
+          final file = File(absolutePath);
+          if (await file.exists()) {
+            await file.delete();
+          }
+
+          // 4. Supprimer l'entrée du document dans la base de données
+          await _dbHelper.deleteDocument(document.id);
+
+          _showMessage('Document supprimé définitivement');
+        } else {
+          _showMessage('Document détaché de cet examen');
+        }
+
+        // 5. Recharger les documents
         await _loadData();
-        
-        _showMessage('Document supprimé avec succès');
       } catch (e) {
         Log.e("Erreur lors de la suppression du document: $e");
         _showErrorMessage("Impossible de supprimer le document");
       }
     }
-
   }
 
   void _navigateToSessionDetails(Session session) {

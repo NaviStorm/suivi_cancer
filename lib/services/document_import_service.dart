@@ -164,12 +164,7 @@ class DocumentImportService {
   }
 
   // Traitement général des documents
-  Future<Document?> processDocument(
-      BuildContext context,
-      String sourcePath,
-      String fileName,
-      DocumentType docType
-      ) async {
+  Future<Document?> processDocument(BuildContext context, String sourcePath, String fileName, DocumentType docType) async {
     try {
       // Obtenir un nom pour le document
       final docName = await getDocumentName(context, docType.toString(), fileName);
