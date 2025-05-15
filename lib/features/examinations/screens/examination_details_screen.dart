@@ -14,7 +14,7 @@ import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
-import 'package:suivi_cancer/features/treatment/screens/add_examination_screen.dart';
+import 'package:suivi_cancer/features/examinations/screens/add_examination_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/utils/fctDate.dart';
 import 'package:suivi_cancer/services/document_import_service.dart';
@@ -446,6 +446,8 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
   IconData _getExaminationIcon(ExaminationType type) {
     switch (type) {
+      case ExaminationType.Consult:
+        return Icons.medical_services;
       case ExaminationType.IRM:
         return Icons.medical_information;
       case ExaminationType.PETScan:

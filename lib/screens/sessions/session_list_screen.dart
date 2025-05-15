@@ -5,8 +5,8 @@ import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
-import 'package:suivi_cancer/features/treatment/screens/add_session_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/session_details_screen.dart';
+import 'package:suivi_cancer/features/sessions/screens/add_session_screen.dart';
+import 'package:suivi_cancer/features/sessions/screens/session_details_screen.dart';
 
 
 class SessionListScreen extends StatefulWidget {

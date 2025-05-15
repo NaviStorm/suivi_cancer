@@ -322,6 +322,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
+            _buildTypeChip(ExaminationType.Consult, 'Consul', Icons.medical_services),
             _buildTypeChip(ExaminationType.PriseDeSang, 'Prise de sang', Icons.bloodtype),
             _buildTypeChip(ExaminationType.Injection, 'Injection,',  Icons.vaccines),
             _buildTypeChip(ExaminationType.Scanner, 'Scanner', Icons.panorama_horizontal),

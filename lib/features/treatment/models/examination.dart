@@ -14,6 +14,7 @@ import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 
 enum ExaminationType {
+  Consult,
   IRM,
   PETScan,
   Scanner,
@@ -141,6 +142,8 @@ class Examination {
   // Méthode utilitaire pour obtenir un libellé lisible du type d'examen
   String get typeLabel {
     switch (type) {
+      case ExaminationType.Consult:
+        return 'Consult';
       case ExaminationType.IRM:
         return 'IRM';
       case ExaminationType.PETScan:
