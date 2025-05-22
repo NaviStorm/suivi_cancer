@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/edit_session_datetime_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
@@ -115,7 +116,7 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
 
       Navigator.pop(context, true);
     } catch (e) {
-      print('Erreur lors de la modification de la date: $e');
+      Log.d('Erreur lors de la modification de la date: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur lors de la modification: $e')),
       );

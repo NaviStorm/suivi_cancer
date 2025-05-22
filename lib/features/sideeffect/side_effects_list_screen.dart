@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/side_effects_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/side_effect.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
@@ -50,7 +51,7 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print("Erreur lors du chargement des effets secondaires: $e");
+      Log.d("Erreur lors du chargement des effets secondaires: $e");
       setState(() {
         _isLoading = false;
       });
@@ -127,7 +128,7 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
 
         _loadSideEffects();
       } catch (e) {
-        print("Erreur lors de la suppression: $e");
+        Log.d("Erreur lors de la suppression: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de la suppression')),
         );

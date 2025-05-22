@@ -58,7 +58,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print("Erreur lors du chargement des effets secondaires: $e");
+      Log.d("Erreur lors du chargement des effets secondaires: $e");
       setState(() {
         _isLoading = false;
       });
@@ -470,7 +470,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
         _loadSideEffects();
       } catch (e) {
-        print("Erreur lors de la suppression: $e");
+        Log.d("Erreur lors de la suppression: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de la suppression')),
         );

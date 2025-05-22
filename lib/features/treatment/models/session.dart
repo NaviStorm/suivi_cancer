@@ -1,4 +1,5 @@
 // lib/features/treatment/models/session.dart
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
@@ -104,7 +105,7 @@ class Session {
         notes: map['notes'] as String?,
       );
     } catch (e) {
-      print("Erreur dans Session.fromMap: $e avec map: $map");
+      Log.d("Erreur dans Session.fromMap: $e avec map: $map");
       // Fournir une version de fallback
       return Session(
         id: map['id'] as String? ?? "unknown_id",

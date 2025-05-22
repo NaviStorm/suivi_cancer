@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/add_radiotherapy_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
@@ -87,7 +88,7 @@ class _AddRadiotherapyScreenState extends State<AddRadiotherapyScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement des données: $e');
+      Log.d('Erreur lors du chargement des données: $e');
       setState(() {
         _isLoading = false;
       });
@@ -400,7 +401,7 @@ class _AddRadiotherapyScreenState extends State<AddRadiotherapyScreen> {
 
         Navigator.pop(context, true);
       } catch (e) {
-        print('Erreur lors de l\'enregistrement: $e');
+        Log.d('Erreur lors de l\'enregistrement: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
         );

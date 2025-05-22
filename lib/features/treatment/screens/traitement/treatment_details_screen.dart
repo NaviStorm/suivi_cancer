@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/treatment_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/add_radiotherapy_screen.dart';
@@ -123,7 +124,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement des détails du traitement: $e');
+      Log.d('Erreur lors du chargement des détails du traitement: $e');
       setState(() {
         _isLoading = false;
       });

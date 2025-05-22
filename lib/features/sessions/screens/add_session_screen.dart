@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
@@ -72,7 +73,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement des données: $e');
+      Log.d('Erreur lors du chargement des données: $e');
       setState(() {
         _isLoading = false;
       });
@@ -365,7 +366,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
 
         Navigator.pop(context, true);
       } catch (e) {
-        print('Erreur lors de l\'enregistrement: $e');
+        Log.d('Erreur lors de l\'enregistrement: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
         );

@@ -16,7 +16,7 @@ class EncryptionService {
       Log.d("mot de passe dans user_password:[$pwd]");
       return await _secureStorage.read(key: 'user_password');
     } catch (e) {
-      print("Erreur lors de la récupération du mot de passe: $e");
+      Log.d("Erreur lors de la récupération du mot de passe: $e");
     }
     return null;
   }

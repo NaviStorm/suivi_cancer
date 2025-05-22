@@ -1,6 +1,7 @@
 // lib/widgets/ps_list_widget.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart'; // Nouveau modèle
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
@@ -40,16 +41,16 @@ class PSListWidgetState extends State<PSListWidget> {
 
       // Débogage
       for (var professional in _professionals) {
-        print("Professionnel: ${professional.fullName}");
-        print("Contacts: ${professional.contacts?.length ?? 0}");
+        Log.d("Professionnel: ${professional.fullName}");
+        Log.d("Contacts: ${professional.contacts?.length ?? 0}");
         if (professional.contacts != null) {
           for (var contact in professional.contacts!) {
-            print(" - ${contact.type}: ${contact.value}");
+            Log.d(" - ${contact.type}: ${contact.value}");
           }
         }
       }
     } catch (e) {
-      print('Erreur lors du chargement des professionnels: $e');
+      Log.d('Erreur lors du chargement des professionnels: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;

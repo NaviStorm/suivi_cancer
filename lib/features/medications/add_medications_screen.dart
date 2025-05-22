@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 class AddMedicationsScreen extends StatefulWidget {
   final Medication?
@@ -104,7 +105,7 @@ class _AddMedicationsScreenState extends State<AddMedicationsScreen> {
         // Retourner le médicament créé/modifié
         Navigator.pop(context, medication);
       } catch (e) {
-        print("Erreur lors de l'enregistrement du médicament: $e");
+        Log.d("Erreur lors de l'enregistrement du médicament: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de l\'enregistrement du médicament'),

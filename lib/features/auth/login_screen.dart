@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       String? pwd = await _encryptionService.getPassword();
     } catch (e) {
-      print("Erreur sur l'apple de : getPassword $e");
+      Log.d("Erreur sur l'apple de : getPassword $e");
     }
     Log.d("Le mot de passe existe : storedPassword:[$storedPassword]");
   }

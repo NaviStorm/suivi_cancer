@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/add_first_session_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
@@ -52,7 +53,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement des données: $e');
+      Log.d('Erreur lors du chargement des données: $e');
       setState(() {
         _isLoading = false;
       });
@@ -344,7 +345,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
 
         Navigator.pop(context, true);
       } catch (e) {
-        print('Erreur lors de la génération des séances: $e');
+        Log.d('Erreur lors de la génération des séances: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la génération des séances: $e'),
