@@ -75,15 +75,17 @@ class Log {
           }
 
           if (className != null) {
-            context += '$className';
+            context += className;
 
             if (methodName != null) {
-              numLine != null ?  context += '.$methodName($numLine)' : context += '.$methodName()';
+              numLine != null
+                  ? context += '.$methodName($numLine)'
+                  : context += '.$methodName()';
             }
 
             if (numLine != null) {
               context += ':';
-              context += '$numLine';
+              context += numLine;
             }
             context += ': ';
           }

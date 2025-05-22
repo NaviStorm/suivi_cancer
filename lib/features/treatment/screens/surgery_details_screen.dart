@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
@@ -10,14 +9,14 @@ import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 class SurgeryDetailsScreen extends StatefulWidget {
   final Surgery surgery;
 
-  const SurgeryDetailsScreen({Key? key, required this.surgery}) : super(key: key);
+  const SurgeryDetailsScreen({super.key, required this.surgery});
 
   @override
   _SurgeryDetailsScreenState createState() => _SurgeryDetailsScreenState();
 }
 
 class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   late Surgery _surgery;
 
   @override
@@ -45,36 +44,39 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSurgeryInfoCard(),
-            SizedBox(height: 24),
-            _buildDocumentationSection(),
-            SizedBox(height: 24),
-            _buildSideEffectsSection(),
-          ],
-        ),
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSurgeryInfoCard(),
+                    SizedBox(height: 24),
+                    _buildDocumentationSection(),
+                    SizedBox(height: 24),
+                    _buildSideEffectsSection(),
+                  ],
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddSideEffectScreen(
-                entityType: 'surgery',
-                entityId: _surgery.id,
-                entityName: _surgery.title, // Utiliser title au lieu de type
-              ),
+              builder:
+                  (context) => AddSideEffectScreen(
+                    entityType: 'surgery',
+                    entityId: _surgery.id,
+                    entityName:
+                        _surgery.title, // Utiliser title au lieu de type
+                  ),
             ),
           );
         },
-        child: Icon(Icons.add),
         tooltip: 'Ajouter un effet secondaire',
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -91,10 +93,7 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
               children: [
                 Text(
                   'Informations de l\'opération',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 _buildStatusChip(
                   _surgery.isCompleted ? 'Terminé' : 'Planifié',
@@ -103,14 +102,27 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
               ],
             ),
             SizedBox(height: 16),
-            _buildInfoRow('Type d\'opération', _surgery.title), // Utiliser title au lieu de type
-            _buildInfoRow('Date', DateFormat('dd/MM/yyyy').format(_surgery.date)),
+            _buildInfoRow(
+              'Type d\'opération',
+              _surgery.title,
+            ), // Utiliser title au lieu de type
+            _buildInfoRow(
+              'Date',
+              DateFormat('dd/MM/yyyy').format(_surgery.date),
+            ),
             _buildInfoRow('Établissement', _surgery.establishment.name),
             if (_surgery.surgeons.isNotEmpty)
-              _buildInfoRow('Chirurgien(s)', _surgery.surgeons.map((doc) => doc.fullName).join(', ')),
+              _buildInfoRow(
+                'Chirurgien(s)',
+                _surgery.surgeons.map((doc) => doc.fullName).join(', '),
+              ),
             if (_surgery.anesthetists.isNotEmpty)
-              _buildInfoRow('Anesthésiste(s)', _surgery.anesthetists.map((doc) => doc.fullName).join(', ')),
-            if (_surgery.operationReport != null && _surgery.operationReport!.isNotEmpty)
+              _buildInfoRow(
+                'Anesthésiste(s)',
+                _surgery.anesthetists.map((doc) => doc.fullName).join(', '),
+              ),
+            if (_surgery.operationReport != null &&
+                _surgery.operationReport!.isNotEmpty)
               _buildInfoRow('Rapport d\'opération', _surgery.operationReport!),
           ],
         ),
@@ -135,12 +147,7 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w400)),
           ),
         ],
       ),
@@ -153,43 +160,42 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
       children: [
         Text(
           'Documents',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         _surgery.documents.isEmpty
             ? Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Aucun document disponible',
-                style: TextStyle(color: Colors.grey[600]),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Aucun document disponible',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
               ),
-            ),
-          ),
-        )
+            )
             : ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: _surgery.documents.length,
-          itemBuilder: (context, index) {
-            final document = _surgery.documents[index];
-            return Card(
-              margin: EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: Icon(Icons.description),
-                title: Text(document.name),
-                subtitle: Text(DateFormat('dd/MM/yyyy').format(document.dateAdded)),
-                onTap: () {
-                  // Ouvrir le document
-                },
-              ),
-            );
-          },
-        ),
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _surgery.documents.length,
+              itemBuilder: (context, index) {
+                final document = _surgery.documents[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(Icons.description),
+                    title: Text(document.name),
+                    subtitle: Text(
+                      DateFormat('dd/MM/yyyy').format(document.dateAdded),
+                    ),
+                    onTap: () {
+                      // Ouvrir le document
+                    },
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
@@ -201,10 +207,7 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
       children: [
         Text(
           'Effets secondaires',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         // Placeholder pour les effets secondaires (à remplacer par votre implémentation)
@@ -226,13 +229,15 @@ class _SurgeryDetailsScreenState extends State<SurgeryDetailsScreen> {
   Future<void> _confirmDeleteSurgery() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer l\'opération',
-        content: 'Êtes-vous sûr de vouloir supprimer cette opération ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer l\'opération',
+            content:
+                'Êtes-vous sûr de vouloir supprimer cette opération ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {

@@ -6,13 +6,16 @@ import '../../common/widgets/custom_text_field.dart';
 import '../home/home_screen.dart';
 
 class PasswordSetupScreen extends StatefulWidget {
+  const PasswordSetupScreen({super.key});
+
   @override
   _PasswordSetupScreenState createState() => _PasswordSetupScreenState();
 }
 
 class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final EncryptionService _encryptionService = EncryptionService();
   bool _isLoading = false;
@@ -103,7 +106,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
 
       try {
         await _encryptionService.storePassword(_passwordController.text);
-        
+
         // Naviguer vers l'écran d'accueil après avoir créé le mot de passe
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -120,4 +123,3 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
     }
   }
 }
-

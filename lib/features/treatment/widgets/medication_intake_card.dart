@@ -11,19 +11,19 @@ class MedicationIntakeCard extends StatelessWidget {
   final String locale;
 
   const MedicationIntakeCard({
-    Key? key,
+    super.key,
     required this.intake,
     required this.onToggleCompleted,
     required this.onTap,
     this.onLongPress,
     required this.locale,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final bool isPast = intake.dateTime.isBefore(DateTime.now());
     final bool isCompleted = intake.isCompleted;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       elevation: 1,
@@ -77,10 +77,15 @@ class MedicationIntakeCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isCompleted ? 'Terminé' : (isPast ? 'En retard' : 'À venir'),
+                      isCompleted
+                          ? 'Terminé'
+                          : (isPast ? 'En retard' : 'À venir'),
                       style: TextStyle(
                         fontSize: 12,
-                        color: isCompleted ? Colors.green : (isPast ? Colors.red : Colors.grey[700]),
+                        color:
+                            isCompleted
+                                ? Colors.green
+                                : (isPast ? Colors.red : Colors.grey[700]),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -98,17 +103,16 @@ class MedicationIntakeCard extends StatelessWidget {
     if (intake.medications.isEmpty) {
       return "Aucun médicament";
     }
-    
+
     String medicationsLabel = intake.medications
         .map((med) => "${med.quantity}x${med.medicationName}")
         .join(", ");
-    
+
     // Tronquer si trop long
     if (medicationsLabel.length > 25) {
-      medicationsLabel = medicationsLabel.substring(0, 22) + "...";
+      medicationsLabel = "${medicationsLabel.substring(0, 22)}...";
     }
-    
+
     return medicationsLabel;
   }
 }
-

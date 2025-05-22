@@ -1,8 +1,5 @@
 // lib/features/treatment/screens/add_side_effect_screen.dart
 import 'package:flutter/material.dart';
-import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 import '../../common/widgets/custom_text_field.dart';
 import '../../common/widgets/date_time_picker.dart';
 import '../treatment/models/side_effect.dart';
@@ -15,12 +12,12 @@ class AddSideEffectScreen extends StatefulWidget {
   final SideEffect? sideEffect; // Paramètre optionnel pour la modification
 
   const AddSideEffectScreen({
-    Key? key,
+    super.key,
     required this.entityType,
     required this.entityId,
     required this.entityName,
     this.sideEffect, // Null en mode création, non-null en mode modification
-  }) : super(key: key);
+  });
 
   @override
   _AddSideEffectScreenState createState() => _AddSideEffectScreenState();
@@ -64,9 +61,11 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing
-            ? 'Modifier un effet secondaire'
-            : 'Ajouter un effet secondaire'),
+        title: Text(
+          isEditing
+              ? 'Modifier un effet secondaire'
+              : 'Ajouter un effet secondaire',
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -90,10 +89,7 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
                       ),
                       Text(
                         'Type: ${_getEntityTypeLabel(widget.entityType)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                       ),
                     ],
                   ),
@@ -142,12 +138,13 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
               SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _isLoading ? null : _saveSideEffect,
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(isEditing ? 'Mettre à jour' : 'Enregistrer'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 16),
                 ),
+                child:
+                    _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(isEditing ? 'Mettre à jour' : 'Enregistrer'),
               ),
             ],
           ),
@@ -244,14 +241,19 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
             date: _date,
             description: _descriptionController.text,
             severity: _severity,
-            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+            notes:
+                _notesController.text.isNotEmpty ? _notesController.text : null,
           );
 
-          final result = await dbHelper.updateSideEffect(updatedSideEffect.toMap());
+          final result = await dbHelper.updateSideEffect(
+            updatedSideEffect.toMap(),
+          );
 
           if (result > 0) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Effet secondaire mis à jour avec succès')),
+              SnackBar(
+                content: Text('Effet secondaire mis à jour avec succès'),
+              ),
             );
             Navigator.pop(context, true);
           } else {
@@ -267,14 +269,17 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
             date: _date,
             description: _descriptionController.text,
             severity: _severity,
-            notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+            notes:
+                _notesController.text.isNotEmpty ? _notesController.text : null,
           );
 
           final result = await dbHelper.insertSideEffect(sideEffect.toMap());
 
           if (result != -1) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Effet secondaire enregistré avec succès')),
+              SnackBar(
+                content: Text('Effet secondaire enregistré avec succès'),
+              ),
             );
             Navigator.pop(context, true);
           } else {
@@ -284,9 +289,9 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
           }
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       } finally {
         setState(() {
           _isLoading = false;

@@ -16,7 +16,7 @@ class SideEffectsList extends StatelessWidget {
   final bool showTitle;
 
   const SideEffectsList({
-    Key? key,
+    super.key,
     required this.entityType,
     required this.entityId,
     required this.sideEffects,
@@ -27,7 +27,7 @@ class SideEffectsList extends StatelessWidget {
     required this.onView,
     required this.onAdd,
     this.showTitle = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +43,7 @@ class SideEffectsList extends StatelessWidget {
               children: [
                 Text(
                   'Effets secondaires',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   icon: Icon(Icons.add, size: 16),
@@ -56,12 +53,14 @@ class SideEffectsList extends StatelessWidget {
               ],
             ),
           ),
-        
+
         if (isLoading)
-          Center(child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: CircularProgressIndicator(),
-          ))
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else if (sideEffects.isEmpty)
           Padding(
             padding: EdgeInsets.all(16),
@@ -86,10 +85,10 @@ class SideEffectsList extends StatelessWidget {
     );
   }
 
-//  return Card(
-//  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-//  child: InkWell(
-//  onTap: () => onView(sideEffect),
+  //  return Card(
+  //  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  //  child: InkWell(
+  //  onTap: () => onView(sideEffect),
 
   Widget _buildSideEffectItem(BuildContext context, SideEffect sideEffect) {
     // Couleur basée sur la sévérité
@@ -131,11 +130,16 @@ class SideEffectsList extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: severityColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: severityColor.withOpacity(0.5)),
+                          border: Border.all(
+                            color: severityColor.withOpacity(0.5),
+                          ),
                         ),
                         child: Text(
                           _getSeverityLabel(sideEffect.severity),
@@ -149,10 +153,7 @@ class SideEffectsList extends StatelessWidget {
                       SizedBox(width: 8),
                       Text(
                         DateFormat('dd/MM/yyyy').format(sideEffect.date),
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ],
                   ),
@@ -183,19 +184,13 @@ class SideEffectsList extends StatelessWidget {
               SizedBox(height: 8),
               Text(
                 sideEffect.description,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               if (sideEffect.notes != null && sideEffect.notes!.isNotEmpty) ...[
                 SizedBox(height: 8),
                 Text(
                   sideEffect.notes!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -224,4 +219,3 @@ class SideEffectsList extends StatelessWidget {
     }
   }
 }
-

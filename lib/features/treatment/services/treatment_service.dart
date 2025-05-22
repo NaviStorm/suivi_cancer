@@ -9,8 +9,6 @@ import 'package:suivi_cancer/utils/logger.dart';
 class TreatmentService {
   static final DatabaseHelper _dbHelper = DatabaseHelper();
 
-// Dans TreatmentService.getAllDoctors()
-
   static Future<List<Establishment>> getAllEstablishments() async {
     final dbHelper = DatabaseHelper();
     final establishmentMaps = await dbHelper.getEstablishments();

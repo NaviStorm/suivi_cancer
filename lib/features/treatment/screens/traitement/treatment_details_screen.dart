@@ -19,19 +19,20 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 class TreatmentDetailsScreen extends StatefulWidget {
   final Treatment treatment;
 
-  const TreatmentDetailsScreen({Key? key, required this.treatment}) : super(key: key);
+  const TreatmentDetailsScreen({super.key, required this.treatment});
 
   @override
   _TreatmentDetailsScreenState createState() => _TreatmentDetailsScreenState();
 }
 
-class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with SingleTickerProviderStateMixin {
+class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Treatment? _treatment;
   bool _isLoading = true;
   List<Cycle> _cycles = [];
-  List<Surgery> _surgeries = [];
-  List<Radiotherapy> _radiotherapies = [];
+  final List<Surgery> _surgeries = [];
+  final List<Radiotherapy> _radiotherapies = [];
 
   @override
   void initState() {
@@ -57,19 +58,27 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
 
       // Charger les cycles
       final cycleData = await dbHelper.getCyclesByTreatment(_treatment!.id);
-      List<Cycle> cycles = cycleData.map((map) => Cycle(
-        id: map['id'],
-        type: _parseCureType(map['type']),
-        startDate: DateTime.parse(map['startDate']),
-        endDate: DateTime.parse(map['endDate']),
-        establishment: map['establishment'] != null
-            ? Establishment.fromMap(map['establishment'])
-            : _treatment!.establishments.first,
-        sessionCount: map['sessionCount'],
-        sessionInterval: Duration(days: map['sessionInterval']), // Ajusté le nom ici
-        isCompleted: map['isCompleted'] == 1,
-        conclusion: map['conclusion'],
-      )).toList();
+      List<Cycle> cycles =
+          cycleData
+              .map(
+                (map) => Cycle(
+                  id: map['id'],
+                  type: _parseCureType(map['type']),
+                  startDate: DateTime.parse(map['startDate']),
+                  endDate: DateTime.parse(map['endDate']),
+                  establishment:
+                      map['establishment'] != null
+                          ? Establishment.fromMap(map['establishment'])
+                          : _treatment!.establishments.first,
+                  sessionCount: map['sessionCount'],
+                  sessionInterval: Duration(
+                    days: map['sessionInterval'],
+                  ), // Ajusté le nom ici
+                  isCompleted: map['isCompleted'] == 1,
+                  conclusion: map['conclusion'],
+                ),
+              )
+              .toList();
 
       // Charger les séances pour chaque cycle
       for (int i = 0; i < cycles.length; i++) {
@@ -92,7 +101,9 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
       }
 
       // Charger les professionnels de santé associés
-      final psMaps = await dbHelper.getTreatmentHealthProfessionals(_treatment!.id);
+      final psMaps = await dbHelper.getTreatmentHealthProfessionals(
+        _treatment!.id,
+      );
       final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
       // Mettre à jour le traitement avec les professionnels de santé
@@ -167,17 +178,18 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
           ],
         ),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : TabBarView(
-        controller: _tabController,
-        children: [
-          _buildCyclesTab(),
-          _buildHealthProfessionalsSection(),
-          _buildSurgeriesTab(),
-          _buildRadiotherapiesTab(),
-        ],
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCyclesTab(),
+                  _buildHealthProfessionalsSection(),
+                  _buildSurgeriesTab(),
+                  _buildRadiotherapiesTab(),
+                ],
+              ),
       floatingActionButton: _buildFloatingActionButton(),
     );
   }
@@ -188,18 +200,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 70,
-              color: Colors.grey,
-            ),
+            Icon(Icons.calendar_today_outlined, size: 70, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Aucun cycle enregistré',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
@@ -260,7 +265,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
                   SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         '${DateFormat('dd/MM/yyyy').format(cycle.startDate)} - ${DateFormat('dd/MM/yyyy').format(cycle.endDate)}',
@@ -271,7 +280,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
                   SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.medical_services, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.medical_services,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         '${cycle.sessionCount} séance(s)',
@@ -319,17 +332,19 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
           children: [
             Text(
               'Professionnels de santé',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            ...(_treatment!.healthProfessionals.map((ps) => ListTile(
-              title: Text(ps.fullName),
-              subtitle: ps.category != null ? Text(ps.category!['name']) : null,
-              leading: Icon(Icons.person),
-            )).toList()),
+            ...(_treatment!.healthProfessionals
+                .map(
+                  (ps) => ListTile(
+                    title: Text(ps.fullName),
+                    subtitle:
+                        ps.category != null ? Text(ps.category!['name']) : null,
+                    leading: Icon(Icons.person),
+                  ),
+                )
+                .toList()),
           ],
         ),
       ),
@@ -342,18 +357,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.medical_services_outlined,
-              size: 70,
-              color: Colors.grey,
-            ),
+            Icon(Icons.medical_services_outlined, size: 70, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Aucune chirurgie enregistrée',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
@@ -409,7 +417,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
                   SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Date: ${DateFormat('dd/MM/yyyy').format(surgery.date)}',
@@ -443,18 +455,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.radio_outlined,
-              size: 70,
-              color: Colors.grey,
-            ),
+            Icon(Icons.radio_outlined, size: 70, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Aucune radiothérapie enregistrée',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
@@ -478,7 +483,9 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => RadiotherapyDetailsScreen(radiotherapy: radiotherapy),
+                  builder:
+                      (context) =>
+                          RadiotherapyDetailsScreen(radiotherapy: radiotherapy),
                 ),
               );
 
@@ -510,7 +517,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
                   SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         '${DateFormat('dd/MM/yyyy').format(radiotherapy.startDate)} - ${DateFormat('dd/MM/yyyy').format(radiotherapy.endDate)}',
@@ -521,7 +532,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
                   SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.medical_services, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.medical_services,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         '${radiotherapy.sessionCount} séance(s)',
@@ -556,13 +571,16 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
 
         if (currentTab == 0) {
           // Cycles tab
-          _showMessage("La fonction d'ajout de cycle n'est pas encore implémentée");
+          _showMessage(
+            "La fonction d'ajout de cycle n'est pas encore implémentée",
+          );
         } else if (currentTab == 1) {
           // Surgeries tab
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddSurgeryScreen(treatmentId: _treatment!.id),
+              builder:
+                  (context) => AddSurgeryScreen(treatmentId: _treatment!.id),
             ),
           ).then((result) {
             if (result == true) {
@@ -574,7 +592,9 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddRadiotherapyScreen(treatmentId: _treatment!.id),
+              builder:
+                  (context) =>
+                      AddRadiotherapyScreen(treatmentId: _treatment!.id),
             ),
           ).then((result) {
             if (result == true) {
@@ -583,8 +603,8 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
           });
         }
       },
-      child: Icon(Icons.add),
       tooltip: 'Ajouter',
+      child: Icon(Icons.add),
     );
   }
 
@@ -592,10 +612,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
-        ),
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
       ),
     );
   }
@@ -603,13 +620,15 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
   Future<void> _confirmDeleteTreatment() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer le traitement',
-        content: 'Êtes-vous sûr de vouloir supprimer ce traitement ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer le traitement',
+            content:
+                'Êtes-vous sûr de vouloir supprimer ce traitement ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {
@@ -664,4 +683,3 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen> with Si
 // N'oubliez pas d'importer ce fichier dans le haut du fichier :
 // import 'package:suivi_cancer/features/treatment/screens/add_surgery_screen.dart';
 // import 'package:suivi_cancer/features/treatment/screens/add_radiotherapy_screen.dart';
-

@@ -7,7 +7,6 @@ import 'package:suivi_cancer/features/treatment/services/treatment_service.dart'
 import 'package:suivi_cancer/features/treatment/screens/establishment/edit_establishment_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 
-
 class EstablishmentListWidget extends StatefulWidget {
   const EstablishmentListWidget({super.key}); // <-- ici on accepte une key
 
@@ -46,7 +45,6 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     // Code existant pour le widget...
@@ -57,8 +55,10 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
       itemCount: _establishments.length,
       itemBuilder: (context, index) {
         final establishment = _establishments[index];
-        final hasPhone = establishment.phone != null && establishment.phone!.isNotEmpty;
-        final hasEmail = establishment.email != null && establishment.email!.isNotEmpty;
+        final hasPhone =
+            establishment.phone != null && establishment.phone!.isNotEmpty;
+        final hasEmail =
+            establishment.email != null && establishment.email!.isNotEmpty;
 
         return Card(
           margin: EdgeInsets.only(bottom: 8),
@@ -68,7 +68,7 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
               [
                 establishment.address,
                 establishment.postalCode,
-                establishment.city
+                establishment.city,
               ].where((s) => s != null && s.isNotEmpty).join(', '),
             ),
             trailing: Row(
@@ -80,9 +80,10 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
                     Icons.phone,
                     color: hasPhone ? Colors.blue : Colors.grey,
                   ),
-                  onPressed: hasPhone
-                      ? () => _makePhoneCall(establishment.phone!)
-                      : null,
+                  onPressed:
+                      hasPhone
+                          ? () => _makePhoneCall(establishment.phone!)
+                          : null,
                 ),
                 // Icône d'email
                 IconButton(
@@ -90,9 +91,8 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
                     Icons.email,
                     color: hasEmail ? Colors.blue : Colors.grey,
                   ),
-                  onPressed: hasEmail
-                      ? () => _sendEmail(establishment.email!)
-                      : null,
+                  onPressed:
+                      hasEmail ? () => _sendEmail(establishment.email!) : null,
                 ),
                 // Icône de modification
                 IconButton(
@@ -124,7 +124,9 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
       await launchUrl(uri);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible de passer un appel au $phoneNumber')),
+        SnackBar(
+          content: Text('Impossible de passer un appel au $phoneNumber'),
+        ),
       );
     }
   }
@@ -146,7 +148,8 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditEstablishmentScreen(establishment: Establishment),
+        builder:
+            (context) => EditEstablishmentScreen(establishment: Establishment),
       ),
     );
 
@@ -159,30 +162,29 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
   void _confirmDelete(BuildContext context, Establishment Establishment) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Supprimer ce cette établissement?'),
-        content: Text(
-            "Êtes-vous sûr de vouloir supprimer l'établissement ${Establishment.name} ? Cette action est irréversible."
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deleteEstablishment(Establishment.id);
-            },
-            child: Text('Supprimer'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Supprimer ce cette établissement?'),
+            content: Text(
+              "Êtes-vous sûr de vouloir supprimer l'établissement ${Establishment.name} ? Cette action est irréversible.",
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _deleteEstablishment(Establishment.id);
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text('Supprimer'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -205,4 +207,3 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     }
   }
 }
-

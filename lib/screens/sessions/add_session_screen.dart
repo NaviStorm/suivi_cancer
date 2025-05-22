@@ -5,8 +5,6 @@ import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
-import 'package:suivi_cancer/features/treatment/models/treatment.dart';
-import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 import 'package:suivi_cancer/features/treatment/services/treatment_service.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
@@ -14,7 +12,7 @@ import 'package:suivi_cancer/utils/logger.dart';
 class AddSessionScreen extends StatefulWidget {
   final Cycle cycle;
 
-  const AddSessionScreen({Key? key, required this.cycle}) : super(key: key);
+  const AddSessionScreen({super.key, required this.cycle});
 
   @override
   _AddSessionScreenState createState() => _AddSessionScreenState();
@@ -37,15 +35,19 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
   Future<void> _loadEstablishment() async {
     try {
       final dbHelper = DatabaseHelper();
-      final establishmentMap = await dbHelper.getEstablishment(widget.cycle.establishment.id);
-      
+      final establishmentMap = await dbHelper.getEstablishment(
+        widget.cycle.establishment.id,
+      );
+
       if (establishmentMap != null) {
         setState(() {
           _selectedEstablishment = Establishment.fromMap(establishmentMap);
         });
       }
     } catch (e) {
-      Log.d("AddSessionScreen: Erreur lors du chargement de l'établissement: $e");
+      Log.d(
+        "AddSessionScreen: Erreur lors du chargement de l'établissement: $e",
+      );
     }
   }
 
@@ -58,9 +60,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Ajouter une session'),
-      ),
+      appBar: AppBar(title: Text('Ajouter une session')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -78,12 +78,13 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
               SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isLoading ? null : _saveSession,
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Créer la session'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                 ),
+                child:
+                    _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text('Créer la session'),
               ),
             ],
           ),
@@ -101,10 +102,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           children: [
             Text(
               'Date et heure',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             ListTile(
@@ -116,9 +114,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             ),
             ListTile(
               leading: Icon(Icons.access_time),
-              title: Text(
-                DateFormat('HH:mm', 'fr_FR').format(_dateTime),
-              ),
+              title: Text(DateFormat('HH:mm', 'fr_FR').format(_dateTime)),
               onTap: _selectTime,
             ),
           ],
@@ -136,34 +132,31 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           children: [
             Text(
               'Établissement',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             _selectedEstablishment == null
                 ? ListTile(
-                    leading: Icon(Icons.business),
-                    title: Text('Sélectionner un établissement'),
-                    trailing: Icon(Icons.arrow_forward_ios),
-                    onTap: _selectEstablishment,
-                  )
+                  leading: Icon(Icons.business),
+                  title: Text('Sélectionner un établissement'),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: _selectEstablishment,
+                )
                 : ListTile(
-                    leading: Icon(Icons.business),
-                    title: Text(_selectedEstablishment!.name),
-                    subtitle: Text(
-                      [
-                        _selectedEstablishment!.address,
-                        _selectedEstablishment!.postalCode,
-                        _selectedEstablishment!.city
-                      ].where((s) => s != null && s.isNotEmpty).join(', '),
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.edit),
-                      onPressed: _selectEstablishment,
-                    ),
+                  leading: Icon(Icons.business),
+                  title: Text(_selectedEstablishment!.name),
+                  subtitle: Text(
+                    [
+                      _selectedEstablishment!.address,
+                      _selectedEstablishment!.postalCode,
+                      _selectedEstablishment!.city,
+                    ].where((s) => s != null && s.isNotEmpty).join(', '),
                   ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: _selectEstablishment,
+                  ),
+                ),
           ],
         ),
       ),
@@ -182,10 +175,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
               children: [
                 Text(
                   'Médicaments',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton.icon(
                   onPressed: _addMedication,
@@ -197,42 +187,46 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             SizedBox(height: 8),
             _selectedMedications.isEmpty
                 ? Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'Aucun médicament sélectionné',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Aucun médicament sélectionné',
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
-                  )
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: _selectedMedications.length,
-                    itemBuilder: (context, index) {
-                      final medication = _selectedMedications[index];
-                      return ListTile(
-                        leading: Icon(
-                          medication.isRinsing
-                              ? Icons.water_drop
-                              : Icons.medication,
-                          color: medication.isRinsing ? Colors.blue : Colors.orange,
-                        ),
-                        title: Text(medication.name),
-                        subtitle: medication.quantity != null
-                            ? Text('${medication.quantity} ${medication.unit ?? ''}')
-                            : null,
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              _selectedMedications.removeAt(index);
-                            });
-                          },
-                        ),
-                      );
-                    },
                   ),
+                )
+                : ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: _selectedMedications.length,
+                  itemBuilder: (context, index) {
+                    final medication = _selectedMedications[index];
+                    return ListTile(
+                      leading: Icon(
+                        medication.isRinsing
+                            ? Icons.water_drop
+                            : Icons.medication,
+                        color:
+                            medication.isRinsing ? Colors.blue : Colors.orange,
+                      ),
+                      title: Text(medication.name),
+                      subtitle:
+                          medication.quantity != null
+                              ? Text(
+                                '${medication.quantity} ${medication.unit ?? ''}',
+                              )
+                              : null,
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () {
+                          setState(() {
+                            _selectedMedications.removeAt(index);
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
           ],
         ),
       ),
@@ -248,10 +242,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           children: [
             Text(
               'Notes',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             TextFormField(
@@ -275,7 +266,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (pickedDate != null && pickedDate != _dateTime) {
       setState(() {
         _dateTime = DateTime(
@@ -294,7 +285,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_dateTime),
     );
-    
+
     if (pickedTime != null) {
       setState(() {
         _dateTime = DateTime(
@@ -328,7 +319,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
       unit: 'mg',
       isRinsing: _selectedMedications.length % 2 == 0,
     );
-    
+
     setState(() {
       _selectedMedications.add(medication);
     });
@@ -342,17 +333,17 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
         );
         return;
       }
-      
+
       setState(() {
         _isLoading = true;
       });
-      
+
       try {
         Log.d("AddSessionScreen: Création d'une nouvelle session");
-        
+
         final uuid = Uuid();
         final sessionId = uuid.v4();
-        
+
         // Créer la session dans la base de données
         final dbHelper = DatabaseHelper();
         final sessionMap = {
@@ -363,11 +354,13 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           'notes': _notesController.text.isEmpty ? null : _notesController.text,
           'isCompleted': 0,
         };
-        
+
         Log.d("AddSessionScreen: Insertion de la session: $sessionMap");
         final result = await dbHelper.insertSession(sessionMap);
-        Log.d("AddSessionScreen: Résultat de l'insertion de la session: $result");
-        
+        Log.d(
+          "AddSessionScreen: Résultat de l'insertion de la session: $result",
+        );
+
         // Associer les médicaments à la session
         for (var medication in _selectedMedications) {
           // D'abord, insérer le médicament s'il n'existe pas déjà
@@ -378,22 +371,24 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             'unit': medication.unit,
             'isRinsing': medication.isRinsing ? 1 : 0,
           };
-          
+
           Log.d("AddSessionScreen: Insertion du médicament: $medicationMap");
           await dbHelper.insertMedication(medicationMap);
-          
+
           // Ensuite, créer l'association
           final sessionMedicationMap = {
             'sessionId': sessionId,
             'medicationId': medication.id,
           };
-          
-          Log.d("AddSessionScreen: Association session-médicament: $sessionMedicationMap");
+
+          Log.d(
+            "AddSessionScreen: Association session-médicament: $sessionMedicationMap",
+          );
           await dbHelper.linkSessionMedication(sessionId, medication.id);
         }
-        
+
         Log.d("AddSessionScreen: Session créée avec succès");
-        
+
         // Retourner à l'écran précédent
         Navigator.pop(context, true);
       } catch (e) {
@@ -409,4 +404,3 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
     }
   }
 }
-

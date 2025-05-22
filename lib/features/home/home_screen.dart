@@ -19,6 +19,8 @@ import 'package:suivi_cancer/features/treatment/screens/surgery_details_screen.d
 import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -27,7 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   List<Treatment> _treatments = [];
   bool _isLoading = false;
-  Map<String, String> _treatmentTypes = {}; // Pour stocker le type principal de chaque traitement
+  final Map<String, String> _treatmentTypes =
+      {}; // Pour stocker le type principal de chaque traitement
 
   @override
   void initState() {
@@ -50,14 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
         final treatmentId = map['id'];
 
         // Charger les établissements associés
-        final establishmentMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
-        final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+        final establishmentMaps = await dbHelper.getTreatmentEstablishments(
+          treatmentId,
+        );
+        final establishments =
+            establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
         // Charger les médecins associés
-//        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
-//        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
-        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
-        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        //        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
+        //        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+        final psMaps = await dbHelper.getTreatmentHealthProfessionals(
+          treatmentId,
+        );
+        final healthProfessionals =
+            psMaps.map((map) => PS.fromMap(map)).toList();
         // Créer l'objet traitement
         final treatment = Treatment(
           id: treatmentId,
@@ -117,7 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Vérifier si une radiothérapie existe
-    final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(treatmentId);
+    final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
+      treatmentId,
+    );
     if (radiotherapyData.isNotEmpty) {
       _treatmentTypes[treatmentId] = "Radiothérapie";
       return;
@@ -135,10 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Suivi Cancer'),
         actions: [
           IconButton(
-            icon: Icon(
-                color: Colors.red,
-                Icons.delete,
-            ),
+            icon: Icon(color: Colors.red, Icons.delete),
             onPressed: _deleteDabase,
           ),
           IconButton(
@@ -177,13 +185,14 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-        onPressed: _navigateToAddTreatment,
-        tooltip: 'Ajouter un traitement',
-        child: Icon(Icons.add),
-      )
-          : null,
+      floatingActionButton:
+          _selectedIndex == 0
+              ? FloatingActionButton(
+                onPressed: _navigateToAddTreatment,
+                tooltip: 'Ajouter un traitement',
+                child: Icon(Icons.add),
+              )
+              : null,
     );
   }
 
@@ -219,18 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.medical_services_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
+          Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
           SizedBox(height: 16),
           Text(
             'Aucun traitement enregistré',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -258,12 +260,14 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final treatment = _treatments[index];
           final treatmentType = _treatmentTypes[treatment.id] ?? "Non spécifié";
-          final bool isCompleted = false; // Supposé par défaut comme non complété
+          final bool isCompleted =
+              false; // Supposé par défaut comme non complété
 
           return Card(
             margin: EdgeInsets.only(bottom: 16),
             child: InkWell(
-              onTap: () => _navigateToTreatmentDetails(treatment, treatmentType),
+              onTap:
+                  () => _navigateToTreatmentDetails(treatment, treatmentType),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -299,7 +303,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'Début: ${DateFormat('dd/MM/yyyy').format(treatment.startDate)}',
@@ -311,7 +319,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (treatment.establishments.isNotEmpty)
                       Row(
                         children: [
-                          Icon(Icons.business, size: 16, color: Colors.grey[600]),
+                          Icon(
+                            Icons.business,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
                           SizedBox(width: 8),
                           Text(
                             treatment.establishments.first.name,
@@ -324,7 +336,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: EdgeInsets.only(top: 4),
                         child: Row(
                           children: [
-                            Icon(Icons.people, size: 16, color: Colors.grey[600]),
+                            Icon(
+                              Icons.people,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -376,7 +392,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _navigateToTreatmentDetails(Treatment treatment, String treatmentType) async {
+  void _navigateToTreatmentDetails(
+    Treatment treatment,
+    String treatmentType,
+  ) async {
     Log.d('_navigateToTreatmentDetails');
     Widget destinationScreen;
 
@@ -388,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
         case "Immunothérapie":
         case "Hormonotherapy":
         case "Traitement combiné":
-        // Récupérer les cycles
+          // Récupérer les cycles
           final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
           Log.d('cycleData:${cycleData.length}');
 
@@ -402,11 +421,14 @@ class _HomeScreenState extends State<HomeScreen> {
               type: _parseCycleType(cycleMap['type']),
               startDate: DateTime.parse(cycleMap['startDate'] as String),
               endDate: DateTime.parse(cycleMap['endDate'] as String),
-              establishment: treatment.establishments.isNotEmpty
-                  ? treatment.establishments.first
-                  : Establishment(id: "default", name: "Non spécifié"),
+              establishment:
+                  treatment.establishments.isNotEmpty
+                      ? treatment.establishments.first
+                      : Establishment(id: "default", name: "Non spécifié"),
               sessionCount: cycleMap['sessionCount'] as int,
-              sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
+              sessionInterval: Duration(
+                days: cycleMap['sessionInterval'] as int,
+              ),
               isCompleted: cycleMap['isCompleted'] == 1,
               conclusion: cycleMap['conclusion'] as String?,
             );
@@ -419,8 +441,10 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
 
         case "Chirurgie":
-        // Récupérer les chirurgies
-          final surgeryData = await dbHelper.getSurgeriesByTreatment(treatment.id);
+          // Récupérer les chirurgies
+          final surgeryData = await dbHelper.getSurgeriesByTreatment(
+            treatment.id,
+          );
 
           if (surgeryData.isNotEmpty) {
             final surgeryMap = surgeryData.first;
@@ -430,9 +454,10 @@ class _HomeScreenState extends State<HomeScreen> {
               id: surgeryMap['id'] as String,
               title: surgeryMap['title'] as String,
               date: DateTime.parse(surgeryMap['date'] as String),
-              establishment: treatment.establishments.isNotEmpty
-                  ? treatment.establishments.first
-                  : Establishment(id: "default", name: "Non spécifié"),
+              establishment:
+                  treatment.establishments.isNotEmpty
+                      ? treatment.establishments.first
+                      : Establishment(id: "default", name: "Non spécifié"),
               isCompleted: surgeryMap['isCompleted'] == 1,
             );
 
@@ -444,8 +469,10 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
 
         case "Radiothérapie":
-        // Récupérer les radiothérapies
-          final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(treatment.id);
+          // Récupérer les radiothérapies
+          final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
+            treatment.id,
+          );
 
           if (radiotherapyData.isNotEmpty) {
             final radiotherapyMap = radiotherapyData.first;
@@ -456,14 +483,17 @@ class _HomeScreenState extends State<HomeScreen> {
               title: radiotherapyMap['title'] as String,
               startDate: DateTime.parse(radiotherapyMap['startDate'] as String),
               endDate: DateTime.parse(radiotherapyMap['endDate'] as String),
-              establishment: treatment.establishments.isNotEmpty
-                  ? treatment.establishments.first
-                  : Establishment(id: "default", name: "Non spécifié"),
+              establishment:
+                  treatment.establishments.isNotEmpty
+                      ? treatment.establishments.first
+                      : Establishment(id: "default", name: "Non spécifié"),
               sessionCount: radiotherapyMap['sessionCount'] as int,
               isCompleted: radiotherapyMap['isCompleted'] == 1,
             );
 
-            destinationScreen = RadiotherapyDetailsScreen(radiotherapy: radiotherapy);
+            destinationScreen = RadiotherapyDetailsScreen(
+              radiotherapy: radiotherapy,
+            );
           } else {
             // Pas de radiothérapie trouvée, rediriger vers l'écran de détails standard
             destinationScreen = TreatmentDetailsScreen(treatment: treatment);
@@ -471,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
 
         default:
-        // Pour tout autre type ou non spécifié, utiliser l'écran standard
+          // Pour tout autre type ou non spécifié, utiliser l'écran standard
           destinationScreen = TreatmentDetailsScreen(treatment: treatment);
       }
     } catch (e) {
@@ -533,13 +563,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _deleteDabase() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer la base de donnée',
-        content: 'Êtes-vous sûr de vouloir supprimer la base de donnée ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer la base de donnée',
+            content:
+                'Êtes-vous sûr de vouloir supprimer la base de donnée ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {

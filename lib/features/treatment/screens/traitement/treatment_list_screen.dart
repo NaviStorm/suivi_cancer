@@ -16,6 +16,8 @@ import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_scr
 import 'package:suivi_cancer/utils/logger.dart';
 
 class TreatmentListScreen extends StatefulWidget {
+  const TreatmentListScreen({super.key});
+
   @override
   _TreatmentListScreenState createState() => _TreatmentListScreenState();
 }
@@ -24,7 +26,7 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
   List<Treatment> _treatments = [];
   bool _isLoading = true;
   // Maps pour stocker les types de traitement
-  Map<String, String> _treatmentTypes = {};
+  final Map<String, String> _treatmentTypes = {};
 
   @override
   void initState() {
@@ -47,12 +49,18 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
         final treatmentId = map['id'];
 
         // Charger les établissements associés
-        final establishmentMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
-        final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+        final establishmentMaps = await dbHelper.getTreatmentEstablishments(
+          treatmentId,
+        );
+        final establishments =
+            establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
         // Charger les médecins associés
-        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
-        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        final psMaps = await dbHelper.getTreatmentHealthProfessionals(
+          treatmentId,
+        );
+        final healthProfessionals =
+            psMaps.map((map) => PS.fromMap(map)).toList();
 
         // Créer l'objet traitement
         final treatment = Treatment(
@@ -113,7 +121,9 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
     }
 
     // Vérifier si une radiothérapie existe
-    final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(treatmentId);
+    final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
+      treatmentId,
+    );
     if (radiotherapyData.isNotEmpty) {
       _treatmentTypes[treatmentId] = "Radiothérapie";
       return;
@@ -126,11 +136,12 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _treatments.isEmpty
-          ? _buildEmptyState()
-          : _buildTreatmentList(),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : _treatments.isEmpty
+              ? _buildEmptyState()
+              : _buildTreatmentList(),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToAddTreatment,
         tooltip: 'Ajouter un traitement',
@@ -144,18 +155,11 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.medical_services_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
+          Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
           SizedBox(height: 16),
           Text(
             'Aucun traitement enregistré',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 8),
           Text(
@@ -175,7 +179,8 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
       itemBuilder: (context, index) {
         final treatment = _treatments[index];
         final treatmentType = _treatmentTypes[treatment.id] ?? "Non spécifié";
-        final isCompleted = false; // Par défaut, à remplacer par la valeur réelle si disponible
+        final isCompleted =
+            false; // Par défaut, à remplacer par la valeur réelle si disponible
 
         return Card(
           margin: EdgeInsets.only(bottom: 16),
@@ -216,7 +221,11 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
                   SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Début: ${DateFormat('dd/MM/yyyy').format(treatment.startDate)}',
@@ -275,7 +284,10 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
     }
   }
 
-  void _navigateToTreatmentDetails(Treatment treatment, String treatmentType) async {
+  void _navigateToTreatmentDetails(
+    Treatment treatment,
+    String treatmentType,
+  ) async {
     Log.d('_navigateToTreatmentDetails');
     // Utilisez cette approche pour éliminer l'erreur Widget?
     Widget destinationScreen = TreatmentDetailsScreen(treatment: treatment);
@@ -288,7 +300,7 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
         case "Immunothérapie":
         case "Hormonothérapie":
         case "Traitement combiné":
-        // Récupérer les cycles
+          // Récupérer les cycles
           final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
 
           if (cycleData.isNotEmpty) {
@@ -300,11 +312,14 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
               type: _parseCycleType(cycleMap['type']),
               startDate: DateTime.parse(cycleMap['startDate'] as String),
               endDate: DateTime.parse(cycleMap['endDate'] as String),
-              establishment: treatment.establishments.isNotEmpty
-                  ? treatment.establishments.first
-                  : Establishment(id: "default", name: "Non spécifié"),
+              establishment:
+                  treatment.establishments.isNotEmpty
+                      ? treatment.establishments.first
+                      : Establishment(id: "default", name: "Non spécifié"),
               sessionCount: cycleMap['sessionCount'] as int,
-              sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
+              sessionInterval: Duration(
+                days: cycleMap['sessionInterval'] as int,
+              ),
               isCompleted: cycleMap['isCompleted'] == 1,
               conclusion: cycleMap['conclusion'] as String?,
             );
@@ -316,10 +331,12 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
           break;
 
         case "Chirurgie":
-        // Récupérer les chirurgies
-          final surgeryData = await dbHelper.getSurgeriesByTreatment(treatment.id);
+          // Récupérer les chirurgies
+          final surgeryData = await dbHelper.getSurgeriesByTreatment(
+            treatment.id,
+          );
 
-          if (surgeryData.isNotEmpty && surgeryData.first is Map) {
+          if (surgeryData.isNotEmpty) {
             try {
               final surgeryMap = surgeryData.first;
 
@@ -328,9 +345,10 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
                 id: surgeryMap['id'] as String,
                 title: surgeryMap['title'] as String,
                 date: DateTime.parse(surgeryMap['date'] as String),
-                establishment: treatment.establishments.isNotEmpty
-                    ? treatment.establishments.first
-                    : Establishment(id: "default", name: "Non spécifié"),
+                establishment:
+                    treatment.establishments.isNotEmpty
+                        ? treatment.establishments.first
+                        : Establishment(id: "default", name: "Non spécifié"),
                 isCompleted: surgeryMap['isCompleted'] == 1,
               );
 
@@ -344,10 +362,12 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
           break;
 
         case "Radiothérapie":
-        // Récupérer les radiothérapies
-          final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(treatment.id);
+          // Récupérer les radiothérapies
+          final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
+            treatment.id,
+          );
 
-          if (radiotherapyData.isNotEmpty && radiotherapyData.first is Map) {
+          if (radiotherapyData.isNotEmpty) {
             try {
               final radiotherapyMap = radiotherapyData.first;
 
@@ -355,16 +375,21 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
               final radiotherapy = Radiotherapy(
                 id: radiotherapyMap['id'] as String,
                 title: radiotherapyMap['title'] as String,
-                startDate: DateTime.parse(radiotherapyMap['startDate'] as String),
+                startDate: DateTime.parse(
+                  radiotherapyMap['startDate'] as String,
+                ),
                 endDate: DateTime.parse(radiotherapyMap['endDate'] as String),
-                establishment: treatment.establishments.isNotEmpty
-                    ? treatment.establishments.first
-                    : Establishment(id: "default", name: "Non spécifié"),
+                establishment:
+                    treatment.establishments.isNotEmpty
+                        ? treatment.establishments.first
+                        : Establishment(id: "default", name: "Non spécifié"),
                 sessionCount: radiotherapyMap['sessionCount'] as int,
                 isCompleted: radiotherapyMap['isCompleted'] == 1,
               );
 
-              destinationScreen = RadiotherapyDetailsScreen(radiotherapy: radiotherapy);
+              destinationScreen = RadiotherapyDetailsScreen(
+                radiotherapy: radiotherapy,
+              );
             } catch (e) {
               Log.e("Erreur lors de la création de l'objet Radiotherapy: $e");
               // Pas besoin de modifier destinationScreen en cas d'erreur
@@ -405,4 +430,3 @@ class _TreatmentListScreenState extends State<TreatmentListScreen> {
     }
   }
 }
-

@@ -1,9 +1,8 @@
 // lib/features/treatment/screens/add_surgery_screen.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
@@ -13,11 +12,7 @@ class AddSurgeryScreen extends StatefulWidget {
   final String treatmentId;
   final Surgery? surgery; // Optionnel pour l'édition
 
-  const AddSurgeryScreen({
-    Key? key,
-    required this.treatmentId,
-    this.surgery,
-  }) : super(key: key);
+  const AddSurgeryScreen({super.key, required this.treatmentId, this.surgery});
 
   @override
   _AddSurgeryScreenState createState() => _AddSurgeryScreenState();
@@ -25,16 +20,17 @@ class AddSurgeryScreen extends StatefulWidget {
 
 class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _titleController = TextEditingController(); // Modifié: titleController au lieu de typeController
+  final TextEditingController _titleController =
+      TextEditingController(); // Modifié: titleController au lieu de typeController
   final TextEditingController _notesController = TextEditingController();
 
   DateTime _date = DateTime.now();
   Establishment? _selectedEstablishment;
-  List<Doctor> _selectedSurgeons = [];
-  List<Doctor> _selectedAnesthetists = [];
+  List<PS> _selectedSurgeons = [];
+  List<PS> _selectedAnesthetists = [];
 
   List<Establishment> _establishments = [];
-  List<Doctor> _doctors = [];
+  List<PS> _doctors = [];
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isEditMode = false;
@@ -55,12 +51,17 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
       final dbHelper = DatabaseHelper();
 
       // Charger les établissements associés au traitement
-      final establishmentMaps = await dbHelper.getEstablishmentsByTreatment(widget.treatmentId);
-      _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+      final establishmentMaps = await dbHelper.getEstablishmentsByTreatment(
+        widget.treatmentId,
+      );
+      _establishments =
+          establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
       // Charger les médecins associés au traitement
-      final doctorMaps = await dbHelper.getDoctorsByTreatment(widget.treatmentId);
-      _doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
+      final doctorMaps = await dbHelper.getDoctorsByTreatment(
+        widget.treatmentId,
+      );
+      _doctors = doctorMaps.map((map) => PS.fromMap(map)).toList();
 
       // Si en mode édition, initialiser les valeurs
       if (_isEditMode) {
@@ -95,64 +96,73 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditMode ? 'Modifier l\'opération' : 'Nouvelle opération'),
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                label: 'Type d\'opération',
-                controller: _titleController, // Modifié: titleController au lieu de typeController
-                placeholder: 'Ex: Ablation', // Modifié: placeholder au lieu de hintText
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir le type d\'opération';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              DateTimePicker(
-                label: 'Date de l\'opération',
-                initialValue: _date,
-                showTime: false,
-                onDateTimeSelected: (dateTime) {
-                  setState(() {
-                    _date = dateTime;
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-              _buildEstablishmentDropdown(),
-              SizedBox(height: 16),
-              _buildDoctorSelection(),
-              SizedBox(height: 16),
-              CustomTextField(
-                label: 'Rapport d\'opération (optionnel)',
-                controller: _notesController,
-                maxLines: 4,
-                placeholder: 'Ajoutez des notes importantes concernant cette opération', // Modifié: placeholder au lieu de hintText
-              ),
-              SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _saveSurgery,
-                child: _isSaving
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(_isEditMode ? 'Mettre à jour' : 'Enregistrer'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ],
-          ),
+        title: Text(
+          _isEditMode ? 'Modifier l\'opération' : 'Nouvelle opération',
         ),
       ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CustomTextField(
+                        label: 'Type d\'opération',
+                        controller:
+                            _titleController, // Modifié: titleController au lieu de typeController
+                        placeholder:
+                            'Ex: Ablation', // Modifié: placeholder au lieu de hintText
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Veuillez saisir le type d\'opération';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      DateTimePicker(
+                        label: 'Date de l\'opération',
+                        initialValue: _date,
+                        showTime: false,
+                        onDateTimeSelected: (dateTime) {
+                          setState(() {
+                            _date = dateTime;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      _buildEstablishmentDropdown(),
+                      SizedBox(height: 16),
+                      _buildDoctorSelection(),
+                      SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Rapport d\'opération (optionnel)',
+                        controller: _notesController,
+                        maxLines: 4,
+                        placeholder:
+                            'Ajoutez des notes importantes concernant cette opération', // Modifié: placeholder au lieu de hintText
+                      ),
+                      SizedBox(height: 32),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _saveSurgery,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child:
+                            _isSaving
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                  _isEditMode ? 'Mettre à jour' : 'Enregistrer',
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
     );
   }
 
@@ -187,12 +197,13 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       value: _selectedEstablishment,
-      items: _establishments.map((establishment) {
-        return DropdownMenuItem<Establishment>(
-          value: establishment,
-          child: Text(establishment.name),
-        );
-      }).toList(),
+      items:
+          _establishments.map((establishment) {
+            return DropdownMenuItem<Establishment>(
+              value: establishment,
+              child: Text(establishment.name),
+            );
+          }).toList(),
       onChanged: (Establishment? value) {
         setState(() {
           _selectedEstablishment = value;
@@ -213,10 +224,7 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
       children: [
         Text(
           'Médecins',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Text(
@@ -252,7 +260,10 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
     );
   }
 
-  Widget _buildDoctorMultiSelect(List<Doctor> selectedDoctors, Function(List<Doctor>) onChanged) {
+  Widget _buildDoctorMultiSelect(
+    List<PS> selectedDoctors,
+    Function(List<PS>) onChanged,
+  ) {
     return Card(
       margin: EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -262,31 +273,52 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
             // Affichage des médecins sélectionnés
             if (selectedDoctors.isNotEmpty)
               Column(
-                children: selectedDoctors.map((doctor) => ListTile(
-                  title: Text(doctor.fullName), // Utilisez fullName au lieu de name
-                  trailing: IconButton(
-                    icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: () {
-                      onChanged(selectedDoctors.where((d) => d.id != doctor.id).toList());
-                    },
-                  ),
-                )).toList(),
+                children:
+                    selectedDoctors
+                        .map(
+                          (doctor) => ListTile(
+                            title: Text(
+                              doctor.fullName,
+                            ), // Utilisez fullName au lieu de name
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                onChanged(
+                                  selectedDoctors
+                                      .where((d) => d.id != doctor.id)
+                                      .toList(),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                        .toList(),
               ),
 
             // Dropdown pour ajouter un médecin
             if (_doctors.isNotEmpty)
-              DropdownButton<Doctor>(
+              DropdownButton<PS>(
                 isExpanded: true,
                 hint: Text('Ajouter un médecin'),
-                items: _doctors
-                    .where((doctor) => !selectedDoctors.any((d) => d.id == doctor.id))
-                    .map((doctor) {
-                  return DropdownMenuItem<Doctor>(
-                    value: doctor,
-                    child: Text(doctor.fullName), // Utilisez fullName au lieu de name
-                  );
-                }).toList(),
-                onChanged: (Doctor? value) {
+                items:
+                    _doctors
+                        .where(
+                          (doctor) =>
+                              !selectedDoctors.any((d) => d.id == doctor.id),
+                        )
+                        .map((doctor) {
+                          return DropdownMenuItem<PS>(
+                            value: doctor,
+                            child: Text(
+                              doctor.fullName,
+                            ), // Utilisez fullName au lieu de name
+                          );
+                        })
+                        .toList(),
+                onChanged: (PS? value) {
                   if (value != null) {
                     onChanged([...selectedDoctors, value]);
                   }
@@ -328,13 +360,17 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
         Map<String, dynamic> surgeryData = {
           'id': surgeryId,
           'treatmentId': widget.treatmentId,
-          'title': _titleController.text.trim(), // Modifié: title au lieu de type
+          'title':
+              _titleController.text.trim(), // Modifié: title au lieu de type
           'date': _date.toIso8601String(),
           'establishmentId': _selectedEstablishment!.id,
-          'description': _notesController.text.isNotEmpty ? _notesController.text : null,
-          'isCompleted': _isEditMode ? (widget.surgery!.isCompleted ? 1 : 0) : 0,
+          'description':
+              _notesController.text.isNotEmpty ? _notesController.text : null,
+          'isCompleted':
+              _isEditMode ? (widget.surgery!.isCompleted ? 1 : 0) : 0,
           'surgeonIds': _selectedSurgeons.map((doctor) => doctor.id).toList(),
-          'anesthetistIds': _selectedAnesthetists.map((doctor) => doctor.id).toList(),
+          'anesthetistIds':
+              _selectedAnesthetists.map((doctor) => doctor.id).toList(),
         };
 
         if (_isEditMode) {
@@ -362,4 +398,3 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
     }
   }
 }
-

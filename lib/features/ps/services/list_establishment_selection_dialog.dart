@@ -1,30 +1,22 @@
-import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
-
-import 'package:suivi_cancer/features/treatment/models/ps.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/contact.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/list_health_ps.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/list_establishment_selection_dialog.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
-import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
-
 
 class EstablishmentSelectionDialog extends StatefulWidget {
   final List<Map<String, dynamic>> allEstablishments;
   final List<Map<String, dynamic>> selectedEstablishments;
 
-  EstablishmentSelectionDialog({
+  const EstablishmentSelectionDialog({
+    super.key,
     required this.allEstablishments,
     required this.selectedEstablishments,
   });
 
   @override
-  _EstablishmentSelectionDialogState createState() => _EstablishmentSelectionDialogState();
+  _EstablishmentSelectionDialogState createState() =>
+      _EstablishmentSelectionDialogState();
 }
 
-class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDialog> {
+class _EstablishmentSelectionDialogState
+    extends State<EstablishmentSelectionDialog> {
   late List<Map<String, dynamic>> _selectedEstablishments;
 
   @override
@@ -41,10 +33,14 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
   void _toggleEstablishment(Map<String, dynamic> establishment) {
     setState(() {
       if (_isSelected(establishment['id'])) {
-        _selectedEstablishments.removeWhere((e) => e['id'] == establishment['id']);
+        _selectedEstablishments.removeWhere(
+          (e) => e['id'] == establishment['id'],
+        );
       } else {
         // Ajouter avec un rôle vide par défaut
-        final Map<String, dynamic> establishmentWithRole = Map.from(establishment);
+        final Map<String, dynamic> establishmentWithRole = Map.from(
+          establishment,
+        );
         establishmentWithRole['role'] = '';
         _selectedEstablishments.add(establishmentWithRole);
       }
@@ -53,7 +49,9 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
 
   void _updateRole(String establishmentId, String role) {
     setState(() {
-      final index = _selectedEstablishments.indexWhere((e) => e['id'] == establishmentId);
+      final index = _selectedEstablishments.indexWhere(
+        (e) => e['id'] == establishmentId,
+      );
       if (index != -1) {
         _selectedEstablishments[index]['role'] = role;
       }
@@ -64,7 +62,7 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Sélectionner des établissements'),
-      content: Container(
+      content: SizedBox(
         width: double.maxFinite,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -81,9 +79,10 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
                     children: [
                       ListTile(
                         title: Text(establishment['name']),
-                        subtitle: establishment['address'] != null
-                            ? Text(establishment['address'])
-                            : null,
+                        subtitle:
+                            establishment['address'] != null
+                                ? Text(establishment['address'])
+                                : null,
                         leading: Checkbox(
                           value: isSelected,
                           onChanged: (value) {
@@ -96,16 +95,26 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
                       ),
                       if (isSelected)
                         Padding(
-                          padding: EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                          padding: EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            bottom: 8,
+                          ),
                           child: TextField(
                             decoration: InputDecoration(
                               labelText: 'Rôle dans cet établissement',
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             controller: TextEditingController(
-                                text: _selectedEstablishments
-                                    .firstWhere((e) => e['id'] == establishment['id'])['role'] ?? ''
+                              text:
+                                  _selectedEstablishments.firstWhere(
+                                    (e) => e['id'] == establishment['id'],
+                                  )['role'] ??
+                                  '',
                             ),
                             onChanged: (value) {
                               _updateRole(establishment['id'], value);
@@ -129,14 +138,13 @@ class _EstablishmentSelectionDialogState extends State<EstablishmentSelectionDia
           },
         ),
         ElevatedButton(
-          child: Text('Confirmer'),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
           onPressed: () {
             Navigator.of(context).pop(_selectedEstablishments);
           },
+          child: Text('Confirmer'),
         ),
       ],
     );
   }
 }
-

@@ -16,10 +16,10 @@ class SessionDetailsScreen extends StatefulWidget {
   final Cycle cycle; // Ajout du paramètre cycle
 
   const SessionDetailsScreen({
-    Key? key,
+    super.key,
     required this.session,
     required this.cycle,
-  }) : super(key: key);
+  });
 
   @override
   _SessionDetailsScreenState createState() => _SessionDetailsScreenState();
@@ -30,7 +30,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   late Session _session;
   late Cycle _cycle;
   List<SideEffect> _sideEffects = [];
-  bool _isLoadingSideEffects = false;
+  final bool _isLoadingSideEffects = false;
 
   @override
   void initState() {
@@ -47,10 +47,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
     try {
       final dbHelper = DatabaseHelper();
-      final sideEffectMaps = await dbHelper.getSideEffectsByEntity('session', widget.session.id);
+      final sideEffectMaps = await dbHelper.getSideEffectsByEntity(
+        'session',
+        widget.session.id,
+      );
 
       setState(() {
-        _sideEffects = sideEffectMaps.map((map) => SideEffect.fromMap(map)).toList();
+        _sideEffects =
+            sideEffectMaps.map((map) => SideEffect.fromMap(map)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -81,40 +85,43 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         ],
       ),
 
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSessionInfoCard(),
-                  SizedBox(height: 24),
-                  _buildMedicationsSection(),
-                  SizedBox(height: 24),
-                  _buildPrerequisitesSection(),
-                  SizedBox(height: 24),
-                  _buildSideEffectsSection(),
-                ],
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSessionInfoCard(),
+                    SizedBox(height: 24),
+                    _buildMedicationsSection(),
+                    SizedBox(height: 24),
+                    _buildPrerequisitesSection(),
+                    SizedBox(height: 24),
+                    _buildSideEffectsSection(),
+                  ],
+                ),
               ),
-            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddSideEffectScreen(
-                entityType: 'session',
-                entityId: _session.id,
-                entityName: 'Séance du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
-              ),
+              builder:
+                  (context) => AddSideEffectScreen(
+                    entityType: 'session',
+                    entityId: _session.id,
+                    entityName:
+                        'Séance du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
+                  ),
             ),
           ).then((_) {
             _loadSideEffects();
           });
         },
-        child: Icon(Icons.add),
         tooltip: 'Ajouter un effet secondaire',
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -131,10 +138,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               children: [
                 Text(
                   'Informations de la séance',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 _buildStatusChip(
                   _session.isCompleted ? 'Terminé' : 'Planifié',
@@ -144,7 +148,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             ),
             SizedBox(height: 16),
             _buildInfoRow('Cycle', _getCycleTypeLabel(_cycle.type)),
-            _buildInfoRow('Date et heure', DateFormat('dd/MM/yyyy à HH:mm').format(_session.dateTime)),
+            _buildInfoRow(
+              'Date et heure',
+              DateFormat('dd/MM/yyyy à HH:mm').format(_session.dateTime),
+            ),
             _buildInfoRow('Établissement', _session.establishment.name),
             if (_session.notes != null && _session.notes!.isNotEmpty)
               _buildInfoRow('Notes', _session.notes!),
@@ -171,12 +178,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w400)),
           ),
         ],
       ),
@@ -189,93 +191,95 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       children: [
         Text(
           'Médicaments',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         _session.medications.isEmpty
             ? Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: Text(
-                      'Aucun médicament enregistré',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Aucun médicament enregistré',
+                    style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: _session.medications.length,
-                itemBuilder: (context, index) {
-                  final medication = _session.medications[index];
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(medication.name),
-                      subtitle: medication.quantity != null
-                          ? Text('Dosage: ${medication.quantity}')
-                          : null,
-                    ),
-                  );
-                },
               ),
+            )
+            : ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _session.medications.length,
+              itemBuilder: (context, index) {
+                final medication = _session.medications[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text(medication.name),
+                    subtitle:
+                        medication.quantity != null
+                            ? Text('Dosage: ${medication.quantity}')
+                            : null,
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
 
   Widget _buildPrerequisitesSection() {
-    Log.d('prerequisites:[${_session.prerequisites?.length}] appointments:[${_session.appointments?.length}]');
+    Log.d(
+      'prerequisites:[${_session.prerequisites.length}] appointments:[${_session.appointments.length}]',
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Prérequis',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         _session.prerequisites.isEmpty && _session.appointments.isEmpty
             ? Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: Text(
-                      'Aucun prérequis enregistré',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Aucun prérequis enregistré',
+                    style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
-              )
+              ),
+            )
             : ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: _session.prerequisites.length+_session.appointments.length,
-                itemBuilder: (context, index) {
-                  final prerequisite = _session.prerequisites[index];
-                  return Card(
-                    margin: EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(prerequisite.description),
-                      subtitle: Text('Échéance: ${DateFormat('dd/MM/yyyy').format(prerequisite.deadline)}'),
-                      trailing: prerequisite.appointment != null
-                          ? Icon(Icons.event, color: Colors.blue)
-                          : null,
-                      onTap: prerequisite.appointment != null
-                          ? () {
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount:
+                  _session.prerequisites.length + _session.appointments.length,
+              itemBuilder: (context, index) {
+                final prerequisite = _session.prerequisites[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text(prerequisite.description),
+                    subtitle: Text(
+                      'Échéance: ${DateFormat('dd/MM/yyyy').format(prerequisite.deadline)}',
+                    ),
+                    trailing:
+                        prerequisite.appointment != null
+                            ? Icon(Icons.event, color: Colors.blue)
+                            : null,
+                    onTap:
+                        prerequisite.appointment != null
+                            ? () {
                               // Afficher les détails du rendez-vous
                             }
-                          : null,
-                    ),
-                  );
-                },
-              ),
+                            : null,
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
@@ -284,11 +288,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SideEffectsListScreen(
-          entityType: 'session',
-          entityId: widget.session.id,
-          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(widget.session.dateTime)}',
-        ),
+        builder:
+            (context) => SideEffectsListScreen(
+              entityType: 'session',
+              entityId: widget.session.id,
+              entityName:
+                  'Session du ${DateFormat('dd/MM/yyyy').format(widget.session.dateTime)}',
+            ),
       ),
     );
 
@@ -307,10 +313,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Text(
             'Effets secondaires',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
 
@@ -334,22 +337,24 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   Future<void> _confirmDeleteSession() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer la séance',
-        content: 'Êtes-vous sûr de vouloir supprimer cette séance ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer la séance',
+            content:
+                'Êtes-vous sûr de vouloir supprimer cette séance ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {
       try {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteSession(_session.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Séance supprimée avec succès')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Séance supprimée avec succès')));
         Navigator.pop(context, true);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -397,11 +402,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddSideEffectScreen(
-          entityType: 'session',
-          entityId: _session.id.toString(),
-          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
-        ),
+        builder:
+            (context) => AddSideEffectScreen(
+              entityType: 'session',
+              entityId: _session.id.toString(),
+              entityName:
+                  'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
+            ),
       ),
     );
 
@@ -414,12 +421,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddSideEffectScreen(
-          entityType: 'session',
-          entityId: _session.id.toString(),
-          entityName: 'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
-          sideEffect: sideEffect,
-        ),
+        builder:
+            (context) => AddSideEffectScreen(
+              entityType: 'session',
+              entityId: _session.id.toString(),
+              entityName:
+                  'Session du ${DateFormat('dd/MM/yyyy').format(_session.dateTime)}',
+              sideEffect: sideEffect,
+            ),
       ),
     );
 
@@ -431,20 +440,23 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   void _deleteSideEffect(SideEffect sideEffect) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Supprimer l\'effet secondaire'),
-        content: Text('Êtes-vous sûr de vouloir supprimer cet effet secondaire ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Annuler'),
+      builder:
+          (context) => AlertDialog(
+            title: Text('Supprimer l\'effet secondaire'),
+            content: Text(
+              'Êtes-vous sûr de vouloir supprimer cet effet secondaire ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -452,9 +464,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteSideEffect(sideEffect.id);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Effet secondaire supprimé')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Effet secondaire supprimé')));
 
         _loadSideEffects();
       } catch (e) {
@@ -473,58 +485,48 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Détails de l\'effet secondaire',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Description',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(sideEffect.description),
-            SizedBox(height: 8),
-            Text(
-              'Sévérité',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(_getSeverityText(sideEffect.severity)),
-            SizedBox(height: 8),
-            Text(
-              'Date',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(DateFormat('dd/MM/yyyy').format(sideEffect.date)),
-            if (sideEffect.notes != null && sideEffect.notes!.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Text(
-                'Notes',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(sideEffect.notes!),
-            ],
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Fermer'),
+                Text(
+                  'Détails de l\'effet secondaire',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Description',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(sideEffect.description),
+                SizedBox(height: 8),
+                Text('Sévérité', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(_getSeverityText(sideEffect.severity)),
+                SizedBox(height: 8),
+                Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(DateFormat('dd/MM/yyyy').format(sideEffect.date)),
+                if (sideEffect.notes != null &&
+                    sideEffect.notes!.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(sideEffect.notes!),
+                ],
+                SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Fermer'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 

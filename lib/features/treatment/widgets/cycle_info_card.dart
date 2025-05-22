@@ -7,10 +7,7 @@ import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
 class CycleInfoCard extends StatelessWidget {
   final Cycle cycle;
 
-  const CycleInfoCard({
-    Key? key,
-    required this.cycle,
-  }) : super(key: key);
+  const CycleInfoCard({super.key, required this.cycle});
 
   @override
   Widget build(BuildContext context) {
@@ -35,12 +32,21 @@ class CycleInfoCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: cycle.isCompleted ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                    color:
+                        cycle.isCompleted
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.blue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: cycle.isCompleted ? Colors.green.withOpacity(0.5) : Colors.blue.withOpacity(0.5),
+                      color:
+                          cycle.isCompleted
+                              ? Colors.green.withOpacity(0.5)
+                              : Colors.blue.withOpacity(0.5),
                     ),
                   ),
                   child: Text(
@@ -83,10 +89,7 @@ class CycleInfoCard extends StatelessWidget {
               const Divider(height: 24),
               const Text(
                 'Conclusion du cycle:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
               Text(
@@ -108,14 +111,8 @@ class CycleInfoCard extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: Colors.grey[700]),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
       ],
     );
   }
 }
-

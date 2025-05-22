@@ -1,7 +1,6 @@
 // lib/features/treatment/widgets/add_medication_intake_dialog.dart
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
@@ -10,30 +9,19 @@ import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/utils/fctDate.dart';
 
-
-// lib/features/treatment/widgets/add_medication_intake_dialog.dart
-
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/features/treatment/models/medication.dart';
-import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
-import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
-import 'package:suivi_cancer/utils/logger.dart';
-
 class AddMedicationIntakeDialog extends StatefulWidget {
   final String cycleId;
   final MedicationIntake? medicationIntake; // Paramètre pour la modification
 
   const AddMedicationIntakeDialog({
-    Key? key,
+    super.key,
     required this.cycleId,
-    this.medicationIntake
-  }) : super(key: key);
+    this.medicationIntake,
+  });
 
   @override
-  _AddMedicationIntakeDialogState createState() => _AddMedicationIntakeDialogState();
+  _AddMedicationIntakeDialogState createState() =>
+      _AddMedicationIntakeDialogState();
 }
 
 class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
@@ -41,7 +29,8 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
   final _dbHelper = DatabaseHelper();
 
   late DateTime _selectedDateTime;
-  List<MedicationItem> _selectedMedications = []; // Liste pour stocker les médicaments sélectionnés
+  List<MedicationItem> _selectedMedications =
+      []; // Liste pour stocker les médicaments sélectionnés
   String? _selectedMedicationId;
   String _selectedMedicationName = '';
   int _selectedQuantity = 1; // Quantité par défaut
@@ -76,7 +65,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
 
     // Vérifier si le médicament est déjà dans la liste
     int existingIndex = _selectedMedications.indexWhere(
-            (item) => item.medicationId == _selectedMedicationId
+      (item) => item.medicationId == _selectedMedicationId,
     );
 
     if (existingIndex >= 0) {
@@ -85,17 +74,20 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
         _selectedMedications[existingIndex] = MedicationItem(
           medicationId: _selectedMedicationId!,
           medicationName: _selectedMedicationName,
-          quantity: _selectedMedications[existingIndex].quantity + _selectedQuantity,
+          quantity:
+              _selectedMedications[existingIndex].quantity + _selectedQuantity,
         );
       });
     } else {
       // Ajouter un nouveau médicament
       setState(() {
-        _selectedMedications.add(MedicationItem(
-          medicationId: _selectedMedicationId!,
-          medicationName: _selectedMedicationName,
-          quantity: _selectedQuantity,
-        ));
+        _selectedMedications.add(
+          MedicationItem(
+            medicationId: _selectedMedicationId!,
+            medicationName: _selectedMedicationName,
+            quantity: _selectedQuantity,
+          ),
+        );
       });
     }
 
@@ -136,18 +128,25 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
     try {
       final medicationMaps = await _dbHelper.getMedications();
       setState(() {
-        _medications = medicationMaps.map((map) => Medication.fromMap(map)).toList();
+        _medications =
+            medicationMaps.map((map) => Medication.fromMap(map)).toList();
         _isLoading = false;
 
         // Si en mode édition, vérifier que le médicament existe toujours dans la liste
         if (_isEditing && _selectedMedicationId != null) {
-          final medicationExists = _medications.any((med) => med.id == _selectedMedicationId);
-          if (!medicationExists && _selectedMedicationId != null && _selectedMedicationName.isNotEmpty) {
+          final medicationExists = _medications.any(
+            (med) => med.id == _selectedMedicationId,
+          );
+          if (!medicationExists &&
+              _selectedMedicationId != null &&
+              _selectedMedicationName.isNotEmpty) {
             // Si le médicament n'existe plus, ajouter un médicament temporaire à la liste
-            _medications.add(Medication(
-              id: _selectedMedicationId!,
-              name: _selectedMedicationName,
-            ));
+            _medications.add(
+              Medication(
+                id: _selectedMedicationId!,
+                name: _selectedMedicationName,
+              ),
+            );
           }
         }
       });
@@ -193,7 +192,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
 
       if (_selectedMedications.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Veuillez ajouter au moins un médicament'))
+          SnackBar(content: Text('Veuillez ajouter au moins un médicament')),
         );
         return;
       }
@@ -213,160 +212,198 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEditing ? 'Modifier la prise de médicament' : 'Ajouter une prise de médicament'),
+      title: Text(
+        _isEditing
+            ? 'Modifier la prise de médicament'
+            : 'Ajouter une prise de médicament',
+      ),
       content: Container(
         width: double.maxFinite,
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Date et heure
-              ListTile(
-                title: Text('Date et heure'),
-                subtitle: Text(getLocalizedDateTimeFormat(_selectedDateTime)),
-                trailing: Icon(Icons.calendar_today),
-                onTap: _selectDate,
-              ),
-              SizedBox(height: 16),
-
-              // Liste des médicaments sélectionnés
-              if (_selectedMedications.isNotEmpty) ...[
-                Text('Médicaments sélectionnés',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: _selectedMedications.map((med) =>
-                          ListTile(
-                            dense: true,
-                            title: Text(med.medicationName),
-                            subtitle: Row(
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.remove, size: 16),
-                                  onPressed: () => _updateMedicationQuantity(
-                                      _selectedMedications.indexOf(med), med.quantity - 1),
-                                ),
-                                Text('${med.quantity}'),
-                                IconButton(
-                                  icon: Icon(Icons.add, size: 16),
-                                  onPressed: () => _updateMedicationQuantity(
-                                      _selectedMedications.indexOf(med), med.quantity + 1),
-                                ),
-                              ],
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _removeMedication(_selectedMedications.indexOf(med)),
-                            ),
-                          )
-                      ).toList(),
-                    ),
-                  ),
-                ),
-                Divider(),
-              ],
-
-              // Sélection d'un nouveau médicament
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Médicament',
-                        border: OutlineInputBorder(),
-                      ),
-                      value: _selectedMedicationId,
-                      items: _medications.map((medication) {
-                        return DropdownMenuItem(
-                          value: medication.id,
-                          child: Text(medication.name),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedMedicationId = value;
-                          if (value != null) {
-                            _selectedMedicationName = _medications
-                                .firstWhere((med) => med.id == value)
-                                .name;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Container(
-                    width: 80,
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Qté',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      initialValue: '1',
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedQuantity = int.tryParse(value) ?? 1;
-                        });
-                      },
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle, color: Colors.blue),
-                    onPressed: _addMedicationToList,
-                  ),
-                ],
-              ),
-
-              // Bouton pour ajouter un nouveau médicament
-              TextButton.icon(
-                icon: Icon(Icons.add_circle_outline),
-                label: Text('Nouveau médicament'),
-                onPressed: () async {
-                  final newMedication = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddMedicationsScreen(),
-                    ),
-                  );
-
-                  if (newMedication != null) {
-                    setState(() {
-                      _medications.add(newMedication);
-                      _selectedMedicationId = newMedication.id;
-                      _selectedMedicationName = newMedication.name;
-                    });
-                  }
-                },
-              ),
-
-              SizedBox(height: 16),
-
-              // Notes
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Notes (optionnel)',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: _notes,
-                maxLines: 3,
-                onChanged: (value) {
-                  _notes = value;
-                },
-              ),
-            ],
-          ),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
         ),
+        child:
+            _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Date et heure
+                      ListTile(
+                        title: Text('Date et heure'),
+                        subtitle: Text(
+                          getLocalizedDateTimeFormat(_selectedDateTime),
+                        ),
+                        trailing: Icon(Icons.calendar_today),
+                        onTap: _selectDate,
+                      ),
+                      SizedBox(height: 16),
+
+                      // Liste des médicaments sélectionnés
+                      if (_selectedMedications.isNotEmpty) ...[
+                        Text(
+                          'Médicaments sélectionnés',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children:
+                                  _selectedMedications
+                                      .map(
+                                        (med) => ListTile(
+                                          dense: true,
+                                          title: Text(med.medicationName),
+                                          subtitle: Row(
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.remove,
+                                                  size: 16,
+                                                ),
+                                                onPressed:
+                                                    () =>
+                                                        _updateMedicationQuantity(
+                                                          _selectedMedications
+                                                              .indexOf(med),
+                                                          med.quantity - 1,
+                                                        ),
+                                              ),
+                                              Text('${med.quantity}'),
+                                              IconButton(
+                                                icon: Icon(Icons.add, size: 16),
+                                                onPressed:
+                                                    () =>
+                                                        _updateMedicationQuantity(
+                                                          _selectedMedications
+                                                              .indexOf(med),
+                                                          med.quantity + 1,
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
+                                          trailing: IconButton(
+                                            icon: Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed:
+                                                () => _removeMedication(
+                                                  _selectedMedications.indexOf(
+                                                    med,
+                                                  ),
+                                                ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                            ),
+                          ),
+                        ),
+                        Divider(),
+                      ],
+
+                      // Sélection d'un nouveau médicament
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: 'Médicament',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: _selectedMedicationId,
+                              items:
+                                  _medications.map((medication) {
+                                    return DropdownMenuItem(
+                                      value: medication.id,
+                                      child: Text(medication.name),
+                                    );
+                                  }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedMedicationId = value;
+                                  if (value != null) {
+                                    _selectedMedicationName =
+                                        _medications
+                                            .firstWhere(
+                                              (med) => med.id == value,
+                                            )
+                                            .name;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          SizedBox(
+                            width: 80,
+                            child: TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Qté',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                              initialValue: '1',
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedQuantity = int.tryParse(value) ?? 1;
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.add_circle, color: Colors.blue),
+                            onPressed: _addMedicationToList,
+                          ),
+                        ],
+                      ),
+
+                      // Bouton pour ajouter un nouveau médicament
+                      TextButton.icon(
+                        icon: Icon(Icons.add_circle_outline),
+                        label: Text('Nouveau médicament'),
+                        onPressed: () async {
+                          final newMedication = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddMedicationsScreen(),
+                            ),
+                          );
+
+                          if (newMedication != null) {
+                            setState(() {
+                              _medications.add(newMedication);
+                              _selectedMedicationId = newMedication.id;
+                              _selectedMedicationName = newMedication.name;
+                            });
+                          }
+                        },
+                      ),
+
+                      SizedBox(height: 16),
+
+                      // Notes
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Notes (optionnel)',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue: _notes,
+                        maxLines: 3,
+                        onChanged: (value) {
+                          _notes = value;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
       ),
       actions: [
         TextButton(
@@ -380,7 +417,4 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
       ],
     );
   }
-
 }
-
-

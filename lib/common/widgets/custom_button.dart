@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum CustomButtonType {
-  primary,
-  secondary,
-  outline,
-  text,
-  danger
-}
+enum CustomButtonType { primary, secondary, outline, text, danger }
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -19,7 +13,7 @@ class CustomButton extends StatelessWidget {
   final double height;
 
   const CustomButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.type = CustomButtonType.primary,
@@ -28,17 +22,17 @@ class CustomButton extends StatelessWidget {
     this.icon,
     this.width,
     this.height = 48,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     // Définir les couleurs en fonction du type de bouton
     Color backgroundColor;
     Color textColor;
     Color borderColor;
-    
+
     switch (type) {
       case CustomButtonType.primary:
         backgroundColor = theme.colorScheme.primary;
@@ -86,25 +80,19 @@ class CustomButton extends StatelessWidget {
           SizedBox(width: 8),
           Text(
             text,
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
           ),
         ],
       );
     } else {
       buttonContent = Text(
         text,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
       );
     }
 
     // Construire le bouton
-    return Container(
+    return SizedBox(
       width: isFullWidth ? double.infinity : width,
       height: height,
       child: ElevatedButton(
@@ -117,11 +105,13 @@ class CustomButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             side: BorderSide(color: borderColor),
           ),
-          elevation: type == CustomButtonType.text || type == CustomButtonType.outline ? 0 : 2,
+          elevation:
+              type == CustomButtonType.text || type == CustomButtonType.outline
+                  ? 0
+                  : 2,
         ),
         child: buttonContent,
       ),
     );
   }
 }
-

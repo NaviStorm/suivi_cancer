@@ -40,6 +40,8 @@ class EventFormatter {
         return 'Épreuve d\'effort';
       case ExaminationType.EFR:
         return 'EFR';
+      case ExaminationType.Soin:
+        return 'Soin';
       case ExaminationType.Autre:
         return 'Autre examen';
     }
@@ -67,6 +69,8 @@ class EventFormatter {
         return Icons.directions_run;
       case ExaminationType.EFR:
         return Icons.air;
+      case ExaminationType.Soin:
+        return Icons.health_and_safety;
       case ExaminationType.Autre:
         return Icons.science;
     }

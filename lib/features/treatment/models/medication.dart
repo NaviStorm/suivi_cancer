@@ -1,5 +1,4 @@
 // lib/features/treatment/models/medication.dart
-import 'package:flutter/foundation.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 
 class Medication {

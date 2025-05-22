@@ -1,39 +1,28 @@
 // lib/features/treatment/screens/add_examination_screen.dart
-
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
+import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/services/document_import_service.dart';
 
-
 // Enum pour le type de lien
-enum ExaminationLinkType {
-  Cycle,
-  SingleSession,
-  AllSessions
-}
+enum ExaminationLinkType { Cycle, SingleSession, AllSessions }
 
 // Enum pour la relation temporelle avec la séance
 enum SessionTimeRelation {
-  Before,  // Avant la séance
-  Same,    // Le jour même
-  After    // Après la séance
+  Before, // Avant la séance
+  Same, // Le jour même
+  After, // Après la séance
 }
 
 class AddExaminationScreen extends StatefulWidget {
@@ -41,16 +30,17 @@ class AddExaminationScreen extends StatefulWidget {
   final String? sessionId; // ID de la séance spécifique (si applicable)
   final Examination? examination; // Pour l'édition
   final bool forAllSessions; // Pour créer des examens pour toutes les séances
-  final bool detachFromGroup; // Nouveau paramètre pour détacher un examen de son groupe
+  final bool
+  detachFromGroup; // Nouveau paramètre pour détacher un examen de son groupe
 
   const AddExaminationScreen({
-    Key? key,
+    super.key,
     required this.cycleId,
     this.sessionId,
     this.examination,
     this.forAllSessions = false,
     this.detachFromGroup = false, // Valeur par défaut
-  }) : super(key: key);
+  });
 
   @override
   _AddExaminationScreenState createState() => _AddExaminationScreenState();
@@ -144,14 +134,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
       // Charger les établissements
       final establishmentMaps = await dbHelper.getEstablishments();
-      _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+      _establishments =
+          establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
       // Charger les médecins
       final psMaps = await dbHelper.getPS();
       _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
       // Charger les séances du cycle
-      if (_linkType == ExaminationLinkType.SingleSession || _linkType == ExaminationLinkType.AllSessions) {
+      if (_linkType == ExaminationLinkType.SingleSession ||
+          _linkType == ExaminationLinkType.AllSessions) {
         final sessionMaps = await dbHelper.getSessionsByCycle(widget.cycleId);
         _sessions = sessionMaps.map((map) => Session.fromMap(map)).toList();
 
@@ -159,7 +151,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         _sessions.sort((a, b) => a.dateTime.compareTo(b.dateTime));
 
         // Sélectionner la première séance si aucune n'est sélectionnée
-        if (_selectedSessionId == null && _sessions.isNotEmpty && _linkType == ExaminationLinkType.SingleSession) {
+        if (_selectedSessionId == null &&
+            _sessions.isNotEmpty &&
+            _linkType == ExaminationLinkType.SingleSession) {
           _selectedSessionId = _sessions.first.id;
         }
       }
@@ -167,7 +161,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       // Si on est en mode édition, sélectionner l'établissement et le médecin
       if (widget.examination != null) {
         _selectedEstablishment = _establishments.firstWhereOrNull(
-              (e) => e.id == widget.examination!.establishment.id,
+          (e) => e.id == widget.examination!.establishment.id,
         );
 
         if (_selectedEstablishment == null && _establishments.isNotEmpty) {
@@ -176,13 +170,13 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
         if (widget.examination!.prescripteur != null) {
           _selectedPrescripteur = _healthProfessionals.firstWhereOrNull(
-                  (d) => d.id == widget.examination!.prescripteur!.id
+            (d) => d.id == widget.examination!.prescripteur!.id,
           );
         }
         // Sélectionner l'autre médecin si présent
         if (widget.examination!.executant != null) {
           _selectedExecutant = _healthProfessionals.firstWhereOrNull(
-                (ps) => ps.id == widget.examination!.executant!.id
+            (ps) => ps.id == widget.examination!.executant!.id,
           );
         }
       } else if (_establishments.isNotEmpty) {
@@ -206,15 +200,19 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     try {
       final dbHelper = DatabaseHelper();
-      final documentMaps = await dbHelper.getDocumentsByEntity('examination', widget.examination!.id);
+      final documentMaps = await dbHelper.getDocumentsByEntity(
+        'examination',
+        widget.examination!.id,
+      );
 
       setState(() {
-        _attachedDocuments = documentMaps.map((map) {
-          return DocumentAttachment(
-            document: Document.fromMap(map),
-            isNew: false,
-          );
-        }).toList();
+        _attachedDocuments =
+            documentMaps.map((map) {
+              return DocumentAttachment(
+                document: Document.fromMap(map),
+                isNew: false,
+              );
+            }).toList();
       });
     } catch (e) {
       Log.e("Erreur lors du chargement des documents: $e");
@@ -225,84 +223,96 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.examination != null ? 'Modifier l\'examen' : 'Ajouter un examen'),
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildExaminationTypeSelector(),
-              SizedBox(height: 16),
-
-              CustomTextField(
-                label: 'Titre',
-                controller: _titleController,
-                placeholder: 'ex: Bilan sanguin',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Veuillez saisir un titre';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-
-              // Uniquement visible en mode édition ou si l'examen est lié au cycle
-              if (_linkType == ExaminationLinkType.Cycle || widget.examination != null)
-                _buildDateTimePicker(),
-
-              // Configuration spécifique pour les examens liés aux séances
-              if (_linkType != ExaminationLinkType.Cycle && widget.examination == null)
-                _buildSessionTimingConfig(),
-
-              SizedBox(height: 16),
-
-              _buildLinkTypeSelector(),
-              SizedBox(height: 16),
-
-              // Si le type est Session unique, ajouter un sélecteur de séance
-              if (_linkType == ExaminationLinkType.SingleSession)
-                _buildSessionSelector(),
-
-              SizedBox(height: 16),
-
-              _buildEstablishmentSelector(),
-              SizedBox(height: 16),
-
-              _buildPrescripteurSelector(),
-              SizedBox(height: 16),
-              _buildExecutantSelector(),
-              SizedBox(height: 16),
-
-              _buildDocumentsSection(),
-              SizedBox(height: 16),
-
-              CustomTextField(
-                label: 'Notes (optionnel)',
-                controller: _notesController,
-                placeholder: 'ex: À jeun depuis la veille',
-                maxLines: 3,
-              ),
-              SizedBox(height: 32),
-
-              ElevatedButton(
-                onPressed: _isSaving ? null : _saveExamination,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
-                ),
-                child: _isSaving
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(widget.examination != null ? 'Mettre à jour' : 'Enregistrer'),
-              ),
-            ],
-          ),
+        title: Text(
+          widget.examination != null
+              ? 'Modifier l\'examen'
+              : 'Ajouter un examen',
         ),
       ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildExaminationTypeSelector(),
+                      SizedBox(height: 16),
+
+                      CustomTextField(
+                        label: 'Titre',
+                        controller: _titleController,
+                        placeholder: 'ex: Bilan sanguin',
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Veuillez saisir un titre';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+
+                      // Uniquement visible en mode édition ou si l'examen est lié au cycle
+                      if (_linkType == ExaminationLinkType.Cycle ||
+                          widget.examination != null)
+                        _buildDateTimePicker(),
+
+                      // Configuration spécifique pour les examens liés aux séances
+                      if (_linkType != ExaminationLinkType.Cycle &&
+                          widget.examination == null)
+                        _buildSessionTimingConfig(),
+
+                      SizedBox(height: 16),
+
+                      _buildLinkTypeSelector(),
+                      SizedBox(height: 16),
+
+                      // Si le type est Session unique, ajouter un sélecteur de séance
+                      if (_linkType == ExaminationLinkType.SingleSession)
+                        _buildSessionSelector(),
+
+                      SizedBox(height: 16),
+
+                      _buildEstablishmentSelector(),
+                      SizedBox(height: 16),
+
+                      _buildPrescripteurSelector(),
+                      SizedBox(height: 16),
+                      _buildExecutantSelector(),
+                      SizedBox(height: 16),
+
+                      _buildDocumentsSection(),
+                      SizedBox(height: 16),
+
+                      CustomTextField(
+                        label: 'Notes (optionnel)',
+                        controller: _notesController,
+                        placeholder: 'ex: À jeun depuis la veille',
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 32),
+
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _saveExamination,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                        child:
+                            _isSaving
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                  widget.examination != null
+                                      ? 'Mettre à jour'
+                                      : 'Enregistrer',
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
     );
   }
 
@@ -312,26 +322,56 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       children: [
         Text(
           'Type d\'examen',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildTypeChip(ExaminationType.Consult, 'Consul', Icons.medical_services),
-            _buildTypeChip(ExaminationType.PriseDeSang, 'Prise de sang', Icons.bloodtype),
-            _buildTypeChip(ExaminationType.Injection, 'Injection,',  Icons.vaccines),
-            _buildTypeChip(ExaminationType.Scanner, 'Scanner', Icons.panorama_horizontal),
-            _buildTypeChip(ExaminationType.IRM, 'IRM', Icons.medical_information),
+            _buildTypeChip(
+              ExaminationType.Consult,
+              'Consul',
+              Icons.medical_services,
+            ),
+            _buildTypeChip(
+              ExaminationType.PriseDeSang,
+              'Prise de sang',
+              Icons.bloodtype,
+            ),
+            _buildTypeChip(
+              ExaminationType.Injection,
+              'Injection,',
+              Icons.vaccines,
+            ),
+            _buildTypeChip(
+              ExaminationType.Scanner,
+              'Scanner',
+              Icons.panorama_horizontal,
+            ),
+            _buildTypeChip(
+              ExaminationType.IRM,
+              'IRM',
+              Icons.medical_information,
+            ),
             _buildTypeChip(ExaminationType.PETScan, 'PET-Scan', Icons.biotech),
             _buildTypeChip(ExaminationType.Radio, 'Radio', Icons.photo),
-            _buildTypeChip(ExaminationType.Echographie, 'Échographie', Icons.waves),
-            _buildTypeChip(ExaminationType.EpreuveEffort, 'Épreuve d\'effort', Icons.directions_run),
+            _buildTypeChip(
+              ExaminationType.Echographie,
+              'Échographie',
+              Icons.waves,
+            ),
+            _buildTypeChip(
+              ExaminationType.EpreuveEffort,
+              'Épreuve d\'effort',
+              Icons.directions_run,
+            ),
             _buildTypeChip(ExaminationType.EFR, 'EFR', Icons.air),
+            _buildTypeChip(
+              ExaminationType.Soin,
+              'Soin',
+              Icons.health_and_safety,
+            ),
             _buildTypeChip(ExaminationType.Autre, 'Autre', Icons.science),
           ],
         ),
@@ -347,11 +387,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : color,
-          ),
+          Icon(icon, size: 16, color: isSelected ? Colors.white : color),
           SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 12)),
         ],
@@ -378,10 +414,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       children: [
         Text(
           'Date et heure',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Row(
@@ -393,7 +426,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     suffixIcon: Icon(Icons.calendar_today, size: 18),
                   ),
                   child: Text(
@@ -411,7 +447,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     suffixIcon: Icon(Icons.access_time, size: 18),
                   ),
                   child: Text(
@@ -433,10 +472,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       children: [
         Text(
           'Planification par rapport à la séance',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Row(
@@ -446,7 +482,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               child: DropdownButtonFormField<SessionTimeRelation>(
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
                 value: _timeRelation,
                 onChanged: (SessionTimeRelation? value) {
@@ -482,23 +521,27 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                       child: TextFormField(
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           labelText: 'Heures',
                         ),
                         keyboardType: TextInputType.number,
                         initialValue: _timeOffset.toString(),
-                        validator: _timeRelation != SessionTimeRelation.Same
-                            ? (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Obligatoire';
-                          }
-                          final number = int.tryParse(value);
-                          if (number == null || number < 0) {
-                            return 'Invalide';
-                          }
-                          return null;
-                        }
-                            : null,
+                        validator:
+                            _timeRelation != SessionTimeRelation.Same
+                                ? (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Obligatoire';
+                                  }
+                                  final number = int.tryParse(value);
+                                  if (number == null || number < 0) {
+                                    return 'Invalide';
+                                  }
+                                  return null;
+                                }
+                                : null,
                         onChanged: (value) {
                           final parsed = int.tryParse(value);
                           if (parsed != null) {
@@ -557,10 +600,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       children: [
         Text(
           'Lier cet examen à :',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Row(
@@ -610,9 +650,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                     setState(() {
                       _linkType = value;
                       _selectedSessionId = null;
-                      if (_examGroupId == null) {
-                        _examGroupId = Uuid().v4();
-                      }
+                      _examGroupId ??= Uuid().v4();
                     });
                   }
                 },
@@ -626,7 +664,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   Widget _buildSessionSelector() {
     if (_sessions.isEmpty) {
-      return Text('Aucune séance disponible', style: TextStyle(color: Colors.red));
+      return Text(
+        'Aucune séance disponible',
+        style: TextStyle(color: Colors.red),
+      );
     }
 
     return Column(
@@ -634,10 +675,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       children: [
         Text(
           'Séance',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         DropdownButtonFormField<String>(
@@ -652,22 +690,28 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               _selectedSessionId = value;
             });
           },
-          items: _sessions.map((session) {
-            // Trouver le numéro de la séance dans le cycle
-            final sessionNumber = _sessions.indexOf(session) + 1;
-            final sessionDate = DateFormat('dd/MM/yyyy').format(session.dateTime);
-            final sessionTime = DateFormat('HH:mm').format(session.dateTime);
+          items:
+              _sessions.map((session) {
+                // Trouver le numéro de la séance dans le cycle
+                final sessionNumber = _sessions.indexOf(session) + 1;
+                final sessionDate = DateFormat(
+                  'dd/MM/yyyy',
+                ).format(session.dateTime);
+                final sessionTime = DateFormat(
+                  'HH:mm',
+                ).format(session.dateTime);
 
-            return DropdownMenuItem<String>(
-              value: session.id,
-              child: Text(
-                'Séance $sessionNumber - $sessionDate à $sessionTime',
-                style: TextStyle(fontSize: 13),
-              ),
-            );
-          }).toList(),
+                return DropdownMenuItem<String>(
+                  value: session.id,
+                  child: Text(
+                    'Séance $sessionNumber - $sessionDate à $sessionTime',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                );
+              }).toList(),
           validator: (value) {
-            if (_linkType == ExaminationLinkType.SingleSession && value == null) {
+            if (_linkType == ExaminationLinkType.SingleSession &&
+                value == null) {
               return 'Veuillez sélectionner une séance';
             }
             return null;
@@ -686,10 +730,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Text(
               'Établissement',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             TextButton.icon(
               icon: Icon(Icons.add, size: 16),
@@ -714,10 +755,18 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               _selectedEstablishment = value;
             });
           },
-          items: _establishments.map((establishment) => DropdownMenuItem(
-            value: establishment,
-            child: Text(establishment.name, style: TextStyle(fontSize: 14)),
-          )).toList(),
+          items:
+              _establishments
+                  .map(
+                    (establishment) => DropdownMenuItem(
+                      value: establishment,
+                      child: Text(
+                        establishment.name,
+                        style: TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  )
+                  .toList(),
           validator: (value) {
             if (value == null) {
               return 'Veuillez sélectionner un établissement';
@@ -738,10 +787,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Text(
               'Professionnel de santé (obligatoire)',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             TextButton.icon(
               icon: Icon(Icons.add, size: 16),
@@ -766,10 +812,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               _selectedPrescripteur = value;
             });
           },
-          items: _healthProfessionals.map((ps) => DropdownMenuItem<PS>(
-            value: ps,
-            child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
-          )).toList(),
+          items:
+              _healthProfessionals
+                  .map(
+                    (ps) => DropdownMenuItem<PS>(
+                      value: ps,
+                      child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
+                    ),
+                  )
+                  .toList(),
           validator: (value) {
             if (value == null) {
               return 'Veuillez sélectionner un professionnel de santé';
@@ -781,7 +832,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     );
   }
 
-// Ajouter un sélecteur pour le médecin qui fera l'examen
+  // Ajouter un sélecteur pour le médecin qui fera l'examen
   Widget _buildExecutantSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,10 +842,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Text(
               'Médecin réalisant l\'examen (optionnel)',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -816,10 +864,12 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               value: null,
               child: Text('Aucun', style: TextStyle(fontSize: 14)),
             ),
-            ..._healthProfessionals.map((ps) => DropdownMenuItem<PS>(
-              value: ps,
-              child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
-            )).toList(),
+            ..._healthProfessionals.map(
+              (ps) => DropdownMenuItem<PS>(
+                value: ps,
+                child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
+              ),
+            ),
           ],
         ),
       ],
@@ -835,10 +885,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Text(
               'Documents (optionnel)',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             TextButton.icon(
               icon: Icon(Icons.add, size: 16),
@@ -920,7 +967,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (attachment.isNew && document.type == DocumentType.Image)
+                      if (attachment.isNew &&
+                          document.type == DocumentType.Image)
                         IconButton(
                           icon: Icon(Icons.visibility, size: 20),
                           onPressed: () => _previewImageDocument(attachment),
@@ -967,10 +1015,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     if (document != null) {
       setState(() {
-        _attachedDocuments.add(DocumentAttachment(
-          document: document!,
-          isNew: true,
-        ));
+        _attachedDocuments.add(
+          DocumentAttachment(document: document!, isNew: true),
+        );
       });
     }
   }
@@ -987,7 +1034,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       final establishmentMaps = await dbHelper.getEstablishments();
 
       setState(() {
-        _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+        _establishments =
+            establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
         // Sélectionner automatiquement le nouvel établissement (dernier de la liste)
         if (_establishments.isNotEmpty) {
@@ -1001,7 +1049,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     // Naviguer vers l'écran d'ajout de PS
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditPSScreen()),
+      MaterialPageRoute(builder: (context) => AddPSScreen()),
     );
     if (result != null && result is PS) {
       setState(() {
@@ -1052,7 +1100,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Future<void> _saveExamination() async {
     if (_formKey.currentState!.validate() && _selectedEstablishment != null) {
       // Vérifier que si le type est SingleSession, une séance est sélectionnée
-      if (_linkType == ExaminationLinkType.SingleSession && _selectedSessionId == null) {
+      if (_linkType == ExaminationLinkType.SingleSession &&
+          _selectedSessionId == null) {
         _showErrorMessage('Veuillez sélectionner une séance');
         return;
       }
@@ -1067,7 +1116,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         // Combiner date et heure pour la date de l'examen
         DateTime dateTime;
 
-        if (_linkType == ExaminationLinkType.Cycle || widget.examination != null) {
+        if (_linkType == ExaminationLinkType.Cycle ||
+            widget.examination != null) {
           // Si l'examen est pour le cycle entier ou en mode édition, utiliser la date sélectionnée
           dateTime = DateTime(
             _selectedDate.year,
@@ -1108,13 +1158,18 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           examinationId = widget.examination!.id;
         }
         // En mode édition pour un examen qui fait partie d'un groupe
-        else if (widget.examination != null && widget.examination!.examGroupId != null && widget.forAllSessions) {
+        else if (widget.examination != null &&
+            widget.examination!.examGroupId != null &&
+            widget.forAllSessions) {
           // Mettre à jour tous les examens du groupe
           updateResult = await _updateAllExaminationsInGroup(dateTime);
           examinationId = widget.examination!.id;
         } else if (_linkType == ExaminationLinkType.AllSessions) {
           // Créer un examen pour chaque séance
-          updateResult = await _createExaminationsForAllSessions(dateTime, savedDocuments);
+          updateResult = await _createExaminationsForAllSessions(
+            dateTime,
+            savedDocuments,
+          );
         } else {
           // Créer ou mettre à jour un seul examen (pour le cycle ou pour une séance)
           final result = await _createOrUpdateSingleExamination(dateTime);
@@ -1125,12 +1180,20 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         if (updateResult && examinationId.isNotEmpty) {
           // Maintenant, lier tous les nouveaux documents à l'examen créé ou mis à jour
           for (var document in savedDocuments) {
-            Log.d("Liaison du document ${document.id} à l'examen $examinationId");
-            final linkResult = await dbHelper.linkDocumentToEntity('examination', examinationId, document.id);
+            Log.d(
+              "Liaison du document ${document.id} à l'examen $examinationId",
+            );
+            final linkResult = await dbHelper.linkDocumentToEntity(
+              'examination',
+              examinationId,
+              document.id,
+            );
             Log.d("Résultat de la liaison: $linkResult");
 
             if (linkResult <= 0) {
-              Log.e("Erreur lors de la liaison du document ${document.id} à l'examen $examinationId");
+              Log.e(
+                "Erreur lors de la liaison du document ${document.id} à l'examen $examinationId",
+              );
             }
           }
 
@@ -1138,9 +1201,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           await dbHelper.verifyDocumentLinks('examination', examinationId);
         }
 
-        _showMessage(widget.examination != null
-            ? 'Examen mis à jour avec succès'
-            : 'Examen ajouté avec succès');
+        _showMessage(
+          widget.examination != null
+              ? 'Examen mis à jour avec succès'
+              : 'Examen ajouté avec succès',
+        );
 
         Navigator.pop(context, true);
       } catch (e) {
@@ -1152,7 +1217,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       }
     }
   }
-
 
   Future<bool> _createOrUpdateDetachedExamination(DateTime dateTime) async {
     final dbHelper = DatabaseHelper();
@@ -1168,15 +1232,23 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'cycleId': widget.cycleId,
       'title': _titleController.text.trim(),
       'type': _selectedType.index,
-      'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
+      'otherType':
+          _selectedType == ExaminationType.Autre
+              ? _titleController.text.trim()
+              : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
       'prescripteurId': _selectedPrescripteur?.id,
       'executantId': _selectedExecutant?.id,
-      'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      'notes':
+          _notesController.text.trim().isNotEmpty
+              ? _notesController.text.trim()
+              : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
-      'prereqForSessionId': _linkType == ExaminationLinkType.SingleSession ?
-      _selectedSessionId : widget.examination?.prereqForSessionId,
+      'prereqForSessionId':
+          _linkType == ExaminationLinkType.SingleSession
+              ? _selectedSessionId
+              : widget.examination?.prereqForSessionId,
       'examGroupId': null, // Important: mettre à null pour détacher du groupe
     };
 
@@ -1193,15 +1265,19 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       }
 
       // Gérer les documents existants
-      final existingDocIds = _attachedDocuments
-          .where((a) => !a.isNew)
-          .map((a) => a.document.id)
-          .toSet();
+      final existingDocIds =
+          _attachedDocuments
+              .where((a) => !a.isNew)
+              .map((a) => a.document.id)
+              .toSet();
 
       Log.d("Documents existants à conserver: $existingDocIds");
 
       // Récupérer tous les documents actuellement liés
-      final linkedDocs = await dbHelper.getDocumentsByEntity('examination', examinationId);
+      final linkedDocs = await dbHelper.getDocumentsByEntity(
+        'examination',
+        examinationId,
+      );
       Log.d("Documents actuellement liés: ${linkedDocs.length}");
 
       for (var docMap in linkedDocs) {
@@ -1211,7 +1287,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         // Si le document n'est plus dans la liste, supprimer le lien
         if (!existingDocIds.contains(docId)) {
           Log.d("Suppression du lien pour le document: $docId");
-          await dbHelper.unlinkDocumentFromEntity('examination', examinationId, docId);
+          await dbHelper.unlinkDocumentFromEntity(
+            'examination',
+            examinationId,
+            docId,
+          );
         } else {
           Log.d("Conservation du lien pour le document: $docId");
         }
@@ -1232,7 +1312,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       // Récupérer tous les examens du groupe
       final examinationMaps = await dbHelper.getExaminationsByGroup(groupId);
 
-      Log.d("Mise à jour de ${examinationMaps.length} examens du groupe $groupId");
+      Log.d(
+        "Mise à jour de ${examinationMaps.length} examens du groupe $groupId",
+      );
 
       if (examinationMaps.isEmpty) {
         Log.e("Aucun examen trouvé dans le groupe $groupId");
@@ -1242,12 +1324,18 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       // Préparer les données de base pour la mise à jour
       final baseExamData = {
         'type': _selectedType.index,
-        'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
+        'otherType':
+            _selectedType == ExaminationType.Autre
+                ? _titleController.text.trim()
+                : null,
         'title': _titleController.text.trim(),
         'establishmentId': _selectedEstablishment!.id,
         'prescripteurId': _selectedPrescripteur?.id,
         'executantId': _selectedExecutant?.id,
-        'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        'notes':
+            _notesController.text.trim().isNotEmpty
+                ? _notesController.text.trim()
+                : null,
       };
 
       // Pour chaque examen du groupe, mettre à jour ses propriétés
@@ -1255,7 +1343,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         final examinationId = examinationMap['id'] as String;
 
         // Si l'examen fait partie d'un groupe, sa date est calculée par rapport à sa séance
-        String? prereqSessionId = examinationMap['prereqForSessionId'] as String?;
+        String? prereqSessionId =
+            examinationMap['prereqForSessionId'] as String?;
         DateTime examDateTime = baseDateTime;
 
         if (prereqSessionId != null) {
@@ -1263,12 +1352,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           final sessionResult = await dbHelper.getSessionById(prereqSessionId);
 
           if (sessionResult != null) {
-            final sessionDateTime = DateTime.parse(sessionResult['dateTime'] as String);
+            final sessionDateTime = DateTime.parse(
+              sessionResult['dateTime'] as String,
+            );
 
             // Calculer la nouvelle date en fonction de la relation temporelle
             switch (_timeRelation) {
               case SessionTimeRelation.Before:
-                examDateTime = sessionDateTime.subtract(Duration(hours: _timeOffset));
+                examDateTime = sessionDateTime.subtract(
+                  Duration(hours: _timeOffset),
+                );
                 break;
               case SessionTimeRelation.Same:
                 examDateTime = DateTime(
@@ -1280,7 +1373,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 );
                 break;
               case SessionTimeRelation.After:
-                examDateTime = sessionDateTime.add(Duration(hours: _timeOffset));
+                examDateTime = sessionDateTime.add(
+                  Duration(hours: _timeOffset),
+                );
                 break;
             }
           }
@@ -1292,7 +1387,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           'id': examinationId,
           'cycleId': widget.cycleId,
           'dateTime': examDateTime.toIso8601String(),
-          'isCompleted': examinationMap['isCompleted'], // Garder l'état de complétion d'origine
+          'isCompleted':
+              examinationMap['isCompleted'], // Garder l'état de complétion d'origine
           'prereqForSessionId': prereqSessionId,
           'examGroupId': groupId, // Conserver le groupId
         };
@@ -1311,19 +1407,29 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         Log.d("Gestion des documents existants pour l'examen $examinationId");
 
         // Récupérer tous les documents actuellement liés
-        final linkedDocs = await dbHelper.getDocumentsByEntity('examination', examinationId);
-        final existingDocIds = _attachedDocuments
-            .where((a) => !a.isNew)
-            .map((a) => a.document.id)
-            .toSet();
+        final linkedDocs = await dbHelper.getDocumentsByEntity(
+          'examination',
+          examinationId,
+        );
+        final existingDocIds =
+            _attachedDocuments
+                .where((a) => !a.isNew)
+                .map((a) => a.document.id)
+                .toSet();
 
         // Supprimer les liens des documents qui ont été retirés
         for (var docMap in linkedDocs) {
           final docId = docMap['id'] as String;
 
           if (!existingDocIds.contains(docId)) {
-            Log.d("Suppression du lien pour le document $docId de l'examen $examinationId");
-            await dbHelper.unlinkDocumentFromEntity('examination', examinationId, docId);
+            Log.d(
+              "Suppression du lien pour le document $docId de l'examen $examinationId",
+            );
+            await dbHelper.unlinkDocumentFromEntity(
+              'examination',
+              examinationId,
+              docId,
+            );
           }
         }
 
@@ -1332,8 +1438,14 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           bool isLinked = linkedDocs.any((docMap) => docMap['id'] == docId);
 
           if (!isLinked) {
-            Log.d("Ajout de lien pour le document $docId à l'examen $examinationId");
-            await dbHelper.linkDocumentToEntity('examination', examinationId, docId);
+            Log.d(
+              "Ajout de lien pour le document $docId à l'examen $examinationId",
+            );
+            await dbHelper.linkDocumentToEntity(
+              'examination',
+              examinationId,
+              docId,
+            );
           }
         }
       }
@@ -1348,9 +1460,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   DateTime calculateDateTimeFromSession() {
     // Trouver la séance cible
-    final Session targetSession = _linkType == ExaminationLinkType.SingleSession
-        ? _sessions.firstWhere((s) => s.id == _selectedSessionId)
-        : _sessions.first;  // Pour AllSessions, on se base sur la première séance pour l'exemple
+    final Session targetSession =
+        _linkType == ExaminationLinkType.SingleSession
+            ? _sessions.firstWhere((s) => s.id == _selectedSessionId)
+            : _sessions
+                .first; // Pour AllSessions, on se base sur la première séance pour l'exemple
 
     final DateTime sessionDateTime = targetSession.dateTime;
 
@@ -1359,7 +1473,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       case SessionTimeRelation.Before:
         return sessionDateTime.subtract(Duration(hours: _timeOffset));
       case SessionTimeRelation.Same:
-      // Même jour que la séance, mais à l'heure spécifiée
+        // Même jour que la séance, mais à l'heure spécifiée
         return DateTime(
           sessionDateTime.year,
           sessionDateTime.month,
@@ -1372,7 +1486,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     }
   }
 
-  Future<bool> _createExaminationsForAllSessions(DateTime dateTime, List<Document> savedDocuments) async {
+  Future<bool> _createExaminationsForAllSessions(
+    DateTime dateTime,
+    List<Document> savedDocuments,
+  ) async {
     final dbHelper = DatabaseHelper();
     int successCount = 0;
 
@@ -1383,7 +1500,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       DateTime examDateTime;
       switch (_timeRelation) {
         case SessionTimeRelation.Before:
-          examDateTime = session.dateTime.subtract(Duration(hours: _timeOffset));
+          examDateTime = session.dateTime.subtract(
+            Duration(hours: _timeOffset),
+          );
           break;
         case SessionTimeRelation.Same:
           examDateTime = DateTime(
@@ -1404,12 +1523,18 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         'cycleId': widget.cycleId,
         'title': _titleController.text.trim(),
         'type': _selectedType.index,
-        'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
+        'otherType':
+            _selectedType == ExaminationType.Autre
+                ? _titleController.text.trim()
+                : null,
         'dateTime': examDateTime.toIso8601String(),
         'establishmentId': _selectedEstablishment!.id,
         'prescripteurId': _selectedPrescripteur?.id,
         'executantId': _selectedExecutant?.id,
-        'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        'notes':
+            _notesController.text.trim().isNotEmpty
+                ? _notesController.text.trim()
+                : null,
         'isCompleted': 0,
         'prereqForSessionId': session.id,
         'examGroupId': _examGroupId,
@@ -1421,12 +1546,20 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
         // Lier les documents existants à cet examen
         for (var doc in _attachedDocuments.where((a) => !a.isNew)) {
-          await dbHelper.linkDocumentToEntity('examination', examinationId, doc.document.id);
+          await dbHelper.linkDocumentToEntity(
+            'examination',
+            examinationId,
+            doc.document.id,
+          );
         }
 
         // Lier les nouveaux documents à cet examen
         for (var doc in savedDocuments) {
-          await dbHelper.linkDocumentToEntity('examination', examinationId, doc.id);
+          await dbHelper.linkDocumentToEntity(
+            'examination',
+            examinationId,
+            doc.id,
+          );
         }
       }
     }
@@ -1439,8 +1572,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     return true;
   }
 
-
-  Future<SaveExaminationResult> _createOrUpdateSingleExamination(DateTime dateTime) async {
+  Future<SaveExaminationResult> _createOrUpdateSingleExamination(
+    DateTime dateTime,
+  ) async {
     final dbHelper = DatabaseHelper();
     final examinationId = widget.examination?.id ?? Uuid().v4();
 
@@ -1449,14 +1583,23 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'cycleId': widget.cycleId,
       'title': _titleController.text.trim(),
       'type': _selectedType.index,
-      'otherType': _selectedType == ExaminationType.Autre ? _titleController.text.trim() : null,
+      'otherType':
+          _selectedType == ExaminationType.Autre
+              ? _titleController.text.trim()
+              : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
       'prescripteurId': _selectedPrescripteur?.id,
       'executantId': _selectedExecutant?.id,
-      'notes': _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      'notes':
+          _notesController.text.trim().isNotEmpty
+              ? _notesController.text.trim()
+              : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
-      'prereqForSessionId': _linkType == ExaminationLinkType.SingleSession ? _selectedSessionId : null,
+      'prereqForSessionId':
+          _linkType == ExaminationLinkType.SingleSession
+              ? _selectedSessionId
+              : null,
       'examGroupId': null,
     };
 
@@ -1469,15 +1612,19 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     if (result > 0) {
       // Gérer les documents existants
-      final existingDocIds = _attachedDocuments
-          .where((a) => !a.isNew)
-          .map((a) => a.document.id)
-          .toSet();
+      final existingDocIds =
+          _attachedDocuments
+              .where((a) => !a.isNew)
+              .map((a) => a.document.id)
+              .toSet();
 
       Log.d("Documents existants à conserver: $existingDocIds");
 
       // Récupérer tous les documents actuellement liés
-      final linkedDocs = await dbHelper.getDocumentsByEntity('examination', examinationId);
+      final linkedDocs = await dbHelper.getDocumentsByEntity(
+        'examination',
+        examinationId,
+      );
       Log.d("Documents actuellement liés: ${linkedDocs.length}");
 
       for (var docMap in linkedDocs) {
@@ -1487,7 +1634,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         // Si le document n'est plus dans la liste, supprimer le lien
         if (!existingDocIds.contains(docId)) {
           Log.d("Suppression du lien pour le document: $docId");
-          await dbHelper.unlinkDocumentFromEntity('examination', examinationId, docId);
+          await dbHelper.unlinkDocumentFromEntity(
+            'examination',
+            examinationId,
+            docId,
+          );
         } else {
           Log.d("Conservation du lien pour le document: $docId");
         }
@@ -1497,19 +1648,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     return SaveExaminationResult(result > 0, examinationId);
   }
 
-
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -1524,10 +1671,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 // Classe utilitaire pour gérer les documents attachés
 class DocumentAttachment {
   final Document document;
-  final bool isNew;  // Si le document est nouvellement créé (pas encore dans la base de données)
+  final bool
+  isNew; // Si le document est nouvellement créé (pas encore dans la base de données)
 
-  DocumentAttachment({
-    required this.document,
-    required this.isNew,
-  });
+  DocumentAttachment({required this.document, required this.isNew});
 }

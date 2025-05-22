@@ -5,7 +5,6 @@ import 'package:suivi_cancer/features/treatment/models/side_effect.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
-import 'add_side_effect_screen.dart';
 
 class SideEffectsListScreen extends StatefulWidget {
   final String entityType;
@@ -13,11 +12,11 @@ class SideEffectsListScreen extends StatefulWidget {
   final String entityName;
 
   const SideEffectsListScreen({
-    Key? key,
+    super.key,
     required this.entityType,
     required this.entityId,
     required this.entityName,
-  }) : super(key: key);
+  });
 
   @override
   _SideEffectsListScreenState createState() => _SideEffectsListScreenState();
@@ -46,7 +45,8 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
       );
 
       setState(() {
-        _sideEffects = sideEffectMaps.map((map) => SideEffect.fromMap(map)).toList();
+        _sideEffects =
+            sideEffectMaps.map((map) => SideEffect.fromMap(map)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -61,11 +61,12 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddSideEffectScreen(
-          entityType: widget.entityType,
-          entityId: widget.entityId,
-          entityName: widget.entityName,
-        ),
+        builder:
+            (context) => AddSideEffectScreen(
+              entityType: widget.entityType,
+              entityId: widget.entityId,
+              entityName: widget.entityName,
+            ),
       ),
     );
 
@@ -78,12 +79,13 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddSideEffectScreen(
-          entityType: widget.entityType,
-          entityId: widget.entityId,
-          entityName: widget.entityName,
-          sideEffect: sideEffect, // Passer l'effet secondaire à modifier
-        ),
+        builder:
+            (context) => AddSideEffectScreen(
+              entityType: widget.entityType,
+              entityId: widget.entityId,
+              entityName: widget.entityName,
+              sideEffect: sideEffect, // Passer l'effet secondaire à modifier
+            ),
       ),
     );
 
@@ -95,20 +97,23 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
   void _deleteSideEffect(SideEffect sideEffect) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Supprimer l\'effet secondaire'),
-        content: Text('Êtes-vous sûr de vouloir supprimer cet effet secondaire ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Annuler'),
+      builder:
+          (context) => AlertDialog(
+            title: Text('Supprimer l\'effet secondaire'),
+            content: Text(
+              'Êtes-vous sûr de vouloir supprimer cet effet secondaire ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Supprimer', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -116,9 +121,9 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteSideEffect(sideEffect.id);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Effet secondaire supprimé')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Effet secondaire supprimé')));
 
         _loadSideEffects();
       } catch (e) {
@@ -137,58 +142,48 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Détails de l\'effet secondaire',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Description',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(sideEffect.description),
-            SizedBox(height: 8),
-            Text(
-              'Sévérité',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(_getSeverityText(sideEffect.severity)),
-            SizedBox(height: 8),
-            Text(
-              'Date',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(DateFormat('dd/MM/yyyy').format(sideEffect.date)),
-            if (sideEffect.notes != null && sideEffect.notes!.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Text(
-                'Notes',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(sideEffect.notes!),
-            ],
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Fermer'),
+                Text(
+                  'Détails de l\'effet secondaire',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Description',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(sideEffect.description),
+                SizedBox(height: 8),
+                Text('Sévérité', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(_getSeverityText(sideEffect.severity)),
+                SizedBox(height: 8),
+                Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(DateFormat('dd/MM/yyyy').format(sideEffect.date)),
+                if (sideEffect.notes != null &&
+                    sideEffect.notes!.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  Text('Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(sideEffect.notes!),
+                ],
+                SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Fermer'),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -212,9 +207,7 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Effets secondaires'),
-      ),
+      appBar: AppBar(title: Text('Effets secondaires')),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -223,10 +216,7 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
             padding: EdgeInsets.all(16),
             child: Text(
               widget.entityName,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
 
@@ -254,8 +244,8 @@ class _SideEffectsListScreenState extends State<SideEffectsListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addSideEffect,
-        child: Icon(Icons.add),
         tooltip: 'Ajouter un effet secondaire',
+        child: Icon(Icons.add),
       ),
     );
   }

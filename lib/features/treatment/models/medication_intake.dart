@@ -1,7 +1,4 @@
 // lib/features/treatment/models/medication_intake.dart
-
-import 'package:flutter/foundation.dart';
-
 class MedicationItem {
   final String medicationId;
   final String medicationName;
@@ -81,9 +78,10 @@ class MedicationIntake {
       id: map['id'],
       dateTime: DateTime.parse(map['dateTime']),
       cycleId: map['cycleId'],
-      medications: (map['medications'] as List)
-          .map((item) => MedicationItem.fromMap(item))
-          .toList(),
+      medications:
+          (map['medications'] as List)
+              .map((item) => MedicationItem.fromMap(item))
+              .toList(),
       isCompleted: map['isCompleted'] == 1,
       notes: map['notes'],
     );
@@ -93,15 +91,16 @@ class MedicationIntake {
   String getFormattedLabel() {
     if (medications.isEmpty) return "Aucun médicament";
 
-    List<String> medicationLabels = medications.map((med) =>
-    "${med.quantity}x${med.medicationName}"
-    ).toList();
+    List<String> medicationLabels =
+        medications
+            .map((med) => "${med.quantity}x${med.medicationName}")
+            .toList();
 
     String label = medicationLabels.join(", ");
 
     // Tronquer si trop long
     if (label.length > 25) {
-      label = label.substring(0, 22) + "...";
+      label = "${label.substring(0, 22)}...";
     }
 
     return label;

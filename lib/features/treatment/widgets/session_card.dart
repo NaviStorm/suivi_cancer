@@ -11,19 +11,19 @@ class SessionCard extends StatelessWidget {
   final String sessionNumber;
 
   const SessionCard({
-    Key? key,
+    super.key,
     required this.session,
     required this.onToggleCompleted,
     required this.onTap,
     required this.locale,
     required this.sessionNumber,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final bool isPast = session.dateTime.isBefore(DateTime.now());
     final bool isCompleted = session.isCompleted;
-    
+
     // Déterminer la couleur de fond et la bordure
     Color backgroundColor;
     BorderSide? border;
@@ -56,7 +56,7 @@ class SessionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Date
-              Container(
+              SizedBox(
                 width: 50,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -70,7 +70,10 @@ class SessionCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      DateFormat('MMM', locale).format(session.dateTime).toUpperCase(),
+                      DateFormat(
+                        'MMM',
+                        locale,
+                      ).format(session.dateTime).toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -80,10 +83,7 @@ class SessionCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       DateFormat('HH:mm', locale).format(session.dateTime),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -103,7 +103,11 @@ class SessionCard extends StatelessWidget {
                   color: Colors.blue.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.medical_services, size: 14, color: Colors.blue),
+                child: const Icon(
+                  Icons.medical_services,
+                  size: 14,
+                  color: Colors.blue,
+                ),
               ),
               // Contenu
               Expanded(
@@ -127,31 +131,50 @@ class SessionCard extends StatelessWidget {
                         GestureDetector(
                           onTap: () => onToggleCompleted(session),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isCompleted ? Colors.green.withAlpha(20) : Colors.grey.withAlpha(10),
+                              color:
+                                  isCompleted
+                                      ? Colors.green.withAlpha(20)
+                                      : Colors.grey.withAlpha(10),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Icon(
-                              isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+                              isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
                               size: 16,
                               color: isCompleted ? Colors.green : Colors.grey,
                             ),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: isCompleted
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
+                            color:
+                                isCompleted
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.grey.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            isCompleted ? 'Terminé' : (isPast ? 'En retard' : 'À venir'),
+                            isCompleted
+                                ? 'Terminé'
+                                : (isPast ? 'En retard' : 'À venir'),
                             style: TextStyle(
                               fontSize: 9,
-                              color: isCompleted ? Colors.green : (isPast ? Colors.amber.shade900 : Colors.grey[700]),
+                              color:
+                                  isCompleted
+                                      ? Colors.green
+                                      : (isPast
+                                          ? Colors.amber.shade900
+                                          : Colors.grey[700]),
                             ),
                           ),
                         ),
@@ -172,8 +195,10 @@ class SessionCard extends StatelessWidget {
 
   Widget _buildSessionDetails() {
     // Récupérer les médicaments groupés par type
-    final List standardMeds = session.medications.where((m) => !m.isRinsing).toList();
-    final List rinsingMeds = session.medications.where((m) => m.isRinsing).toList();
+    final List standardMeds =
+        session.medications.where((m) => !m.isRinsing).toList();
+    final List rinsingMeds =
+        session.medications.where((m) => m.isRinsing).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +255,10 @@ class SessionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   session.notes!,
-                  style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -241,4 +269,3 @@ class SessionCard extends StatelessWidget {
     );
   }
 }
-

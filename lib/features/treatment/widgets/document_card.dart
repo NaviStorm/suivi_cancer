@@ -10,16 +10,16 @@ class DocumentCard extends StatelessWidget {
   final String locale;
 
   const DocumentCard({
-    Key? key,
+    super.key,
     required this.document,
     required this.onTap,
     required this.locale,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final Color color = EventFormatter.getDocumentTypeColor(document.type);
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
       elevation: 1,
@@ -37,7 +37,7 @@ class DocumentCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Date
-              Container(
+              SizedBox(
                 width: 50,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -51,7 +51,10 @@ class DocumentCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      DateFormat('MMM', locale).format(document.dateAdded).toUpperCase(),
+                      DateFormat(
+                        'MMM',
+                        locale,
+                      ).format(document.dateAdded).toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -61,10 +64,7 @@ class DocumentCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       DateFormat('HH:mm', locale).format(document.dateAdded),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -109,7 +109,10 @@ class DocumentCard extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.grey.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
@@ -183,7 +186,10 @@ class DocumentCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   document.description!,
-                  style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -194,4 +200,3 @@ class DocumentCard extends StatelessWidget {
     );
   }
 }
-

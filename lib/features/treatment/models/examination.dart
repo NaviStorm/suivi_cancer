@@ -1,15 +1,5 @@
 // lib/features/treatment/models/examination.dart
-import 'package:flutter/foundation.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
-import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/document.dart';
-import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
-
-// lib/features/treatment/models/examination.dart
-import 'package:flutter/foundation.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 
@@ -24,6 +14,7 @@ enum ExaminationType {
   Echographie,
   EpreuveEffort,
   EFR,
+  Soin,
   Autre
 }
 
@@ -162,6 +153,8 @@ class Examination {
         return 'Épreuve d\'effort';
       case ExaminationType.EFR:
         return 'EFR';
+      case ExaminationType.Soin:
+        return 'Soin';
       case ExaminationType.Autre:
         return otherType ?? 'Autre';
     }

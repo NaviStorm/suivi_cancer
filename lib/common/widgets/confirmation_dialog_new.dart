@@ -9,13 +9,13 @@ class ConfirmationDialog extends StatelessWidget {
   final bool isDestructive;
 
   const ConfirmationDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.content,
     this.confirmText = 'Confirmer',
     this.cancelText = 'Annuler',
     this.isDestructive = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +33,10 @@ class ConfirmationDialog extends StatelessWidget {
           onPressed: () {
             Navigator.of(context).pop(true);
           },
-          style: isDestructive
-              ? TextButton.styleFrom(
-                  foregroundColor: Colors.red,
-                )
-              : null,
+          style:
+              isDestructive
+                  ? TextButton.styleFrom(foregroundColor: Colors.red)
+                  : null,
           child: Text(confirmText),
         ),
       ],

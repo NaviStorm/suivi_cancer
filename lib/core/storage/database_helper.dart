@@ -22,9 +22,8 @@ class DatabaseHelper {
       }
     }
 
-    if (_database == null) {
-      _database = await _initDatabase();
-    }
+    // ??= ==> Si _database null
+    _database ??= await _initDatabase();
 
     return _database!;
   }
@@ -46,56 +45,8 @@ class DatabaseHelper {
     );
   }
 
-  Future<Database> _initDatabaseOLD() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'suivi_cancer.db');
-
-    // Vérifier si la base de données existe déjà
-    bool exists = await databaseExists(path);
-
-    // La base de données n'existe pas, on la crée
-    Log.d("DatabaseHelper: Création d'une nouvelle base de données");
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      onOpen: (db) {
-        Log.d("DatabaseHelper: Base de données ouverte avec succès");
-      },// Optionnel, pour les futures mises à jour
-      readOnly: false,
-      singleInstance: true,
-    );
-  }
-
   Future _onCreate(Database db, int version) async {
     Log.d("DatabaseHelper: Création des tables de la base de données");
-
-    // Table des médecins
-    await db.execute('''
-      CREATE TABLE doctors(
-        id TEXT PRIMARY KEY,
-        firstName TEXT NOT NULL,
-        lastName TEXT NOT NULL,
-        specialty INTEGER,
-        otherSpecialty TEXT
-      )
-    ''');
-    Log.d("DatabaseHelper: Table 'doctors' créée");
-
-
-    // Table des contacts des médecins
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS doctor_contacts(
-        id TEXT PRIMARY KEY,
-        doctorId TEXT NOT NULL,
-        type INTEGER NOT NULL,
-        category INTEGER NOT NULL,
-        value TEXT NOT NULL,
-        FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-      )
-    ''');
-    Log.d("DatabaseHelper: Table 'doctor_contacts' créée");
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS health_professional_categories(
@@ -106,7 +57,7 @@ class DatabaseHelper {
       )
       ''');
 
-// Création de la table des professionnels de santé
+    // Création de la table des professionnels de santé
     await db.execute('''
       CREATE TABLE IF NOT EXISTS health_professionals(
         id TEXT PRIMARY KEY,
@@ -119,7 +70,7 @@ class DatabaseHelper {
       )
       ''');
 
-// Création de la table des contacts des professionnels de santé
+    // Création de la table des contacts des professionnels de santé
     await db.execute('''
       CREATE TABLE IF NOT EXISTS health_professional_contacts(
         id TEXT PRIMARY KEY,
@@ -132,7 +83,7 @@ class DatabaseHelper {
       )
       ''');
 
-// Création de la table des adresses des professionnels de santé
+    // Création de la table des adresses des professionnels de santé
     await db.execute('''
       CREATE TABLE IF NOT EXISTS health_professional_addresses(
         id TEXT PRIMARY KEY,
@@ -147,7 +98,7 @@ class DatabaseHelper {
       )
       ''');
 
-// Création de la table de relation entre professionnels de santé et établissements
+    // Création de la table de relation entre professionnels de santé et établissements
     await db.execute('''
       CREATE TABLE IF NOT EXISTS health_professional_establishments(
         healthProfessionalId TEXT NOT NULL,
@@ -178,7 +129,6 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'establishments' créée");
 
-
     // Table des traitements
     await db.execute('''
       CREATE TABLE treatments(
@@ -190,7 +140,6 @@ class DatabaseHelper {
       )
     ''');
     Log.d("DatabaseHelper: Table 'treatments' créée");
-
 
     // Table de relation entre traitements et médecins
     await db.execute('''
@@ -215,7 +164,6 @@ class DatabaseHelper {
 ''');
     Log.d("DatabaseHelper: Table 'treatment_health_professionals' créée");
 
-
     // Table de relation entre traitements et établissements
     await db.execute('''
       CREATE TABLE treatment_establishments(
@@ -227,7 +175,6 @@ class DatabaseHelper {
       )
     ''');
     Log.d("DatabaseHelper: Table 'treatment_establishments' créée");
-
 
     // Table des cycles
     await db.execute('''
@@ -248,20 +195,6 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'cycles' créée");
 
-
-    // Table de relation entre cycles et médecins
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS cure_doctors(
-        cycleId TEXT NOT NULL,
-        doctorId TEXT NOT NULL,
-        PRIMARY KEY (cycleId, doctorId),
-        FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
-        FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-      )
-    ''');
-    Log.d("DatabaseHelper: Table 'cure_doctors' créée");
-
-
     // Table des médicaments
     await db.execute('''
       CREATE TABLE IF NOT EXISTS medications(
@@ -275,7 +208,6 @@ class DatabaseHelper {
       )
     ''');
     Log.d("DatabaseHelper: Table 'medications' créée");
-
 
     // Table des sessions
     await db.execute('''
@@ -292,7 +224,6 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'sessions' créée");
 
-
     // Table de relation entre sessions et médicaments
     await db.execute('''
       CREATE TABLE IF NOT EXISTS session_medications(
@@ -304,7 +235,6 @@ class DatabaseHelper {
       )
     ''');
     Log.d("DatabaseHelper: Table 'session_medications' créée");
-
 
     // Table des opérations chirurgicales
     await db.execute('''
@@ -322,9 +252,8 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'surgeries' créée");
 
-
-// Ajout d'un champ 'role' à la table surgery_doctors pour distinguer chirurgiens et anesthésistes
-// Si la table existe déjà, il faudra la modifier ou la recréer
+    // Ajout d'un champ 'role' à la table surgery_doctors pour distinguer chirurgiens et anesthésistes
+    // Si la table existe déjà, il faudra la modifier ou la recréer
     await db.execute('''
   DROP TABLE IF EXISTS surgery_doctors
 ''');
@@ -359,7 +288,6 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'radiotherapies' créée");
 
-
     // Table des rendez-vous
     await db.execute('''
       CREATE TABLE IF NOT EXISTS appointments(
@@ -367,16 +295,27 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         dateTime TEXT NOT NULL,
         duration INTEGER,
-        doctorId TEXT,
+        healthProfessionalId TEXT,
         establishmentId TEXT,
         notes TEXT,
         isCompleted INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE SET NULL,
+        Type TEXT NOT NULL,
+        FOREIGN KEY (healthProfessionalId) REFERENCES health_professionals (id) ON DELETE SET NULL,
         FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE SET NULL
       )
     ''');
     Log.d("DatabaseHelper: Table 'appointments' créée");
 
+    await db.execute('''
+        CREATE TABLE cycle_appointments(
+          cycleId TEXT NOT NULL,
+          appointmentId TEXT NOT NULL,
+          PRIMARY KEY (cycleId, appointmentId),
+          FOREIGN KEY (cycleId) REFERENCES cycles(id) ON DELETE CASCADE,
+          FOREIGN KEY (appointmentId) REFERENCES appointments(id) ON DELETE CASCADE
+        )
+      ''');
+    Log.d("DatabaseHelper: Table cycle_appointments créée avec succès");
 
     // Table des documents
     await db.execute('''
@@ -391,7 +330,6 @@ class DatabaseHelper {
       )
     ''');
     Log.d("DatabaseHelper: Table 'documents' créée");
-
 
     // Table de relation entre documents et autres entités
     await db.execute('''
@@ -421,7 +359,7 @@ class DatabaseHelper {
 ''');
     Log.d("DatabaseHelper: Table 'side_effects' créée");
 
-// Table de relation entre radiothérapies et médecins
+    // Table de relation entre radiothérapies et médecins
     await db.execute('''
   CREATE TABLE IF NOT EXISTS radiotherapy_doctors(
     radiotherapyId TEXT NOT NULL,
@@ -433,7 +371,7 @@ class DatabaseHelper {
 ''');
     Log.d("DatabaseHelper: Table 'radiotherapy_doctors' créée");
 
-// Table des sessions de radiothérapie
+    // Table des sessions de radiothérapie
     await db.execute('''
   CREATE TABLE IF NOT EXISTS radiotherapy_sessions(
     id TEXT PRIMARY KEY,
@@ -448,7 +386,7 @@ class DatabaseHelper {
 ''');
     Log.d("DatabaseHelper: Table 'radiotherapy_sessions' créée");
 
-// Modification de la table examinations pour ajouter le champ prereqForSessionId
+    // Modification de la table examinations pour ajouter le champ prereqForSessionId
     await db.execute('''
   CREATE TABLE IF NOT EXISTS examinations(
     id TEXT PRIMARY KEY,
@@ -497,252 +435,43 @@ class DatabaseHelper {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE measure (
+        id TEXT PRIMARY KEY,
+        cycleId TEXT NOT NULL,
+        type TEXT NOT NULL,
+        weight REAL,
+        heartRate INTEGER,
+        spo2 REAL,
+        temperature REAL,
+        systolicBP INTEGER,
+        diastolicBP INTEGER,
+        date TEXT NOT NULL,
+        unit TEXT NOT NULL,
+        note TEXT
+      )
+    ''');
+    Log.d("DatabaseHelper: Table 'measure' créée");
+
+    await db.execute('''
+        CREATE TABLE cycle_measure(
+          cycleId TEXT NOT NULL,
+          measureId TEXT NOT NULL,
+          PRIMARY KEY (cycleId, measureId),
+          FOREIGN KEY (cycleId) REFERENCES cycles(id) ON DELETE CASCADE,
+          FOREIGN KEY (measureId) REFERENCES measure(id) ON DELETE CASCADE
+        )
+      ''');
+    Log.d("DatabaseHelper: Table cycle_measure créée avec succès");
   }
 
   // Pour les futures mises à jour
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    Log.d("DatabaseHelper: Mise à jour de la base de données de la version $oldVersion vers $newVersion");
+    Log.d(
+      "DatabaseHelper: Mise à jour de la base de données de la version $oldVersion vers $newVersion",
+    );
 
     // Logique de migration ici
-  }
-
-  // Méthodes pour les médecins
-  Future<List<Map<String, dynamic>>> getDoctorsOLD() async {
-    try {
-      Log.d("DatabaseHelper: Récupération des médecins");
-      final db = await database;
-
-      // Récupérer tous les médecins
-      final List<Map<String, dynamic>> doctors = await db.query('doctors');
-      Log.d("DatabaseHelper: ${doctors.length} médecins récupérés");
-
-      // Pour chaque médecin, récupérer ses contacts
-      for (var doctor in doctors) {
-        Log.d("DatabaseHelper: Récupération des contacts pour le médecin ${doctor['id']}");
-        final List<Map<String, dynamic>> contacts = await db.query(
-          'doctor_contacts',
-          where: 'doctorId = ?',
-          whereArgs: [doctor['id']],
-        );
-
-        Log.d("DatabaseHelper: ${contacts.length} contacts récupérés pour le médecin ${doctor['id']}");
-
-        // Convertir les contacts au format attendu par ContactInfo.fromMap
-        final List<Map<String, dynamic>> formattedContacts = contacts.map((contact) {
-          return {
-            'id': contact['id'],
-            'type': contact['type'],
-            'category': contact['category'],
-            'value': contact['value'],
-          };
-        }).toList();
-
-        // Ajouter les contacts au médecin
-        doctor['contactInfos'] = formattedContacts;
-      }
-
-      return doctors;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médecins: $e");
-      return [];
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getDoctors() async {
-    try {
-      Log.d("DatabaseHelper: Récupération des médecins");
-      final db = await database;
-
-      // Récupérer tous les médecins
-      final List<Map<String, dynamic>> doctors = await db.query('doctors');
-      Log.d("DatabaseHelper: ${doctors.length} médecins récupérés");
-
-      // Pour chaque médecin, créer une copie et y ajouter les contacts
-      final List<Map<String, dynamic>> result = [];
-
-      for (var doctor in doctors) {
-        // Créer une copie du médecin pour éviter de modifier l'original
-        final Map<String, dynamic> doctorWithContacts = Map.from(doctor);
-
-        // Vérifier d'abord si la table doctor_contacts existe
-        final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='doctor_contacts'");
-
-        if (tables.isNotEmpty) {
-          try {
-            // Récupérer les contacts pour ce médecin
-            final List<Map<String, dynamic>> contacts = await db.query(
-              'doctor_contacts',
-              where: 'doctorId = ?',
-              whereArgs: [doctor['id']],
-            );
-
-            Log.d("DatabaseHelper: ${contacts.length} contacts récupérés pour le médecin ${doctor['id']}");
-
-            // Ajouter les contacts au médecin
-            doctorWithContacts['contactInfos'] = contacts;
-          } catch (e) {
-            Log.d("DatabaseHelper: Erreur lors de la récupération des contacts: $e");
-            doctorWithContacts['contactInfos'] = [];
-          }
-        } else {
-          Log.d("DatabaseHelper: La table doctor_contacts n'existe pas");
-          doctorWithContacts['contactInfos'] = [];
-        }
-
-        result.add(doctorWithContacts);
-      }
-
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médecins: $e");
-      return [];
-    }
-  }
-
-  Future<Map<String, dynamic>?> getDoctor(dynamic id) async {
-    String doctorId = id is int ? id.toString() : id;
-    Log.d("DatabaseHelper: Récupération du médecin avec ID: $doctorId");
-    final db = await database;
-    try {
-      final results = await db.query('doctors', where: 'id = ?', whereArgs: [doctorId]);
-      Log.d("DatabaseHelper: ${results.length} résultats trouvés");
-      return results.isNotEmpty ? results.first : null;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération du médecin: $e");
-      return null;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getDoctorContacts(dynamic doctorId) async {
-    String id = doctorId is int ? doctorId.toString() : doctorId;
-    try {
-      Log.d("DatabaseHelper: Récupération des contacts pour le médecin $doctorId");
-      final db = await database;
-      final contacts = await db.query(
-        'doctor_contacts',
-        where: 'doctorId = ?',
-        whereArgs: [id],
-      );
-      Log.d("DatabaseHelper: ${contacts.length} contacts récupérés");
-      return contacts;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des contacts: $e");
-      return [];
-    }
-  }
-
-
-  Future<int> insertDoctor(Map<String, dynamic> doctor) async {
-    Log.d("DatabaseHelper: Insertion d'un médecin: $doctor");
-    final db = await database;
-    try {
-      final result = await db.insert('doctors', doctor, conflictAlgorithm: ConflictAlgorithm.replace);
-      Log.d("DatabaseHelper: Médecin inséré avec succès, résultat: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion du médecin: $e");
-      return -1;
-    }
-  }
-
-// Insérer un contact pour un médecin
-  Future<int> insertDoctorContact(Map<String, dynamic> contact) async {
-    try {
-      Log.d("DatabaseHelper: Insertion d'un contact pour le médecin ${contact['doctorId']}");
-      final db = await database;
-      final result = await db.insert('doctor_contacts', contact);
-      Log.d("DatabaseHelper: Contact inséré avec succès, résultat: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion du contact: $e");
-      return -1;
-    }
-  }
-
-  Future<int> deleteDoctor(String id) async {
-    try {
-      Log.d("DatabaseHelper: Suppression du médecin avec ID $id");
-      final db = await database;
-
-      // Vérifier d'abord si le médecin existe
-      final List<Map<String, dynamic>> check = await db.query(
-        'doctors',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      if (check.isEmpty) {
-        Log.d("DatabaseHelper: Médecin introuvable avec ID $id");
-        return 0;
-      }
-
-      // Supprimer les relations avec les traitements
-      await db.delete(
-        'treatment_doctors',
-        where: 'doctorId = ?',
-        whereArgs: [id],
-      );
-
-      // Supprimer les relations avec les cycles
-      await db.delete(
-        'cure_doctors',
-        where: 'doctorId = ?',
-        whereArgs: [id],
-      );
-
-      // Supprimer les relations avec les chirurgies
-      await db.delete(
-        'surgery_doctors',
-        where: 'doctorId = ?',
-        whereArgs: [id],
-      );
-
-      // Enfin, supprimer le médecin
-      final result = await db.delete(
-        'doctors',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      Log.d("DatabaseHelper: Médecin supprimé avec succès, lignes affectées: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression du médecin: $e");
-      return -1;
-    }
-  }
-
-  Future<int> updateDoctor(Map<String, dynamic> doctor) async {
-    try {
-      Log.d("DatabaseHelper: Mise à jour du médecin avec ID ${doctor['id']}");
-      final db = await database;
-
-      // Vérifier d'abord si le médecin existe
-      final List<Map<String, dynamic>> check = await db.query(
-        'doctors',
-        where: 'id = ?',
-        whereArgs: [doctor['id']],
-      );
-
-      if (check.isEmpty) {
-        Log.d("DatabaseHelper: Médecin introuvable avec ID ${doctor['id']}");
-        return 0;
-      }
-
-      // Mettre à jour le médecin
-      final result = await db.update(
-        'doctors',
-        doctor,
-        where: 'id = ?',
-        whereArgs: [doctor['id']],
-      );
-
-      Log.d("DatabaseHelper: Médecin mis à jour avec succès, lignes affectées: $result");
-      return result;
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour du médecin: $e");
-      return -1;
-    }
   }
 
   // Méthodes pour les établissements
@@ -752,7 +481,7 @@ class DatabaseHelper {
   }
 
   Future<Map<String, dynamic>?> getEstablishment(String id) async {
-    print("Recherche de l'établissement avec ID: $id");
+    Log.d("Recherche de l'établissement avec ID: $id");
     final db = await database;
     try {
       final results = await db.query(
@@ -761,29 +490,34 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      print("Résultat de la requête établissement: $results");
+      Log.d("Résultat de la requête établissement: $results");
 
       if (results.isNotEmpty) {
         return results.first;
       }
 
-      print("Établissement non trouvé pour ID: $id");
+      Log.d("Établissement non trouvé pour ID: $id");
       return null;
     } catch (e) {
-      print("Erreur lors de la recherche de l'établissement: $e");
+      Log.d("Erreur lors de la recherche de l'établissement: $e");
       return null;
     }
   }
 
-
   Future<int> insertEstablishment(Map<String, dynamic> establishment) async {
     final db = await database;
-    return await db.insert('establishments', establishment, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      'establishments',
+      establishment,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateEstablishment(Map<String, dynamic> establishment) async {
     try {
-      Log.d("DatabaseHelper: Mise à jour d'un établissement avec ID: ${establishment['id']}");
+      Log.d(
+        "DatabaseHelper: Mise à jour d'un établissement avec ID: ${establishment['id']}",
+      );
       final db = await database;
       final result = await db.update(
         'establishments',
@@ -791,10 +525,14 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [establishment['id']],
       );
-      Log.d("DatabaseHelper: Établissement mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Établissement mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de l'établissement: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour de l'établissement: $e",
+      );
       return -1;
     }
   }
@@ -854,10 +592,14 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      Log.d("DatabaseHelper: Établissement supprimé avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Établissement supprimé avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression de l'établissement: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la suppression de l'établissement: $e",
+      );
       return -1;
     }
   }
@@ -870,20 +612,31 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>?> getTreatment(String id) async {
     final db = await database;
-    final results = await db.query('treatments', where: 'id = ?', whereArgs: [id]);
+    final results = await db.query(
+      'treatments',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
     return results.isNotEmpty ? results.first : null;
   }
 
   Future<int> insertTreatment(Map<String, dynamic> treatment) async {
     final db = await database;
-    return await db.insert('treatments', treatment, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      'treatments',
+      treatment,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateTreatment(Map<String, dynamic> treatment) async {
     final db = await database;
-    return await db.update('treatments', treatment,
-        where: 'id = ?',
-        whereArgs: [treatment['id']]);
+    return await db.update(
+      'treatments',
+      treatment,
+      where: 'id = ?',
+      whereArgs: [treatment['id']],
+    );
   }
 
   Future<int> deleteTreatment(String id) async {
@@ -896,76 +649,110 @@ class DatabaseHelper {
     final db = await database;
     return await db.insert('treatment_doctors', {
       'treatmentId': treatmentId,
-      'doctorId': doctorId
+      'doctorId': doctorId,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<int> linkTreatmentHealthProfessional(String treatmentId, String healthProfessionalId) async {
+  Future<int> linkTreatmentHealthProfessional(
+    String treatmentId,
+    String healthProfessionalId,
+  ) async {
     final db = await database;
-    return await db.insert('treatment_health_professionals', {
-      'treatmentId': treatmentId,
-      'healthProfessionalId': healthProfessionalId
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    return await db.insert(
+      'treatment_health_professionals',
+      {
+        'treatmentId': treatmentId,
+        'healthProfessionalId': healthProfessionalId,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  Future<int> linkTreatmentEstablishment(String treatmentId, String establishmentId) async {
+  Future<int> linkTreatmentEstablishment(
+    String treatmentId,
+    String establishmentId,
+  ) async {
     final db = await database;
     return await db.insert('treatment_establishments', {
       'treatmentId': treatmentId,
-      'establishmentId': establishmentId
+      'establishmentId': establishmentId,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<int> unlinkTreatmentDoctor(String treatmentId, String doctorId) async {
     final db = await database;
-    return await db.delete('treatment_doctors',
-        where: 'treatmentId = ? AND doctorId = ?',
-        whereArgs: [treatmentId, doctorId]
+    return await db.delete(
+      'treatment_doctors',
+      where: 'treatmentId = ? AND doctorId = ?',
+      whereArgs: [treatmentId, doctorId],
     );
   }
 
-  Future<int> unlinkTreatmentEstablishment(String treatmentId, String establishmentId) async {
+  Future<int> unlinkTreatmentEstablishment(
+    String treatmentId,
+    String establishmentId,
+  ) async {
     final db = await database;
-    return await db.delete('treatment_establishments',
-        where: 'treatmentId = ? AND establishmentId = ?',
-        whereArgs: [treatmentId, establishmentId]
+    return await db.delete(
+      'treatment_establishments',
+      where: 'treatmentId = ? AND establishmentId = ?',
+      whereArgs: [treatmentId, establishmentId],
     );
   }
 
-  Future<int> unlinkTreatmentHealthProfessional(String treatmentId, String healthProfessionalId) async {
+  Future<int> unlinkTreatmentHealthProfessional(
+    String treatmentId,
+    String healthProfessionalId,
+  ) async {
     final db = await database;
-    return await db.delete('treatment_health_professionals',
-        where: 'treatmentId = ? AND healthProfessionalId = ?',
-        whereArgs: [treatmentId, healthProfessionalId]
+    return await db.delete(
+      'treatment_health_professionals',
+      where: 'treatmentId = ? AND healthProfessionalId = ?',
+      whereArgs: [treatmentId, healthProfessionalId],
     );
   }
 
   // Méthodes pour récupérer les médecins et établissements liés à un traitement
-  Future<List<Map<String, dynamic>>> getTreatmentDoctors(String treatmentId) async {
+  Future<List<Map<String, dynamic>>> getTreatmentDoctors(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
       SELECT d.* FROM doctors d
       INNER JOIN treatment_doctors td ON d.id = td.doctorId
       WHERE td.treatmentId = ?
-    ''', [treatmentId]);
+    ''',
+      [treatmentId],
+    );
   }
 
-  Future<List<Map<String, dynamic>>> getTreatmentHealthProfessionals(String treatmentId) async {
+  Future<List<Map<String, dynamic>>> getTreatmentHealthProfessionals(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
     SELECT hp.* FROM health_professionals hp
     INNER JOIN treatment_health_professionals thp ON hp.id = thp.healthProfessionalId
     WHERE thp.treatmentId = ?
-  ''', [treatmentId]);
+  ''',
+      [treatmentId],
+    );
   }
 
-  Future<List<Map<String, dynamic>>> getTreatmentEstablishments(String treatmentId) async {
+  Future<List<Map<String, dynamic>>> getTreatmentEstablishments(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
       SELECT e.* FROM establishments e
       INNER JOIN treatment_establishments te ON e.id = te.establishmentId
       WHERE te.treatmentId = ?
-    ''', [treatmentId]);
+    ''',
+      [treatmentId],
+    );
   }
 
   Future<Database> getReadableDatabase() async {
@@ -994,17 +781,19 @@ class DatabaseHelper {
     final db = await openDatabase('suivi_cancer.db');
 
     // Vérifier les tables existantes
-    final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    );
     for (var table in tables) {
-      print("Table trouvée: ${table['name']}");
+      Log.d("Table trouvée: ${table['name']}");
     }
 
     // Essayer de compter les entrées
     try {
       final count = await db.rawQuery("SELECT COUNT(*) FROM doctors");
-      print("Nombre d'entrées dans doctors: $count");
+      Log.d("Nombre d'entrées dans doctors: $count");
     } catch (e) {
-      print("Erreur lors de l'accès à la table doctors: $e");
+      Log.d("Erreur lors de l'accès à la table doctors: $e");
     }
 
     await db.close();
@@ -1016,7 +805,9 @@ class DatabaseHelper {
 
     final db = await openDatabase(path);
     final version = await db.getVersion();
-    print("Version actuelle de la base de données: $version dbPath:[${dbPath.toString()}] path:[${path.toString()}]");
+    Log.d(
+      "Version actuelle de la base de données: $version dbPath:[${dbPath.toString()}] path:[${path.toString()}]",
+    );
 
     await db.close();
   }
@@ -1025,7 +816,9 @@ class DatabaseHelper {
     final db = await database;
 
     // Vérifier les tables
-    final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    );
     Log.d("Tables dans la base de données:");
     for (var table in tables) {
       Log.d("- ${table['name']}");
@@ -1043,67 +836,92 @@ class DatabaseHelper {
     Log.d("DatabaseHelper: Insertion d'un effet secondaire: $sideEffect");
     final db = await database;
     try {
-      final result = await db.insert('side_effects', sideEffect, conflictAlgorithm: ConflictAlgorithm.replace);
-      Log.d("DatabaseHelper: Effet secondaire inséré avec succès, résultat: $result");
+      final result = await db.insert(
+        'side_effects',
+        sideEffect,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      Log.d(
+        "DatabaseHelper: Effet secondaire inséré avec succès, résultat: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion de l'effet secondaire: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de l'insertion de l'effet secondaire: $e",
+      );
       return -1;
     }
   }
 
-// Récupérer tous les effets secondaires pour une entité spécifique
-  Future<List<Map<String, dynamic>>> getSideEffectsForEntity(String entityType, String entityId) async {
-    Log.d("DatabaseHelper: Récupération des effets secondaires pour $entityType avec ID $entityId");
+  // Récupérer tous les effets secondaires pour une entité spécifique
+  Future<List<Map<String, dynamic>>> getSideEffectsForEntity(
+    String entityType,
+    String entityId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des effets secondaires pour $entityType avec ID $entityId",
+    );
     final db = await database;
     try {
       final results = await db.query(
-          'side_effects',
-          where: 'entityType = ? AND entityId = ?',
-          whereArgs: [entityType, entityId],
-          orderBy: 'date DESC'
+        'side_effects',
+        where: 'entityType = ? AND entityId = ?',
+        whereArgs: [entityType, entityId],
+        orderBy: 'date DESC',
       );
       Log.d("DatabaseHelper: ${results.length} effets secondaires récupérés");
       return results;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des effets secondaires: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des effets secondaires: $e",
+      );
       return [];
     }
   }
 
-// Mettre à jour un effet secondaire
+  // Mettre à jour un effet secondaire
   Future<int> updateSideEffect(Map<String, dynamic> sideEffect) async {
-    Log.d("DatabaseHelper: Mise à jour de l'effet secondaire avec ID ${sideEffect['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour de l'effet secondaire avec ID ${sideEffect['id']}",
+    );
     final db = await database;
     try {
       final result = await db.update(
-          'side_effects',
-          sideEffect,
-          where: 'id = ?',
-          whereArgs: [sideEffect['id']]
+        'side_effects',
+        sideEffect,
+        where: 'id = ?',
+        whereArgs: [sideEffect['id']],
       );
-      Log.d("DatabaseHelper: Effet secondaire mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Effet secondaire mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de l'effet secondaire: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour de l'effet secondaire: $e",
+      );
       return -1;
     }
   }
 
-// Supprimer un effet secondaire
+  // Supprimer un effet secondaire
   Future<int> deleteSideEffect(String id) async {
     Log.d("DatabaseHelper: Suppression de l'effet secondaire avec ID $id");
     final db = await database;
     try {
       final result = await db.delete(
-          'side_effects',
-          where: 'id = ?',
-          whereArgs: [id]
+        'side_effects',
+        where: 'id = ?',
+        whereArgs: [id],
       );
-      Log.d("DatabaseHelper: Effet secondaire supprimé avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Effet secondaire supprimé avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression de l'effet secondaire: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la suppression de l'effet secondaire: $e",
+      );
       return -1;
     }
   }
@@ -1128,7 +946,9 @@ class DatabaseHelper {
           if (!e.toString().contains("not an error")) {
             Log.d("Erreur lors de l'ouverture de la base de données : $e");
           } else {
-            Log.d("La base de données peut être ouverte en lecture/écriture (ignoré faux positif)");
+            Log.d(
+              "La base de données peut être ouverte en lecture/écriture (ignoré faux positif)",
+            );
           }
         }
       }
@@ -1169,7 +989,7 @@ class DatabaseHelper {
         }
       }
 
-      Log.d("results : ${results}");
+      Log.d("results : $results");
       return results;
     } catch (e) {
       Log.d("Erreur lors de la requête des séances : $e");
@@ -1181,15 +1001,11 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> getCycle(String id) async {
     final db = await database;
 
-    print("Récupération du cycle avec ID : $id");
+    Log.d("Récupération du cycle avec ID : $id");
 
-    final results = await db.query(
-      'cycles',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final results = await db.query('cycles', where: 'id = ?', whereArgs: [id]);
 
-    print("Résultat de la requête cycle : $results");
+    Log.d("Résultat de la requête cycle : $results");
 
     if (results.isNotEmpty) {
       return results.first;
@@ -1197,7 +1013,6 @@ class DatabaseHelper {
 
     return null;
   }
-
 
   Future<int> insertCycle(Map<String, dynamic> cycle) async {
     final db = await database;
@@ -1216,31 +1031,34 @@ class DatabaseHelper {
 
   Future<int> deleteCycle(String id) async {
     final db = await database;
-    return await db.delete(
-      'cycles',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('cycles', where: 'id = ?', whereArgs: [id]);
   }
 
-
-  Future<List<Map<String, dynamic>>> getCyclesByTreatment(String treatmentId) async {
+  Future<List<Map<String, dynamic>>> getCyclesByTreatment(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
       SELECT c.*
       FROM cycles c
       WHERE c.treatmentId = ?
       ORDER BY c.startDate
-    ''', [treatmentId]);
+    ''',
+      [treatmentId],
+    );
   }
 
-
-// 1. Modification de la méthode insertSession pour prendre en compte tous les champs nécessaires
+  // 1. Modification de la méthode insertSession pour prendre en compte tous les champs nécessaires
   Future<int> insertSession(Map<String, dynamic> session) async {
     final db = await database;
     try {
       Log.d("DatabaseHelper: Insertion d'une session: ${session['id']}");
-      final id = await db.insert('sessions', session, conflictAlgorithm: ConflictAlgorithm.replace);
+      final id = await db.insert(
+        'sessions',
+        session,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       Log.d("DatabaseHelper: Session insérée avec succès, résultat: $id");
       return id;
     } catch (e) {
@@ -1249,69 +1067,103 @@ class DatabaseHelper {
     }
   }
 
-// 2. Méthode pour insérer une session de radiothérapie
+  // 2. Méthode pour insérer une session de radiothérapie
   Future<int> insertRadiotherapySession(Map<String, dynamic> session) async {
     final db = await database;
     try {
-      Log.d("DatabaseHelper: Insertion d'une session de radiothérapie: ${session['id']}");
-      final id = await db.insert('radiotherapy_sessions', session, conflictAlgorithm: ConflictAlgorithm.replace);
-      Log.d("DatabaseHelper: Session de radiothérapie insérée avec succès, résultat: $id");
+      Log.d(
+        "DatabaseHelper: Insertion d'une session de radiothérapie: ${session['id']}",
+      );
+      final id = await db.insert(
+        'radiotherapy_sessions',
+        session,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      Log.d(
+        "DatabaseHelper: Session de radiothérapie insérée avec succès, résultat: $id",
+      );
       return id;
     } catch (e) {
-      Log.d('DatabaseHelper: Erreur lors de l\'insertion de la session de radiothérapie: $e');
+      Log.d(
+        'DatabaseHelper: Erreur lors de l\'insertion de la session de radiothérapie: $e',
+      );
       return -1;
     }
   }
 
   Future<int> updateSession(Map<String, dynamic> session) async {
     final db = await database;
-    return await db.update('sessions', session,
-        where: 'id = ?',
-        whereArgs: [session['id']]);
+    return await db.update(
+      'sessions',
+      session,
+      where: 'id = ?',
+      whereArgs: [session['id']],
+    );
   }
 
-  Future<List<Map<String, dynamic>>> getSessionMedications(String sessionId) async {
+  Future<List<Map<String, dynamic>>> getSessionMedications(
+    String sessionId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
     SELECT m.* FROM medications m
     INNER JOIN session_medications sm ON m.id = sm.medicationId
     WHERE sm.sessionId = ?
-  ''', [sessionId]);
+  ''',
+      [sessionId],
+    );
   }
 
-  Future<int> linkSessionMedication(String sessionId, String medicationId) async {
+  Future<int> linkSessionMedication(
+    String sessionId,
+    String medicationId,
+  ) async {
     final db = await database;
     return await db.insert('session_medications', {
       'sessionId': sessionId,
-      'medicationId': medicationId
+      'medicationId': medicationId,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<Map<String, dynamic>>> getEstablishmentsByTreatment(String treatmentId) async {
+  Future<List<Map<String, dynamic>>> getEstablishmentsByTreatment(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
     SELECT e.*
     FROM establishments e
     JOIN treatment_establishments te ON e.id = te.establishmentId
     WHERE te.treatmentId = ?
     ORDER BY e.name
-  ''', [treatmentId]);
+  ''',
+      [treatmentId],
+    );
   }
 
-// Fonction pour récupérer les médecins associés à un traitement
-  Future<List<Map<String, dynamic>>> getDoctorsByTreatment(String treatmentId) async {
+  // Fonction pour récupérer les médecins associés à un traitement
+  Future<List<Map<String, dynamic>>> getDoctorsByTreatment(
+    String treatmentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
     SELECT d.*
     FROM doctors d
     JOIN treatment_doctors td ON d.id = td.doctorId
     WHERE td.treatmentId = ?
     ORDER BY d.name
-  ''', [treatmentId]);
+  ''',
+      [treatmentId],
+    );
   }
 
   // Fonction pour récupérer les effets secondaires par entité
-  Future<List<Map<String, dynamic>>> getSideEffectsByEntity(String entityType, String entityId) async {
+  Future<List<Map<String, dynamic>>> getSideEffectsByEntity(
+    String entityType,
+    String entityId,
+  ) async {
     final db = await database;
     return await db.query(
       'side_effects',
@@ -1321,29 +1173,29 @@ class DatabaseHelper {
     );
   }
 
-// Fonction pour supprimer une session
+  // Fonction pour supprimer une session
   Future<int> deleteSession(String id) async {
     final db = await database;
-    return await db.delete(
-      'sessions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('sessions', where: 'id = ?', whereArgs: [id]);
   }
 
-// Méthodes mises à jour pour la gestion des radiothérapies avec relations
+  // Méthodes mises à jour pour la gestion des radiothérapies avec relations
 
-// Récupérer les radiothérapies par traitement avec leurs relations
-  Future<List<Map<String, dynamic>>> getRadiotherapiesByTreatment(String treatmentId) async {
-    Log.d("DatabaseHelper: Récupération des radiothérapies pour le traitement $treatmentId");
+  // Récupérer les radiothérapies par traitement avec leurs relations
+  Future<List<Map<String, dynamic>>> getRadiotherapiesByTreatment(
+    String treatmentId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des radiothérapies pour le traitement $treatmentId",
+    );
     final db = await database;
 
     // Récupérer les radiothérapies de base
     final List<Map<String, dynamic>> radiotherapies = await db.query(
-        'radiotherapies',
-        where: 'treatmentId = ?',
-        whereArgs: [treatmentId],
-        orderBy: 'startDate'
+      'radiotherapies',
+      where: 'treatmentId = ?',
+      whereArgs: [treatmentId],
+      orderBy: 'startDate',
     );
 
     Log.d("DatabaseHelper: ${radiotherapies.length} radiothérapies trouvées");
@@ -1356,9 +1208,9 @@ class DatabaseHelper {
       // Ajouter l'établissement
       final establishmentId = radiotherapy['establishmentId'];
       final List<Map<String, dynamic>> establishment = await db.query(
-          'establishments',
-          where: 'id = ?',
-          whereArgs: [establishmentId]
+        'establishments',
+        where: 'id = ?',
+        whereArgs: [establishmentId],
       );
 
       if (establishment.isNotEmpty) {
@@ -1366,16 +1218,21 @@ class DatabaseHelper {
       }
 
       // Vérifier si la table radiotherapy_doctors existe
-      final tablesRadio = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'");
+      final tablesRadio = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
+      );
 
       if (tablesRadio.isNotEmpty) {
         // Récupérer les médecins associés en utilisant rawQuery pour la jointure
-        final List<Map<String, dynamic>> doctors = await db.rawQuery('''
+        final List<Map<String, dynamic>> doctors = await db.rawQuery(
+          '''
         SELECT d.* 
         FROM doctors d
         INNER JOIN radiotherapy_doctors rd ON d.id = rd.doctorId
         WHERE rd.radiotherapyId = ?
-      ''', [radiotherapy['id']]);
+      ''',
+          [radiotherapy['id']],
+        );
 
         completeRadiotherapy['doctors'] = doctors;
       } else {
@@ -1384,15 +1241,17 @@ class DatabaseHelper {
       }
 
       // Vérifier si la table radiotherapy_sessions existe
-      final tablesSessions = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'");
+      final tablesSessions = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'",
+      );
 
       if (tablesSessions.isNotEmpty) {
         // Récupérer les sessions
         final List<Map<String, dynamic>> sessions = await db.query(
-            'radiotherapy_sessions',
-            where: 'radiotherapyId = ?',
-            whereArgs: [radiotherapy['id']],
-            orderBy: 'dateTime'
+          'radiotherapy_sessions',
+          where: 'radiotherapyId = ?',
+          whereArgs: [radiotherapy['id']],
+          orderBy: 'dateTime',
         );
         completeRadiotherapy['sessions'] = sessions;
       } else {
@@ -1401,12 +1260,15 @@ class DatabaseHelper {
       }
 
       // Récupérer les documents en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> documents = await db.rawQuery('''
+      final List<Map<String, dynamic>> documents = await db.rawQuery(
+        '''
       SELECT d.* 
       FROM documents d
       INNER JOIN entity_documents ed ON d.id = ed.documentId
       WHERE ed.entityId = ? AND ed.entityType = ?
-    ''', [radiotherapy['id'], 'radiotherapy']);
+    ''',
+        [radiotherapy['id'], 'radiotherapy'],
+      );
 
       completeRadiotherapy['documents'] = documents;
 
@@ -1416,8 +1278,7 @@ class DatabaseHelper {
     return result;
   }
 
-
-// Insérer une radiothérapie avec ses relations
+  // Insérer une radiothérapie avec ses relations
   Future<int> insertRadiotherapy(Map<String, dynamic> radiotherapy) async {
     Log.d("DatabaseHelper: Insertion d'une radiothérapie");
     final db = await database;
@@ -1438,11 +1299,13 @@ class DatabaseHelper {
         };
 
         await txn.insert('radiotherapies', radiotherapyData);
-        Log.d("DatabaseHelper: Radiothérapie de base insérée avec ID: ${radiotherapy['id']}");
+        Log.d(
+          "DatabaseHelper: Radiothérapie de base insérée avec ID: ${radiotherapy['id']}",
+        );
 
         // Vérifier si la table radiotherapy_doctors existe
         final tablesRadio = await txn.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'"
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
         );
 
         // Insérer les médecins associés
@@ -1458,7 +1321,7 @@ class DatabaseHelper {
 
         // Vérifier si la table radiotherapy_sessions existe
         final tablesSessions = await txn.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'"
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'",
         );
 
         // Insérer les sessions
@@ -1480,14 +1343,18 @@ class DatabaseHelper {
         return 1; // Succès
       });
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion de la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de l'insertion de la radiothérapie: $e",
+      );
       return -1;
     }
   }
 
-// Mettre à jour une radiothérapie avec ses relations
+  // Mettre à jour une radiothérapie avec ses relations
   Future<int> updateRadiotherapy(Map<String, dynamic> radiotherapy) async {
-    Log.d("DatabaseHelper: Mise à jour d'une radiothérapie avec ID: ${radiotherapy['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour d'une radiothérapie avec ID: ${radiotherapy['id']}",
+    );
     final db = await database;
 
     try {
@@ -1504,24 +1371,24 @@ class DatabaseHelper {
         };
 
         await txn.update(
-            'radiotherapies',
-            radiotherapyData,
-            where: 'id = ?',
-            whereArgs: [radiotherapy['id']]
+          'radiotherapies',
+          radiotherapyData,
+          where: 'id = ?',
+          whereArgs: [radiotherapy['id']],
         );
 
         // Vérifier si la table radiotherapy_doctors existe
         final tablesRadio = await txn.rawQuery(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'"
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
         );
 
         // Mettre à jour les médecins associés
         if (tablesRadio.isNotEmpty && radiotherapy['doctorIds'] != null) {
           // Supprimer les associations existantes
           await txn.delete(
-              'radiotherapy_doctors',
-              where: 'radiotherapyId = ?',
-              whereArgs: [radiotherapy['id']]
+            'radiotherapy_doctors',
+            where: 'radiotherapyId = ?',
+            whereArgs: [radiotherapy['id']],
           );
 
           // Insérer les nouvelles associations
@@ -1536,44 +1403,54 @@ class DatabaseHelper {
         return 1; // Succès
       });
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour de la radiothérapie: $e",
+      );
       return -1;
     }
   }
 
-// Supprimer une radiothérapie (les relations seront supprimées en cascade)
+  // Supprimer une radiothérapie (les relations seront supprimées en cascade)
   Future<int> deleteRadiotherapy(String id) async {
     Log.d("DatabaseHelper: Suppression de la radiothérapie avec ID: $id");
     final db = await database;
 
     try {
       final result = await db.delete(
-          'radiotherapies',
-          where: 'id = ?',
-          whereArgs: [id]
+        'radiotherapies',
+        where: 'id = ?',
+        whereArgs: [id],
       );
 
-      Log.d("DatabaseHelper: Radiothérapie supprimée avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Radiothérapie supprimée avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression de la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la suppression de la radiothérapie: $e",
+      );
       return -1;
     }
   }
 
-// Méthodes mises à jour pour la gestion des chirurgies avec relations
+  // Méthodes mises à jour pour la gestion des chirurgies avec relations
 
-// Récupérer les chirurgies par traitement avec leurs relations
-  Future<List<Map<String, dynamic>>> getSurgeriesByTreatment(String treatmentId) async {
-    Log.d("DatabaseHelper: Récupération des chirurgies pour le traitement $treatmentId");
+  // Récupérer les chirurgies par traitement avec leurs relations
+  Future<List<Map<String, dynamic>>> getSurgeriesByTreatment(
+    String treatmentId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des chirurgies pour le traitement $treatmentId",
+    );
     final db = await database;
 
     // Récupérer les chirurgies de base
     final List<Map<String, dynamic>> surgeries = await db.query(
-        'surgeries',
-        where: 'treatmentId = ?',
-        whereArgs: [treatmentId],
-        orderBy: 'date'
+      'surgeries',
+      where: 'treatmentId = ?',
+      whereArgs: [treatmentId],
+      orderBy: 'date',
     );
 
     Log.d("DatabaseHelper: ${surgeries.length} chirurgies trouvées");
@@ -1586,9 +1463,9 @@ class DatabaseHelper {
       // Ajouter l'établissement
       final establishmentId = surgery['establishmentId'];
       final List<Map<String, dynamic>> establishment = await db.query(
-          'establishments',
-          where: 'id = ?',
-          whereArgs: [establishmentId]
+        'establishments',
+        where: 'id = ?',
+        whereArgs: [establishmentId],
       );
 
       if (establishment.isNotEmpty) {
@@ -1597,41 +1474,52 @@ class DatabaseHelper {
 
       // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
       final tablesSurgery = await db.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
       );
 
       if (tablesSurgery.isNotEmpty) {
         // Vérifier si la colonne 'role' existe
-        bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains('role');
+        bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
+          'role',
+        );
 
         if (hasRoleColumn) {
           // Récupérer les chirurgiens en utilisant rawQuery pour la jointure
-          final List<Map<String, dynamic>> surgeons = await db.rawQuery('''
+          final List<Map<String, dynamic>> surgeons = await db.rawQuery(
+            '''
           SELECT d.* 
           FROM doctors d
           INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
           WHERE sd.surgeryId = ? AND sd.role = ?
-        ''', [surgery['id'], 'surgeon']);
+        ''',
+            [surgery['id'], 'surgeon'],
+          );
 
           completeSurgery['surgeons'] = surgeons;
 
           // Récupérer les anesthésistes en utilisant rawQuery pour la jointure
-          final List<Map<String, dynamic>> anesthetists = await db.rawQuery('''
+          final List<Map<String, dynamic>> anesthetists = await db.rawQuery(
+            '''
           SELECT d.* 
           FROM doctors d
           INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
           WHERE sd.surgeryId = ? AND sd.role = ?
-        ''', [surgery['id'], 'anesthetist']);
+        ''',
+            [surgery['id'], 'anesthetist'],
+          );
 
           completeSurgery['anesthetists'] = anesthetists;
         } else {
           // Si pas de colonne 'role', récupérer tous les médecins associés
-          final List<Map<String, dynamic>> doctors = await db.rawQuery('''
+          final List<Map<String, dynamic>> doctors = await db.rawQuery(
+            '''
           SELECT d.* 
           FROM doctors d
           INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
           WHERE sd.surgeryId = ?
-        ''', [surgery['id']]);
+        ''',
+            [surgery['id']],
+          );
 
           completeSurgery['surgeons'] = doctors;
           completeSurgery['anesthetists'] = [];
@@ -1643,24 +1531,30 @@ class DatabaseHelper {
       }
 
       // Récupérer le rendez-vous pré-opératoire en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> appointments = await db.rawQuery('''
+      final List<Map<String, dynamic>> appointments = await db.rawQuery(
+        '''
       SELECT a.* 
       FROM appointments a
       INNER JOIN entity_documents ed ON a.id = ed.entityId
       WHERE ed.entityType = ? AND ed.documentId = ?
-    ''', ['appointment', surgery['id']]);
+    ''',
+        ['appointment', surgery['id']],
+      );
 
       if (appointments.isNotEmpty) {
         completeSurgery['preOperationAppointment'] = appointments.first;
       }
 
       // Récupérer les documents en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> documents = await db.rawQuery('''
+      final List<Map<String, dynamic>> documents = await db.rawQuery(
+        '''
       SELECT d.* 
       FROM documents d
       INNER JOIN entity_documents ed ON d.id = ed.documentId
       WHERE ed.entityId = ? AND ed.entityType = ?
-    ''', [surgery['id'], 'surgery']);
+    ''',
+        [surgery['id'], 'surgery'],
+      );
 
       completeSurgery['documents'] = documents;
 
@@ -1670,11 +1564,10 @@ class DatabaseHelper {
     return result;
   }
 
-
-// Insérer une chirurgie avec ses relations
-// Version corrigée pour insertSurgery - Les parties problématiques étaient les requêtes join
-// Cette fonction ne nécessite pas de correction majeure car elle utilise des insertions directes
-// sans jointures, mais je l'inclus pour référence
+  // Insérer une chirurgie avec ses relations
+  // Version corrigée pour insertSurgery - Les parties problématiques étaient les requêtes join
+  // Cette fonction ne nécessite pas de correction majeure car elle utilise des insertions directes
+  // sans jointures, mais je l'inclus pour référence
 
   Future<int> insertSurgery(Map<String, dynamic> surgery) async {
     Log.d("DatabaseHelper: Insertion d'une chirurgie");
@@ -1694,15 +1587,19 @@ class DatabaseHelper {
         };
 
         await txn.insert('surgeries', surgeryData);
-        Log.d("DatabaseHelper: Chirurgie de base insérée avec ID: ${surgery['id']}");
+        Log.d(
+          "DatabaseHelper: Chirurgie de base insérée avec ID: ${surgery['id']}",
+        );
 
         // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
         final tablesSurgery = await txn.rawQuery(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
         );
 
         if (tablesSurgery.isNotEmpty) {
-          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains('role');
+          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
+            'role',
+          );
 
           // Insérer les chirurgiens
           if (hasRoleColumn && surgery['surgeonIds'] != null) {
@@ -1751,10 +1648,11 @@ class DatabaseHelper {
             'title': appointment['title'],
             'dateTime': appointment['dateTime'],
             'duration': appointment['duration'],
-            'doctorId': appointment['doctorId'],
+            'healthProfessionalId': appointment['healthProfessionalId'],
             'establishmentId': appointment['establishmentId'],
             'notes': appointment['notes'],
             'isCompleted': appointment['isCompleted'] ? 1 : 0,
+            'Type': appointment['Type'],
           });
 
           // Lier le rendez-vous à la chirurgie
@@ -1775,10 +1673,11 @@ class DatabaseHelper {
     }
   }
 
-
-// Mettre à jour une chirurgie avec ses relations
+  // Mettre à jour une chirurgie avec ses relations
   Future<int> updateSurgery(Map<String, dynamic> surgery) async {
-    Log.d("DatabaseHelper: Mise à jour d'une chirurgie avec ID: ${surgery['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour d'une chirurgie avec ID: ${surgery['id']}",
+    );
     final db = await database;
 
     try {
@@ -1793,25 +1692,27 @@ class DatabaseHelper {
         };
 
         await txn.update(
-            'surgeries',
-            surgeryData,
-            where: 'id = ?',
-            whereArgs: [surgery['id']]
+          'surgeries',
+          surgeryData,
+          where: 'id = ?',
+          whereArgs: [surgery['id']],
         );
 
         // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
         final tablesSurgery = await txn.rawQuery(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
         );
 
         if (tablesSurgery.isNotEmpty) {
-          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains('role');
+          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
+            'role',
+          );
 
           // Supprimer toutes les associations existantes
           await txn.delete(
-              'surgery_doctors',
-              where: 'surgeryId = ?',
-              whereArgs: [surgery['id']]
+            'surgery_doctors',
+            where: 'surgeryId = ?',
+            whereArgs: [surgery['id']],
           );
 
           // Insérer les chirurgiens
@@ -1850,27 +1751,33 @@ class DatabaseHelper {
         return 1; // Succès
       });
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de la chirurgie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour de la chirurgie: $e",
+      );
       return -1;
     }
   }
 
-// Supprimer une chirurgie (les relations seront supprimées en cascade)
+  // Supprimer une chirurgie (les relations seront supprimées en cascade)
   Future<int> deleteSurgery(String id) async {
     Log.d("DatabaseHelper: Suppression de la chirurgie avec ID: $id");
     final db = await database;
 
     try {
       final result = await db.delete(
-          'surgeries',
-          where: 'id = ?',
-          whereArgs: [id]
+        'surgeries',
+        where: 'id = ?',
+        whereArgs: [id],
       );
 
-      Log.d("DatabaseHelper: Chirurgie supprimée avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Chirurgie supprimée avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression de la chirurgie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la suppression de la chirurgie: $e",
+      );
       return -1;
     }
   }
@@ -1882,7 +1789,7 @@ class DatabaseHelper {
       final results = await db.query('medications', orderBy: 'name ASC');
       return results;
     } catch (e) {
-      print("Erreur lors de la récupération des médicaments: $e");
+      Log.d("Erreur lors de la récupération des médicaments: $e");
       return [];
     }
   }
@@ -1890,15 +1797,19 @@ class DatabaseHelper {
   Future<int> insertMedication(Map<String, dynamic> medication) async {
     final db = await database;
     try {
-      final result = await db.insert('medications', medication, conflictAlgorithm: ConflictAlgorithm.replace);
+      final result = await db.insert(
+        'medications',
+        medication,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       return result;
     } catch (e) {
-      print("Erreur lors de l'insertion du médicament: $e");
+      Log.d("Erreur lors de l'insertion du médicament: $e");
       return -1;
     }
   }
 
-// Mettre à jour un médicament existant
+  // Mettre à jour un médicament existant
   Future<int> updateMedication(Map<String, dynamic> medication) async {
     final db = await database;
     try {
@@ -1910,22 +1821,36 @@ class DatabaseHelper {
       );
       return result;
     } catch (e) {
-      print("Erreur lors de la mise à jour du médicament: $e");
+      Log.d("Erreur lors de la mise à jour du médicament: $e");
       return -1;
     }
   }
 
   /// Ajoute des médicaments à une nouvelle session
-  Future<void> addSessionMedications(String sessionId, List<String> medicationIds, List<String> rinsingProductIds) async {
+  Future<void> addSessionMedications(
+    String sessionId,
+    List<String> medicationIds,
+    List<String> rinsingProductIds,
+  ) async {
     Log.d("DatabaseHelper: Ajout de médicaments pour la session $sessionId");
 
     // Pour une nouvelle session, on peut réutiliser la même méthode
-    return updateSessionMedications(sessionId, medicationIds, rinsingProductIds);
+    return updateSessionMedications(
+      sessionId,
+      medicationIds,
+      rinsingProductIds,
+    );
   }
 
   /// Met à jour les médicaments associés à une session
-  Future<void> updateSessionMedications(String sessionId, List<String> medicationIds, List<String> rinsingProductIds) async {
-    Log.d("DatabaseHelper: Mise à jour des médicaments pour la session $sessionId");
+  Future<void> updateSessionMedications(
+    String sessionId,
+    List<String> medicationIds,
+    List<String> rinsingProductIds,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Mise à jour des médicaments pour la session $sessionId",
+    );
     final db = await database;
 
     return await db.transaction((txn) async {
@@ -1947,7 +1872,9 @@ class DatabaseHelper {
           });
         }
 
-        Log.d("DatabaseHelper: ${medicationIds.length} médicaments standards ajoutés");
+        Log.d(
+          "DatabaseHelper: ${medicationIds.length} médicaments standards ajoutés",
+        );
 
         // Ajouter les produits de rinçage
         for (final rinsingProductId in rinsingProductIds) {
@@ -1957,79 +1884,100 @@ class DatabaseHelper {
           });
         }
 
-        Log.d("DatabaseHelper: ${rinsingProductIds.length} produits de rinçage ajoutés");
+        Log.d(
+          "DatabaseHelper: ${rinsingProductIds.length} produits de rinçage ajoutés",
+        );
 
         return;
       } catch (e) {
-        Log.d("DatabaseHelper: Erreur lors de la mise à jour des médicaments: $e");
-        throw e; // Propager l'erreur pour que la transaction échoue
+        Log.d(
+          "DatabaseHelper: Erreur lors de la mise à jour des médicaments: $e",
+        );
+        rethrow; // Propager l'erreur pour que la transaction échoue
       }
     });
   }
 
   /// Récupère les médicaments associés à une session spécifique
-  Future<List<Map<String, dynamic>>> getSessionMedicationDetails(String sessionId) async {
-    Log.d("DatabaseHelper: Récupération des médicaments détaillés pour la session $sessionId");
+  Future<List<Map<String, dynamic>>> getSessionMedicationDetails(
+    String sessionId,
+  ) async {
+    // Log.d("DatabaseHelper: Récupération des médicaments détaillés pour la session $sessionId");
     final db = await database;
 
     try {
       // Récupérer tous les médicaments avec un flag pour indiquer s'il s'agit d'un produit de rinçage
-      final List<Map<String, dynamic>> medications = await db.rawQuery('''
+      final List<Map<String, dynamic>> medications = await db.rawQuery(
+        '''
       SELECT m.*, sm.sessionId
       FROM medications m
       INNER JOIN session_medications sm ON m.id = sm.medicationId
       WHERE sm.sessionId = ?
-    ''', [sessionId]);
+    ''',
+        [sessionId],
+      );
 
-      Log.d("DatabaseHelper: ${medications.length} médicaments récupérés pour la session");
+      Log.d(
+        "DatabaseHelper: ${medications.length} médicaments récupérés pour la session",
+      );
       return medications;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médicaments de la session: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des médicaments de la session: $e",
+      );
       return [];
     }
   }
 
   /// Alternative plus détaillée pour récupérer les médicaments d'une session
   /// Cette version sépare directement les médicaments standards et les produits de rinçage
-  Future<Map<String, List<Map<String, dynamic>>>> getSessionMedicationsByType(String sessionId) async {
-    Log.d("DatabaseHelper: Récupération des médicaments par type pour la session $sessionId");
+  Future<Map<String, List<Map<String, dynamic>>>> getSessionMedicationsByType(
+    String sessionId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des médicaments par type pour la session $sessionId",
+    );
     final db = await database;
 
     try {
       // Récupérer les médicaments standards (non-rinçage)
-      final List<Map<String, dynamic>> standardMeds = await db.rawQuery('''
+      final List<Map<String, dynamic>> standardMeds = await db.rawQuery(
+        '''
       SELECT m.*
       FROM medications m
       INNER JOIN session_medications sm ON m.id = sm.medicationId
       WHERE sm.sessionId = ? AND m.isRinsing = 0
-    ''', [sessionId]);
+    ''',
+        [sessionId],
+      );
 
       // Récupérer les produits de rinçage
-      final List<Map<String, dynamic>> rinsingMeds = await db.rawQuery('''
+      final List<Map<String, dynamic>> rinsingMeds = await db.rawQuery(
+        '''
       SELECT m.*
       FROM medications m
       INNER JOIN session_medications sm ON m.id = sm.medicationId
       WHERE sm.sessionId = ? AND m.isRinsing = 1
-    ''', [sessionId]);
+    ''',
+        [sessionId],
+      );
 
-      Log.d("DatabaseHelper: ${standardMeds.length} médicaments standards et ${rinsingMeds.length} produits de rinçage récupérés");
+      Log.d(
+        "DatabaseHelper: ${standardMeds.length} médicaments standards et ${rinsingMeds.length} produits de rinçage récupérés",
+      );
 
-      return {
-        'standard': standardMeds,
-        'rinsing': rinsingMeds,
-      };
+      return {'standard': standardMeds, 'rinsing': rinsingMeds};
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médicaments par type: $e");
-      return {
-        'standard': [],
-        'rinsing': [],
-      };
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des médicaments par type: $e",
+      );
+      return {'standard': [], 'rinsing': []};
     }
   }
 
-// Fonctions supplémentaires à ajouter à votre classe DatabaseHelper
+  // Fonctions supplémentaires à ajouter à votre classe DatabaseHelper
 
-// Fonction pour insérer un rendez-vous
+  // Fonction pour insérer un rendez-vous
   Future<int> insertAppointment(Map<String, dynamic> appointment) async {
     Log.d("DatabaseHelper: Insertion d'un rendez-vous");
     final db = await database;
@@ -2041,12 +1989,13 @@ class DatabaseHelper {
         'title': appointment['title'],
         'dateTime': appointment['dateTime'],
         'duration': appointment['duration'],
-        'doctorId': appointment['doctorId'],
+        'healthProfessionalId': appointment['healthProfessionalId'],
         'establishmentId': appointment['establishmentId'],
         'notes': appointment['notes'],
         'isCompleted': appointment['isCompleted'] ?? 0,
         'type': appointment['type'],
       };
+      Log.d('baseAppointmentData:[${baseAppointmentData.toString()}]');
 
       final result = await db.insert('appointments', baseAppointmentData);
 
@@ -2066,31 +2015,40 @@ class DatabaseHelper {
     }
   }
 
-// Fonction pour récupérer les rendez-vous d'un cycle
-  Future<List<Map<String, dynamic>>> getAppointmentsByCycle(String cycleId) async {
-    Log.d("DatabaseHelper: Récupération des rendez-vous pour le cycle $cycleId");
+  // Fonction pour récupérer les rendez-vous d'un cycle
+  Future<List<Map<String, dynamic>>> getAppointmentsByCycle(
+    String cycleId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des rendez-vous pour le cycle $cycleId",
+    );
     final db = await database;
 
     try {
-      final results = await db.rawQuery('''
-      SELECT a.*, d.firstName, d.lastName, e.name as establishmentName 
+      final results = await db.rawQuery(
+        '''
+      SELECT a.*, ps.firstName, ps.lastName, e.name as establishmentName 
       FROM appointments a
-      LEFT JOIN doctors d ON a.doctorId = d.id
+      LEFT JOIN health_professionals ps ON a.healthProfessionalId = ps.id
       LEFT JOIN establishments e ON a.establishmentId = e.id
       INNER JOIN cycle_appointments ca ON a.id = ca.appointmentId
       WHERE ca.cycleId = ?
       ORDER BY a.dateTime
-    ''', [cycleId]);
+    ''',
+        [cycleId],
+      );
 
       Log.d("DatabaseHelper: ${results.length} rendez-vous récupérés");
       return results;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des rendez-vous: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des rendez-vous: $e",
+      );
       return [];
     }
   }
 
-// Fonction pour mettre à jour un rendez-vous
+  // Fonction pour mettre à jour un rendez-vous
   Future<int> updateAppointment(Map<String, dynamic> appointment) async {
     Log.d("DatabaseHelper: Mise à jour du rendez-vous ${appointment['id']}");
     final db = await database;
@@ -2103,7 +2061,9 @@ class DatabaseHelper {
         whereArgs: [appointment['id']],
       );
 
-      Log.d("DatabaseHelper: Rendez-vous mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Rendez-vous mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
       Log.d("DatabaseHelper: Erreur lors de la mise à jour du rendez-vous: $e");
@@ -2111,7 +2071,7 @@ class DatabaseHelper {
     }
   }
 
-// Fonction pour supprimer un rendez-vous
+  // Fonction pour supprimer un rendez-vous
   Future<int> deleteAppointment(String id) async {
     Log.d("DatabaseHelper: Suppression du rendez-vous $id");
     final db = await database;
@@ -2131,7 +2091,9 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      Log.d("DatabaseHelper: Rendez-vous supprimé avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Rendez-vous supprimé avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
       Log.d("DatabaseHelper: Erreur lors de la suppression du rendez-vous: $e");
@@ -2139,7 +2101,7 @@ class DatabaseHelper {
     }
   }
 
-// Fonction pour ajouter un prérequis à une session
+  // Fonction pour ajouter un prérequis à une session
   Future<int> insertPrerequisite(Map<String, dynamic> prerequisite) async {
     Log.d("DatabaseHelper: Insertion d'un prérequis");
     final db = await database;
@@ -2154,19 +2116,26 @@ class DatabaseHelper {
     }
   }
 
-// Fonction pour récupérer les prérequis d'une session
-  Future<List<Map<String, dynamic>>> getPrerequisitesBySession(String sessionId) async {
-    Log.d("DatabaseHelper: Récupération des prérequis pour la session $sessionId");
+  // Fonction pour récupérer les prérequis d'une session
+  Future<List<Map<String, dynamic>>> getPrerequisitesBySession(
+    String sessionId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des prérequis pour la session $sessionId",
+    );
     final db = await database;
 
     try {
-      final results = await db.rawQuery('''
+      final results = await db.rawQuery(
+        '''
       SELECT p.*, a.title as appointmentTitle, a.dateTime as appointmentDateTime 
       FROM prerequisites p
       LEFT JOIN appointments a ON p.appointmentId = a.id
       WHERE p.sessionId = ?
       ORDER BY p.deadline
-    ''', [sessionId]);
+    ''',
+        [sessionId],
+      );
 
       Log.d("DatabaseHelper: ${results.length} prérequis récupérés");
       return results;
@@ -2176,9 +2145,11 @@ class DatabaseHelper {
     }
   }
 
-// Fonction pour mettre à jour uniquement la date/heure d'une session
+  // Fonction pour mettre à jour uniquement la date/heure d'une session
   Future<int> updateSessionDateTime(String sessionId, DateTime dateTime) async {
-    Log.d("DatabaseHelper: Mise à jour de la date/heure de la session $sessionId");
+    Log.d(
+      "DatabaseHelper: Mise à jour de la date/heure de la session $sessionId",
+    );
     final db = await database;
 
     try {
@@ -2189,16 +2160,23 @@ class DatabaseHelper {
         whereArgs: [sessionId],
       );
 
-      Log.d("DatabaseHelper: Date/heure de la session mise à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Date/heure de la session mise à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour de la date/heure de la session: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour de la date/heure de la session: $e",
+      );
       return -1;
     }
   }
 
-// Fonction pour marquer une session comme terminée ou non
-  Future<int> updateSessionCompletionStatus(String sessionId, bool isCompleted) async {
+  // Fonction pour marquer une session comme terminée ou non
+  Future<int> updateSessionCompletionStatus(
+    String sessionId,
+    bool isCompleted,
+  ) async {
     final db = await database;
     try {
       final result = await db.update(
@@ -2209,20 +2187,24 @@ class DatabaseHelper {
       );
       return result;
     } catch (e) {
-      print("Erreur lors de la mise à jour du statut de complétion de la session: $e");
+      Log.d(
+        "Erreur lors de la mise à jour du statut de complétion de la session: $e",
+      );
       return -1;
     }
   }
 
-// Fonction pour créer la structure de la table cycle_appointments si elle n'existe pas
+  // Fonction pour créer la structure de la table cycle_appointments si elle n'existe pas
   Future<void> ensureCycleAppointmentsTableExists() async {
-    Log.d("DatabaseHelper: Vérification de l'existence de la table cycle_appointments");
+    Log.d(
+      "DatabaseHelper: Vérification de l'existence de la table cycle_appointments",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table existe
       final tables = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='cycle_appointments'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='cycle_appointments'",
       );
 
       if (tables.isEmpty) {
@@ -2241,21 +2223,25 @@ class DatabaseHelper {
         Log.d("DatabaseHelper: La table cycle_appointments existe déjà");
       }
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la vérification/création de la table cycle_appointments: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la vérification/création de la table cycle_appointments: $e",
+      );
     }
   }
 
-// Fonctions additionnelles à ajouter à votre classe DatabaseHelper
+  // Fonctions additionnelles à ajouter à votre classe DatabaseHelper
 
-// Ajouter un chirurgien à une chirurgie
+  // Ajouter un chirurgien à une chirurgie
   Future<int> addSurgeonToSurgery(String surgeryId, String doctorId) async {
-    Log.d("DatabaseHelper: Ajout du chirurgien $doctorId à la chirurgie $surgeryId");
+    Log.d(
+      "DatabaseHelper: Ajout du chirurgien $doctorId à la chirurgie $surgeryId",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table surgery_doctors contient un champ 'role'
       final tableInfo = await db.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
       );
 
       if (tableInfo.isEmpty) {
@@ -2274,7 +2260,8 @@ class DatabaseHelper {
       }
 
       // Vérifier si le champ 'role' est présent
-      final hasRoleField = tableInfo.isNotEmpty &&
+      final hasRoleField =
+          tableInfo.isNotEmpty &&
           tableInfo.first['sql'].toString().contains('role');
 
       if (hasRoleField) {
@@ -2300,19 +2287,22 @@ class DatabaseHelper {
     }
   }
 
-// Ajouter un anesthésiste à une chirurgie
+  // Ajouter un anesthésiste à une chirurgie
   Future<int> addAnesthetistToSurgery(String surgeryId, String doctorId) async {
-    Log.d("DatabaseHelper: Ajout de l'anesthésiste $doctorId à la chirurgie $surgeryId");
+    Log.d(
+      "DatabaseHelper: Ajout de l'anesthésiste $doctorId à la chirurgie $surgeryId",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table surgery_doctors contient un champ 'role'
       final tableInfo = await db.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
       );
 
       // Vérifier si le champ 'role' est présent
-      final hasRoleField = tableInfo.isNotEmpty &&
+      final hasRoleField =
+          tableInfo.isNotEmpty &&
           tableInfo.first['sql'].toString().contains('role');
 
       if (hasRoleField) {
@@ -2325,7 +2315,9 @@ class DatabaseHelper {
         return result;
       } else {
         // Sans le champ 'role', nous ne pouvons pas distinguer les anesthésistes
-        Log.d("DatabaseHelper: La table surgery_doctors n'a pas de champ 'role', impossible d'ajouter un anesthésiste");
+        Log.d(
+          "DatabaseHelper: La table surgery_doctors n'a pas de champ 'role', impossible d'ajouter un anesthésiste",
+        );
         return 0;
       }
     } catch (e) {
@@ -2334,15 +2326,20 @@ class DatabaseHelper {
     }
   }
 
-// Ajouter un médecin à une radiothérapie
-  Future<int> addDoctorToRadiotherapy(String radiotherapyId, String doctorId) async {
-    Log.d("DatabaseHelper: Ajout du médecin $doctorId à la radiothérapie $radiotherapyId");
+  // Ajouter un médecin à une radiothérapie
+  Future<int> addDoctorToRadiotherapy(
+    String radiotherapyId,
+    String doctorId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Ajout du médecin $doctorId à la radiothérapie $radiotherapyId",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table radiotherapy_doctors existe
       final tableExists = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
       );
 
       if (tableExists.isEmpty) {
@@ -2367,46 +2364,64 @@ class DatabaseHelper {
       Log.d("DatabaseHelper: Médecin ajouté à la radiothérapie avec succès");
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'ajout du médecin à la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de l'ajout du médecin à la radiothérapie: $e",
+      );
       return -1;
     }
   }
 
-// Récupérer les médecins d'une chirurgie par rôle
-  Future<List<Map<String, dynamic>>> getDoctorsBySurgeryAndRole(String surgeryId, String role) async {
-    Log.d("DatabaseHelper: Récupération des médecins de la chirurgie $surgeryId avec le rôle $role");
+  // Récupérer les médecins d'une chirurgie par rôle
+  Future<List<Map<String, dynamic>>> getDoctorsBySurgeryAndRole(
+    String surgeryId,
+    String role,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des médecins de la chirurgie $surgeryId avec le rôle $role",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table surgery_doctors contient un champ 'role'
       final tableInfo = await db.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
       );
 
       // Vérifier si le champ 'role' est présent
-      final hasRoleField = tableInfo.isNotEmpty &&
+      final hasRoleField =
+          tableInfo.isNotEmpty &&
           tableInfo.first['sql'].toString().contains('role');
 
       if (hasRoleField) {
-        final results = await db.rawQuery('''
+        final results = await db.rawQuery(
+          '''
         SELECT d.* 
         FROM doctors d
         INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
         WHERE sd.surgeryId = ? AND sd.role = ?
-      ''', [surgeryId, role]);
+      ''',
+          [surgeryId, role],
+        );
 
-        Log.d("DatabaseHelper: ${results.length} médecins récupérés avec le rôle $role");
+        Log.d(
+          "DatabaseHelper: ${results.length} médecins récupérés avec le rôle $role",
+        );
         return results;
       } else {
         // Sans le champ 'role', on récupère tous les médecins (pour la rétrocompatibilité)
-        final results = await db.rawQuery('''
+        final results = await db.rawQuery(
+          '''
         SELECT d.* 
         FROM doctors d
         INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
         WHERE sd.surgeryId = ?
-      ''', [surgeryId]);
+      ''',
+          [surgeryId],
+        );
 
-        Log.d("DatabaseHelper: ${results.length} médecins récupérés (sans distinction de rôle)");
+        Log.d(
+          "DatabaseHelper: ${results.length} médecins récupérés (sans distinction de rôle)",
+        );
         return results;
       }
     } catch (e) {
@@ -2415,15 +2430,19 @@ class DatabaseHelper {
     }
   }
 
-// Récupérer les médecins d'une radiothérapie
-  Future<List<Map<String, dynamic>>> getDoctorsByRadiotherapy(String radiotherapyId) async {
-    Log.d("DatabaseHelper: Récupération des médecins de la radiothérapie $radiotherapyId");
+  // Récupérer les médecins d'une radiothérapie
+  Future<List<Map<String, dynamic>>> getDoctorsByRadiotherapy(
+    String radiotherapyId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération des médecins de la radiothérapie $radiotherapyId",
+    );
     final db = await database;
 
     try {
       // Vérifier si la table radiotherapy_doctors existe
       final tableExists = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
       );
 
       if (tableExists.isEmpty) {
@@ -2431,24 +2450,33 @@ class DatabaseHelper {
         return [];
       }
 
-      final results = await db.rawQuery('''
+      final results = await db.rawQuery(
+        '''
       SELECT d.* 
       FROM doctors d
       INNER JOIN radiotherapy_doctors rd ON d.id = rd.doctorId
       WHERE rd.radiotherapyId = ?
-    ''', [radiotherapyId]);
+    ''',
+        [radiotherapyId],
+      );
 
-      Log.d("DatabaseHelper: ${results.length} médecins récupérés pour la radiothérapie");
+      Log.d(
+        "DatabaseHelper: ${results.length} médecins récupérés pour la radiothérapie",
+      );
       return results;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médecins de la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des médecins de la radiothérapie: $e",
+      );
       return [];
     }
   }
 
-// Mettre à jour les champs d'un cycle
+  // Mettre à jour les champs d'un cycle
   Future<int> updateCycleFields(Map<String, dynamic> cycleFields) async {
-    Log.d("DatabaseHelper: Mise à jour des champs du cycle ${cycleFields['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour des champs du cycle ${cycleFields['id']}",
+    );
     final db = await database;
 
     try {
@@ -2459,17 +2487,23 @@ class DatabaseHelper {
         whereArgs: [cycleFields['id']],
       );
 
-      Log.d("DatabaseHelper: Champs du cycle mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Champs du cycle mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour des champs du cycle: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour des champs du cycle: $e",
+      );
       return -1;
     }
   }
 
-// Mettre à jour les champs d'une chirurgie
+  // Mettre à jour les champs d'une chirurgie
   Future<int> updateSurgeryFields(Map<String, dynamic> surgeryFields) async {
-    Log.d("DatabaseHelper: Mise à jour des champs de la chirurgie ${surgeryFields['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour des champs de la chirurgie ${surgeryFields['id']}",
+    );
     final db = await database;
 
     try {
@@ -2480,17 +2514,25 @@ class DatabaseHelper {
         whereArgs: [surgeryFields['id']],
       );
 
-      Log.d("DatabaseHelper: Champs de la chirurgie mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Champs de la chirurgie mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour des champs de la chirurgie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour des champs de la chirurgie: $e",
+      );
       return -1;
     }
   }
 
-// Mettre à jour les champs d'une radiothérapie
-  Future<int> updateRadiotherapyFields(Map<String, dynamic> radiotherapyFields) async {
-    Log.d("DatabaseHelper: Mise à jour des champs de la radiothérapie ${radiotherapyFields['id']}");
+  // Mettre à jour les champs d'une radiothérapie
+  Future<int> updateRadiotherapyFields(
+    Map<String, dynamic> radiotherapyFields,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Mise à jour des champs de la radiothérapie ${radiotherapyFields['id']}",
+    );
     final db = await database;
 
     try {
@@ -2501,15 +2543,19 @@ class DatabaseHelper {
         whereArgs: [radiotherapyFields['id']],
       );
 
-      Log.d("DatabaseHelper: Champs de la radiothérapie mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Champs de la radiothérapie mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la mise à jour des champs de la radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la mise à jour des champs de la radiothérapie: $e",
+      );
       return -1;
     }
   }
 
-// Créer des tables de relation si elles n'existent pas encore
+  // Créer des tables de relation si elles n'existent pas encore
   Future<void> ensureRelationTablesExist() async {
     Log.d("DatabaseHelper: Vérification de l'existence des tables de relation");
     final db = await database;
@@ -2517,7 +2563,7 @@ class DatabaseHelper {
     try {
       // Vérifier et créer la table radiotherapy_doctors si nécessaire
       final radiotherapyDoctorsExists = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
       );
 
       if (radiotherapyDoctorsExists.isEmpty) {
@@ -2535,11 +2581,13 @@ class DatabaseHelper {
 
       // Vérifier si la table surgery_doctors existe et si elle a un champ 'role'
       final surgeryDoctorsInfo = await db.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'"
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
       );
 
       if (surgeryDoctorsInfo.isEmpty) {
-        Log.d("DatabaseHelper: Création de la table surgery_doctors avec champ 'role'");
+        Log.d(
+          "DatabaseHelper: Création de la table surgery_doctors avec champ 'role'",
+        );
         await db.execute('''
         CREATE TABLE surgery_doctors(
           surgeryId TEXT NOT NULL,
@@ -2552,13 +2600,19 @@ class DatabaseHelper {
       ''');
       } else {
         // Vérifier si le champ 'role' est présent
-        final hasRoleField = surgeryDoctorsInfo.first['sql'].toString().contains('role');
+        final hasRoleField = surgeryDoctorsInfo.first['sql']
+            .toString()
+            .contains('role');
 
         if (!hasRoleField) {
-          Log.d("DatabaseHelper: Mise à jour de la table surgery_doctors pour ajouter le champ 'role'");
+          Log.d(
+            "DatabaseHelper: Mise à jour de la table surgery_doctors pour ajouter le champ 'role'",
+          );
 
           // Renommer l'ancienne table
-          await db.execute("ALTER TABLE surgery_doctors RENAME TO surgery_doctors_old");
+          await db.execute(
+            "ALTER TABLE surgery_doctors RENAME TO surgery_doctors_old",
+          );
 
           // Créer la nouvelle table avec le champ 'role'
           await db.execute('''
@@ -2585,7 +2639,7 @@ class DatabaseHelper {
 
       // Vérifier et créer la table cycle_appointments si nécessaire
       final cycleAppointmentsExists = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='cycle_appointments'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='cycle_appointments'",
       );
 
       if (cycleAppointmentsExists.isEmpty) {
@@ -2603,68 +2657,13 @@ class DatabaseHelper {
 
       Log.d("DatabaseHelper: Vérification des tables de relation terminée");
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la vérification/création des tables de relation: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la vérification/création des tables de relation: $e",
+      );
     }
   }
 
-  Future<Map<String, dynamic>> getCompleteCycleData(String cycleId) async {
-    Log.d("DatabaseHelper: Récupération complète des données du cycle $cycleId");
-    final db = await database;
-
-    // Récupérer les informations de base du cycle
-    final cycleResults = await db.query(
-      'cycles',
-      where: 'id = ?',
-      whereArgs: [cycleId],
-    );
-
-    if (cycleResults.isEmpty) {
-      return {};
-    }
-
-    final cycleMap = cycleResults.first;
-
-    // Récupérer l'établissement
-    final establishmentId = cycleMap['establishmentId'];
-    final establishmentResults = await db.query(
-      'establishments',
-      where: 'id = ?',
-      whereArgs: [establishmentId],
-    );
-
-    Map<String, dynamic> establishmentMap = {};
-    if (establishmentResults.isNotEmpty) {
-      establishmentMap = establishmentResults.first;
-    }
-
-    // Récupérer les séances
-    final sessionResults = await db.query(
-      'sessions',
-      where: 'cycleId = ?',
-      whereArgs: [cycleId],
-      orderBy: 'dateTime',
-    );
-
-    // Récupérer les médecins associés au cycle
-    final doctorResults = await db.rawQuery('''
-    SELECT d.* 
-    FROM doctors d
-    INNER JOIN cure_doctors cd ON d.id = cd.doctorId
-    WHERE cd.cycleId = ?
-  ''', [cycleId]);
-
-    // Construire l'objet complet
-    final completeData = {
-      ...cycleMap,
-      'establishment': establishmentMap,
-      'sessions': sessionResults,
-      'doctors': doctorResults,
-    };
-
-    return completeData;
-  }
-
-// Méthode pour récupérer les types principaux des traitements
+  // Méthode pour récupérer les types principaux des traitements
   Future<Map<String, String>> getMainTreatmentTypes() async {
     Log.d("DatabaseHelper: Récupération des types principaux des traitements");
     final db = await database;
@@ -2732,7 +2731,7 @@ class DatabaseHelper {
     return treatmentTypes;
   }
 
-// Méthode pour récupérer un traitement complet avec ses détails
+  // Méthode pour récupérer un traitement complet avec ses détails
   Future<Map<String, dynamic>> getCompleteTreatment(String treatmentId) async {
     Log.d("DatabaseHelper: Récupération complète du traitement $treatmentId");
     final db = await database;
@@ -2751,19 +2750,19 @@ class DatabaseHelper {
     final treatmentMap = treatmentResults.first;
 
     // Récupérer les établissements associés
-    final establishmentResults = await this.getTreatmentEstablishments(treatmentId);
+    final establishmentResults = await getTreatmentEstablishments(treatmentId);
 
     // Récupérer les médecins associés
-    final doctorResults = await this.getTreatmentDoctors(treatmentId);
+    final doctorResults = await getTreatmentDoctors(treatmentId);
 
     // Récupérer les cycles
-    final cycleResults = await this.getCyclesByTreatment(treatmentId);
+    final cycleResults = await getCyclesByTreatment(treatmentId);
 
     // Récupérer les chirurgies
-    final surgeryResults = await this.getSurgeriesByTreatment(treatmentId);
+    final surgeryResults = await getSurgeriesByTreatment(treatmentId);
 
     // Récupérer les radiothérapies
-    final radiotherapyResults = await this.getRadiotherapiesByTreatment(treatmentId);
+    final radiotherapyResults = await getRadiotherapiesByTreatment(treatmentId);
 
     // Déterminer le type principal
     String mainType = "Non spécifié";
@@ -2799,9 +2798,13 @@ class DatabaseHelper {
     return completeData;
   }
 
-// Méthode pour récupérer directement le premier cycle d'un traitement
-  Future<Map<String, dynamic>?> getFirstCycleForTreatment(String treatmentId) async {
-    Log.d("DatabaseHelper: Récupération du premier cycle pour le traitement $treatmentId");
+  // Méthode pour récupérer directement le premier cycle d'un traitement
+  Future<Map<String, dynamic>?> getFirstCycleForTreatment(
+    String treatmentId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération du premier cycle pour le traitement $treatmentId",
+    );
     final db = await database;
 
     // Récupérer le premier cycle du traitement
@@ -2820,9 +2823,13 @@ class DatabaseHelper {
     return cycleResults.first;
   }
 
-// Méthode pour récupérer directement la première chirurgie d'un traitement
-  Future<Map<String, dynamic>?> getFirstSurgeryForTreatment(String treatmentId) async {
-    Log.d("DatabaseHelper: Récupération de la première chirurgie pour le traitement $treatmentId");
+  // Méthode pour récupérer directement la première chirurgie d'un traitement
+  Future<Map<String, dynamic>?> getFirstSurgeryForTreatment(
+    String treatmentId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération de la première chirurgie pour le traitement $treatmentId",
+    );
     final db = await database;
 
     // Récupérer la première chirurgie du traitement
@@ -2841,9 +2848,13 @@ class DatabaseHelper {
     return surgeryResults.first;
   }
 
-// Méthode pour récupérer directement la première radiothérapie d'un traitement
-  Future<Map<String, dynamic>?> getFirstRadiotherapyForTreatment(String treatmentId) async {
-    Log.d("DatabaseHelper: Récupération de la première radiothérapie pour le traitement $treatmentId");
+  // Méthode pour récupérer directement la première radiothérapie d'un traitement
+  Future<Map<String, dynamic>?> getFirstRadiotherapyForTreatment(
+    String treatmentId,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Récupération de la première radiothérapie pour le traitement $treatmentId",
+    );
     final db = await database;
 
     // Récupérer la première radiothérapie du traitement
@@ -2862,14 +2873,14 @@ class DatabaseHelper {
     return radiotherapyResults.first;
   }
 
-
   /// Récupère un examen spécifique par son ID avec toutes ses relations
   Future<Map<String, dynamic>?> getExamination(String examinationId) async {
     final db = await database;
 
     try {
       // Récupérer l'examen
-      final List<Map<String, dynamic>> examinationMaps = await db.rawQuery('''
+      final List<Map<String, dynamic>> examinationMaps = await db.rawQuery(
+        '''
       SELECT e.*, est.id as establishmentId, est.name as establishmentName, 
              est.address as establishmentAddress, est.phone as establishmentPhone, 
              d.id as doctorId, d.firstName as doctorFirstName, d.lastName as doctorLastName, 
@@ -2878,7 +2889,9 @@ class DatabaseHelper {
       LEFT JOIN establishments est ON e.establishmentId = est.id
       LEFT JOIN doctors d ON e.doctorId = d.id
       WHERE e.id = ?
-    ''', [examinationId]);
+    ''',
+        [examinationId],
+      );
 
       if (examinationMaps.isEmpty) {
         return null;
@@ -2923,25 +2936,30 @@ class DatabaseHelper {
       };
 
       // Récupérer les documents associés
-      final List<Map<String, dynamic>> documentMaps = await getDocumentsByEntity('examination', examinationId);
+      final List<Map<String, dynamic>> documentMaps =
+          await getDocumentsByEntity('examination', examinationId);
       result['documents'] = documentMaps;
 
       return result;
     } catch (e) {
-      print("Erreur lors de la récupération de l'examen: $e");
+      Log.d("Erreur lors de la récupération de l'examen: $e");
       return null;
     }
   }
 
   // Méthode pour récupérer les examens associés à un cycle
-  Future<List<Map<String, dynamic>>> getExaminationsByCycle(String cycleId) async {
+  Future<List<Map<String, dynamic>>> getExaminationsByCycle(
+    String cycleId,
+  ) async {
     Log.d("DatabaseHelper: Récupération des examens pour le cycle $cycleId");
     final db = await database;
 
     try {
-      print("Requête d'examens pour le cycle : $cycleId");
+      Log.d("Requête d'examens pour le cycle : $cycleId");
       // Vérifier d'abord si la table des examens existe
-      final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='examinations'");
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='examinations'",
+      );
 
       if (tables.isEmpty) {
         // Si la table n'existe pas encore, la créer
@@ -2974,13 +2992,15 @@ class DatabaseHelper {
       // Approche alternative: faire des requêtes séparées pour éviter les problèmes d'alias
       // 1. Récupérer les examens de base
       final examinations = await db.query(
-          'examinations',
-          where: 'cycleId = ?',
-          whereArgs: [cycleId],
-          orderBy: 'dateTime'
+        'examinations',
+        where: 'cycleId = ?',
+        whereArgs: [cycleId],
+        orderBy: 'dateTime',
       );
 
-      Log.d("DatabaseHelper: ${examinations.length} examens trouvés dans la base");
+      Log.d(
+        "DatabaseHelper: ${examinations.length} examens trouvés dans la base",
+      );
 
       // 2. Pour chaque examen, enrichir avec l'établissement et le médecin
       List<Map<String, dynamic>> result = [];
@@ -3023,7 +3043,9 @@ class DatabaseHelper {
 
           result.add(enrichedExam);
         } catch (examError) {
-          Log.e("DatabaseHelper: Erreur lors de l'enrichissement de l'examen ${exam['id']}: $examError");
+          Log.e(
+            "DatabaseHelper: Erreur lors de l'enrichissement de l'examen ${exam['id']}: $examError",
+          );
           // Ajouter quand même l'examen de base
           result.add(enrichedExam);
         }
@@ -3037,14 +3059,15 @@ class DatabaseHelper {
     }
   }
 
-
-// Méthode pour insérer un nouvel examen
+  // Méthode pour insérer un nouvel examen
   Future<int> insertExamination(Map<String, dynamic> examination) async {
     Log.d("DatabaseHelper: Insertion d'un examen");
     final db = await database;
     try {
       // Vérifier d'abord si la table des examens existe
-      final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='examinations'");
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='examinations'",
+      );
 
       if (tables.isEmpty) {
         // Si la table n'existe pas encore, la créer
@@ -3073,7 +3096,11 @@ class DatabaseHelper {
         Log.d("DatabaseHelper: Table 'examinations' créée");
       }
 
-      final result = await db.insert('examinations', examination, conflictAlgorithm: ConflictAlgorithm.replace);
+      final result = await db.insert(
+        'examinations',
+        examination,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       Log.d("DatabaseHelper: Examen inséré avec succès, résultat: $result");
       return result;
     } catch (e) {
@@ -3082,7 +3109,7 @@ class DatabaseHelper {
     }
   }
 
-// Méthode pour insérer un nouvel examen
+  // Méthode pour insérer un nouvel examen
   Future<int> updateExamination(Map<String, dynamic> examination) async {
     Log.d("DatabaseHelper: Mise à jour de l'examen ${examination['id']}");
     final db = await database;
@@ -3097,7 +3124,9 @@ class DatabaseHelper {
       );
 
       if (existing.isEmpty) {
-        Log.e("DatabaseHelper: Examen introuvable, impossible de mettre à jour");
+        Log.e(
+          "DatabaseHelper: Examen introuvable, impossible de mettre à jour",
+        );
         return 0;
       }
 
@@ -3109,7 +3138,9 @@ class DatabaseHelper {
         whereArgs: [examinationId],
       );
 
-      Log.d("DatabaseHelper: Examen mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Examen mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
       Log.e("DatabaseHelper: Erreur lors de la mise à jour de l'examen: $e");
@@ -3117,21 +3148,23 @@ class DatabaseHelper {
     }
   }
 
-
-// Méthode pour récupérer les documents associés à un cycle
+  // Méthode pour récupérer les documents associés à un cycle
   Future<List<Map<String, dynamic>>> getDocumentsByCycle(String cycleId) async {
     Log.d("DatabaseHelper: Récupération des documents pour le cycle $cycleId");
     final db = await database;
 
     try {
       // Récupérer les documents liés au cycle
-      final documentData = await db.rawQuery('''
+      final documentData = await db.rawQuery(
+        '''
       SELECT d.*
       FROM documents d
       INNER JOIN entity_documents ed ON d.id = ed.documentId
       WHERE ed.entityId = ? AND ed.entityType = 'cycle'
       ORDER BY d.dateAdded DESC
-    ''', [cycleId]);
+    ''',
+        [cycleId],
+      );
 
       Log.d("DatabaseHelper: ${documentData.length} documents récupérés");
       return documentData;
@@ -3141,14 +3174,22 @@ class DatabaseHelper {
     }
   }
 
-  Future<int> insertDocument_ForAddDocumentScreen(Map<String, dynamic> document, [String? entityType, String? entityId]) async {
+  Future<int> insertDocument_ForAddDocumentScreen(
+    Map<String, dynamic> document, [
+    String? entityType,
+    String? entityId,
+  ]) async {
     final db = await database;
     try {
       Log.d("DatabaseHelper: Insertion d'un document: ${document['name']}");
 
       return await db.transaction((txn) async {
         // Insérer le document
-        final result = await txn.insert('documents', document, conflictAlgorithm: ConflictAlgorithm.replace);
+        final result = await txn.insert(
+          'documents',
+          document,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
 
         // Si l'insertion a réussi et les paramètres entityType et entityId sont fournis,
         // créer également la liaison
@@ -3159,7 +3200,11 @@ class DatabaseHelper {
             'entityId': entityId,
           };
 
-          await txn.insert('entity_documents', linkData, conflictAlgorithm: ConflictAlgorithm.replace);
+          await txn.insert(
+            'entity_documents',
+            linkData,
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
 
         Log.d("DatabaseHelper: Document inséré avec succès, résultat: $result");
@@ -3176,7 +3221,11 @@ class DatabaseHelper {
     final db = await database;
     try {
       Log.d("DatabaseHelper: Insertion d'un document: ${document['name']}");
-      final result = await db.insert('documents', document, conflictAlgorithm: ConflictAlgorithm.replace);
+      final result = await db.insert(
+        'documents',
+        document,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       Log.d("DatabaseHelper: Document inséré avec succès, résultat: $result");
       return result;
     } catch (e) {
@@ -3185,19 +3234,27 @@ class DatabaseHelper {
     }
   }
 
-// Lier un document à une entité (examen, séance, etc.)
-  Future<int> linkDocumentToEntity(String entityType, String entityId, String documentId) async {
+  // Lier un document à une entité (examen, séance, etc.)
+  Future<int> linkDocumentToEntity(
+    String entityType,
+    String entityId,
+    String documentId,
+  ) async {
     final db = await database;
     try {
-      Log.d("DatabaseHelper: Liaison du document $documentId à $entityType $entityId");
+      Log.d(
+        "DatabaseHelper: Liaison du document $documentId à $entityType $entityId",
+      );
 
       // Vérifier si la table entity_documents existe
       final tableCheck = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='entity_documents'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='entity_documents'",
       );
 
       if (tableCheck.isEmpty) {
-        Log.d("DatabaseHelper: La table entity_documents n'existe pas encore, création...");
+        Log.d(
+          "DatabaseHelper: La table entity_documents n'existe pas encore, création...",
+        );
 
         // Créer la table si elle n'existe pas
         await db.execute('''
@@ -3233,7 +3290,9 @@ class DatabaseHelper {
       );
 
       if (existingCheck.isNotEmpty) {
-        Log.d("DatabaseHelper: La liaison existe déjà, aucune action nécessaire");
+        Log.d(
+          "DatabaseHelper: La liaison existe déjà, aucune action nécessaire",
+        );
         return 1; // Succès, liaison déjà existante
       }
 
@@ -3244,7 +3303,11 @@ class DatabaseHelper {
         'entityId': entityId,
       };
 
-      final result = await db.insert('entity_documents', linkData, conflictAlgorithm: ConflictAlgorithm.replace);
+      final result = await db.insert(
+        'entity_documents',
+        linkData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
       Log.d("DatabaseHelper: Document lié avec succès, résultat: $result");
 
       // Vérifier que la liaison a bien été créée
@@ -3269,10 +3332,16 @@ class DatabaseHelper {
   }
 
   // Supprimer la liaison entre un document et une entité
-  Future<int> unlinkDocumentFromEntity(String entityType, String entityId, String documentId) async {
+  Future<int> unlinkDocumentFromEntity(
+    String entityType,
+    String entityId,
+    String documentId,
+  ) async {
     final db = await database;
     try {
-      Log.d("DatabaseHelper: Suppression de la liaison du document $documentId avec $entityType $entityId");
+      Log.d(
+        "DatabaseHelper: Suppression de la liaison du document $documentId avec $entityType $entityId",
+      );
 
       final result = await db.delete(
         'entity_documents',
@@ -3280,7 +3349,9 @@ class DatabaseHelper {
         whereArgs: [documentId, entityType, entityId],
       );
 
-      Log.d("DatabaseHelper: Liaison supprimée avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Liaison supprimée avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
       Log.e("DatabaseHelper: Erreur lors de la suppression de la liaison: $e");
@@ -3288,18 +3359,25 @@ class DatabaseHelper {
     }
   }
 
-
-  Future<List<Map<String, dynamic>>> getEntitiesLinkedToDocument(String documentId) async {
+  Future<List<Map<String, dynamic>>> getEntitiesLinkedToDocument(
+    String documentId,
+  ) async {
     final db = await database;
-    return await db.rawQuery('''
+    return await db.rawQuery(
+      '''
     SELECT entityType, entityId 
     FROM entity_documents 
     WHERE documentId = ?
-  ''', [documentId]);
+  ''',
+      [documentId],
+    );
   }
 
   // Méthode pour mettre à jour le statut d'un examen
-  Future<int> updateExaminationCompletionStatus(String examinationId, bool isCompleted) async {
+  Future<int> updateExaminationCompletionStatus(
+    String examinationId,
+    bool isCompleted,
+  ) async {
     Log.d("DatabaseHelper: Mise à jour du statut de l'examen $examinationId");
     final db = await database;
 
@@ -3311,15 +3389,19 @@ class DatabaseHelper {
         whereArgs: [examinationId],
       );
 
-      Log.d("DatabaseHelper: Statut de l'examen mis à jour, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Statut de l'examen mis à jour, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la mise à jour du statut de l'examen: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la mise à jour du statut de l'examen: $e",
+      );
       return -1;
     }
   }
 
-// Méthode pour supprimer un document
+  // Méthode pour supprimer un document
   Future<int> deleteDocument(String documentId) async {
     final db = await database;
     try {
@@ -3327,7 +3409,9 @@ class DatabaseHelper {
 
       return await db.transaction((txn) async {
         // Supprimer d'abord toutes les liaisons
-        Log.d('Suppression du lien dans entity_documents avec documentId:[$documentId}]');
+        Log.d(
+          'Suppression du lien dans entity_documents avec documentId:[$documentId}]',
+        );
         await txn.delete(
           'entity_documents',
           where: 'documentId = ?',
@@ -3342,7 +3426,9 @@ class DatabaseHelper {
           whereArgs: [documentId],
         );
 
-        Log.d("DatabaseHelper: Document supprimé avec succès, lignes affectées: $result");
+        Log.d(
+          "DatabaseHelper: Document supprimé avec succès, lignes affectées: $result",
+        );
         return result;
       });
     } catch (e) {
@@ -3351,8 +3437,7 @@ class DatabaseHelper {
     }
   }
 
-
-// Méthode pour supprimer un examen
+  // Méthode pour supprimer un examen
   Future<int> deleteExamination(String examinationId) async {
     Log.d("DatabaseHelper: Suppression de l'examen $examinationId");
     final db = await database;
@@ -3372,7 +3457,7 @@ class DatabaseHelper {
     }
   }
 
-// Méthode pour récupérer les détails d'un document
+  // Méthode pour récupérer les détails d'un document
   Future<Map<String, dynamic>?> getDocument(String documentId) async {
     Log.d("DatabaseHelper: Récupération du document $documentId");
     final db = await database;
@@ -3397,17 +3482,22 @@ class DatabaseHelper {
     }
   }
 
-// Remplacer la méthode getDocumentsByEntity dans DatabaseHelper
+  // Remplacer la méthode getDocumentsByEntity dans DatabaseHelper
 
-// Récupérer tous les documents liés à une entité avec journalisation détaillée
-  Future<List<Map<String, dynamic>>> getDocumentsByEntity(String entityType, String entityId) async {
+  // Récupérer tous les documents liés à une entité avec journalisation détaillée
+  Future<List<Map<String, dynamic>>> getDocumentsByEntity(
+    String entityType,
+    String entityId,
+  ) async {
     final db = await database;
     try {
-      Log.d("DatabaseHelper: Début de récupération des documents pour $entityType $entityId");
+      Log.d(
+        "DatabaseHelper: Début de récupération des documents pour $entityType $entityId",
+      );
 
       // Vérifier si la table entity_documents existe
       final tableCheck = await db.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='entity_documents'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='entity_documents'",
       );
 
       if (tableCheck.isEmpty) {
@@ -3423,14 +3513,17 @@ class DatabaseHelper {
         whereArgs: [entityType, entityId],
       );
 
-      Log.d("DatabaseHelper: ${linkedDocIds.length} liens trouvés pour $entityType $entityId");
+      Log.d(
+        "DatabaseHelper: ${linkedDocIds.length} liens trouvés pour $entityType $entityId",
+      );
 
       if (linkedDocIds.isEmpty) {
         return [];
       }
 
       // Extraire les IDs des documents
-      final docIds = linkedDocIds.map((row) => row['documentId'] as String).toList();
+      final docIds =
+          linkedDocIds.map((row) => row['documentId'] as String).toList();
 
       // Construire la clause WHERE pour récupérer ces documents
       final placeholders = docIds.map((_) => '?').join(',');
@@ -3444,7 +3537,9 @@ class DatabaseHelper {
         orderBy: 'dateAdded DESC',
       );
 
-      Log.d("DatabaseHelper: ${results.length} documents récupérés pour $entityType $entityId");
+      Log.d(
+        "DatabaseHelper: ${results.length} documents récupérés pour $entityType $entityId",
+      );
 
       // Journal pour déboguer chaque document trouvé
       for (var doc in results) {
@@ -3460,10 +3555,13 @@ class DatabaseHelper {
 
   Future<int?> getDocumentDoctor(String documentId) async {
     final db = await database;
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      '''
     SELECT doctorId FROM documents
     WHERE id = ?
-  ''', [documentId]);
+  ''',
+      [documentId],
+    );
 
     if (result.isNotEmpty && result.first['doctorId'] != null) {
       return result.first['doctorId'] as int;
@@ -3483,7 +3581,9 @@ class DatabaseHelper {
         whereArgs: [document['id']],
       );
 
-      Log.d("DatabaseHelper: Document mis à jour avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Document mis à jour avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
       Log.e("DatabaseHelper: Erreur lors de la mise à jour du document: $e");
@@ -3511,7 +3611,7 @@ class DatabaseHelper {
     );
   }
 
-// 3. Méthode pour générer toutes les sessions d'un cycle
+  // 3. Méthode pour générer toutes les sessions d'un cycle
   Future<bool> generateSessionsForCycle(String cycleId) async {
     Log.d("DatabaseHelper: Génération de sessions pour le cycle $cycleId");
     final db = await database;
@@ -3536,11 +3636,7 @@ class DatabaseHelper {
       final establishmentId = cycle['establishmentId'] as String;
 
       // Supprimer les sessions existantes (si on regénère)
-      await db.delete(
-        'sessions',
-        where: 'cycleId = ?',
-        whereArgs: [cycleId],
-      );
+      await db.delete('sessions', where: 'cycleId = ?', whereArgs: [cycleId]);
 
       // Générer les nouvelles sessions
       for (int i = 0; i < sessionCount; i++) {
@@ -3559,7 +3655,9 @@ class DatabaseHelper {
         Log.d("DatabaseHelper: Session $i générée avec ID $sessionId");
       }
 
-      Log.d("DatabaseHelper: Sessions générées avec succès pour le cycle $cycleId");
+      Log.d(
+        "DatabaseHelper: Sessions générées avec succès pour le cycle $cycleId",
+      );
       return true;
     } catch (e) {
       Log.d("DatabaseHelper: Erreur lors de la génération des sessions: $e");
@@ -3567,9 +3665,11 @@ class DatabaseHelper {
     }
   }
 
-// 4. Méthode pour générer les sessions de radiothérapie
+  // 4. Méthode pour générer les sessions de radiothérapie
   Future<bool> generateRadiotherapySessions(String radiotherapyId) async {
-    Log.d("DatabaseHelper: Génération de sessions pour la radiothérapie $radiotherapyId");
+    Log.d(
+      "DatabaseHelper: Génération de sessions pour la radiothérapie $radiotherapyId",
+    );
     final db = await database;
 
     try {
@@ -3604,7 +3704,9 @@ class DatabaseHelper {
       // Générer les nouvelles sessions
       for (int i = 0; i < sessionCount; i++) {
         final sessionId = Uuid().v4();
-        final sessionDate = startDate.add(Duration(days: (i * intervalDays).round()));
+        final sessionDate = startDate.add(
+          Duration(days: (i * intervalDays).round()),
+        );
 
         final sessionData = {
           'id': sessionId,
@@ -3614,32 +3716,42 @@ class DatabaseHelper {
         };
 
         await db.insert('radiotherapy_sessions', sessionData);
-        Log.d("DatabaseHelper: Session de radiothérapie $i générée avec ID $sessionId");
+        Log.d(
+          "DatabaseHelper: Session de radiothérapie $i générée avec ID $sessionId",
+        );
       }
 
-      Log.d("DatabaseHelper: Sessions générées avec succès pour la radiothérapie $radiotherapyId");
+      Log.d(
+        "DatabaseHelper: Sessions générées avec succès pour la radiothérapie $radiotherapyId",
+      );
       return true;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la génération des sessions de radiothérapie: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la génération des sessions de radiothérapie: $e",
+      );
       return false;
     }
   }
 
   /// Récupère tous les examens appartenant à un même groupe
-  Future<List<Map<String, dynamic>>> getExaminationsByGroup(String groupId) async {
+  Future<List<Map<String, dynamic>>> getExaminationsByGroup(
+    String groupId,
+  ) async {
     Log.d("DatabaseHelper: Récupération des examens du groupe $groupId");
     final db = await database;
 
     try {
       // Récupérer les examens de base
       final examinations = await db.query(
-          'examinations',
-          where: 'examGroupId = ?',
-          whereArgs: [groupId],
-          orderBy: 'dateTime'
+        'examinations',
+        where: 'examGroupId = ?',
+        whereArgs: [groupId],
+        orderBy: 'dateTime',
       );
 
-      Log.d("DatabaseHelper: ${examinations.length} examens trouvés dans le groupe");
+      Log.d(
+        "DatabaseHelper: ${examinations.length} examens trouvés dans le groupe",
+      );
 
       // Pour chaque examen, enrichir avec l'établissement et le médecin
       List<Map<String, dynamic>> result = [];
@@ -3695,7 +3807,9 @@ class DatabaseHelper {
 
           result.add(enrichedExam);
         } catch (examError) {
-          Log.e("DatabaseHelper: Erreur lors de l'enrichissement de l'examen ${exam['id']}: $examError");
+          Log.e(
+            "DatabaseHelper: Erreur lors de l'enrichissement de l'examen ${exam['id']}: $examError",
+          );
           // Ajouter quand même l'examen de base
           result.add(enrichedExam);
         }
@@ -3704,7 +3818,9 @@ class DatabaseHelper {
       Log.d("DatabaseHelper: ${result.length} examens enrichis");
       return result;
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la récupération des examens du groupe: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la récupération des examens du groupe: $e",
+      );
       return [];
     }
   }
@@ -3723,12 +3839,14 @@ class DatabaseHelper {
 
       // Vérifier les liens dans entity_documents
       final links = await db.query(
-          'entity_documents',
-          where: 'entityType = ? AND entityId = ?',
-          whereArgs: [entityType, entityId]
+        'entity_documents',
+        where: 'entityType = ? AND entityId = ?',
+        whereArgs: [entityType, entityId],
       );
 
-      Log.d("Nombre de liens trouvés pour $entityType $entityId: ${links.length}");
+      Log.d(
+        "Nombre de liens trouvés pour $entityType $entityId: ${links.length}",
+      );
 
       // Afficher les détails de chaque lien
       for (var link in links) {
@@ -3736,13 +3854,15 @@ class DatabaseHelper {
 
         // Récupérer les détails du document
         final docDetails = await db.query(
-            'documents',
-            where: 'id = ?',
-            whereArgs: [docId]
+          'documents',
+          where: 'id = ?',
+          whereArgs: [docId],
         );
 
         if (docDetails.isNotEmpty) {
-          Log.d("Document lié trouvé - ID: $docId, Nom: ${docDetails.first['name']}");
+          Log.d(
+            "Document lié trouvé - ID: $docId, Nom: ${docDetails.first['name']}",
+          );
         } else {
           Log.e("ERREUR: Document lié introuvable - ID: $docId");
         }
@@ -3766,126 +3886,136 @@ class DatabaseHelper {
   }
 
   Future _initializeHealthProfessionalCategories(Database db) async {
-    Log.d("DatabaseHelper: Initialisation des catégories de professionnels de santé");
+    Log.d(
+      "DatabaseHelper: Initialisation des catégories de professionnels de santé",
+    );
 
     final categories = [
       {
         'id': Uuid().v4(),
         'name': 'Médecin généraliste',
-        'description': 'Médecin de premier recours assurant le suivi médical global',
-        'isActive': 1
+        'description':
+            'Médecin de premier recours assurant le suivi médical global',
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Pneumologue',
         'description': 'Spécialiste des maladies respiratoires',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Cardiologue',
         'description': 'Spécialiste des maladies cardiovasculaires',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'ORL',
         'description': 'Spécialiste en oto-rhino-laryngologie',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Chirurgien',
-        'description': 'Médecin spécialisé dans les interventions chirurgicales',
-        'isActive': 1
+        'description':
+            'Médecin spécialisé dans les interventions chirurgicales',
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Anesthésiste',
         'description': 'Médecin spécialisé dans l\'anesthésie',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Oncologue',
         'description': 'Spécialiste du traitement des cancers',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Radiologue',
         'description': 'Spécialiste de l\'imagerie médicale',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Infirmier',
         'description': 'Professionnel de santé assurant les soins infirmiers',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Kinésithérapeute',
         'description': 'Spécialiste de la rééducation fonctionnelle',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Sage-femme',
-        'description': 'Professionnel de santé spécialisé dans le suivi de grossesse et l\'accouchement',
-        'isActive': 1
+        'description':
+            'Professionnel de santé spécialisé dans le suivi de grossesse et l\'accouchement',
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Dentiste',
         'description': 'Spécialiste des soins dentaires',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Pharmacien',
         'description': 'Spécialiste du médicament',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Psychologue',
         'description': 'Spécialiste de la santé mentale',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Diététicien',
         'description': 'Spécialiste de la nutrition',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Ergothérapeute',
         'description': 'Spécialiste de la réadaptation',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Orthophoniste',
         'description': 'Spécialiste des troubles de la communication',
-        'isActive': 1
+        'isActive': 1,
       },
       {
         'id': Uuid().v4(),
         'name': 'Podologue',
         'description': 'Spécialiste des affections du pied',
-        'isActive': 1
-      }
+        'isActive': 1,
+      },
     ];
 
     // Insertion des catégories dans la base de données
     for (var category in categories) {
-      await db.insert('health_professional_categories', category,
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      await db.insert(
+        'health_professional_categories',
+        category,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
 
-    Log.d("DatabaseHelper: ${categories.length} catégories de professionnels de santé initialisées");
+    Log.d(
+      "DatabaseHelper: ${categories.length} catégories de professionnels de santé initialisées",
+    );
   }
 
   Future<List<Map<String, dynamic>>> getPS() async {
@@ -3893,7 +4023,9 @@ class DatabaseHelper {
     final db = await database;
     try {
       // Récupérer tous les professionnels de santé
-      final List<Map<String, dynamic>> professionals = await db.query('health_professionals');
+      final List<Map<String, dynamic>> professionals = await db.query(
+        'health_professionals',
+      );
       Log.d("DatabaseHelper: ${professionals.length} professionnels récupérés");
 
       // Pour chaque professionnel, récupérer ses contacts, adresses et établissements
@@ -3901,7 +4033,9 @@ class DatabaseHelper {
 
       for (var professional in professionals) {
         // Créer une copie modifiable du professionnel
-        final Map<String, dynamic> professionalCopy = Map<String, dynamic>.from(professional);
+        final Map<String, dynamic> professionalCopy = Map<String, dynamic>.from(
+          professional,
+        );
 
         // Récupérer les contacts
         final contacts = await db.query(
@@ -3909,7 +4043,9 @@ class DatabaseHelper {
           where: 'healthProfessionalId = ?',
           whereArgs: [professional['id']],
         );
-        Log.d('Récupération health_professional_contacts:[${contacts.toString()}]');
+        Log.d(
+          'Récupération health_professional_contacts:[${contacts.toString()}]',
+        );
 
         // Convertir chaque contact en Map modifiable
         List<Map<String, dynamic>> contactsCopy = [];
@@ -3924,7 +4060,9 @@ class DatabaseHelper {
           where: 'healthProfessionalId = ?',
           whereArgs: [professional['id']],
         );
-        Log.d('Récupération health_professional_addresses:[${addresses.toString()}]');
+        Log.d(
+          'Récupération health_professional_addresses:[${addresses.toString()}]',
+        );
 
         // Convertir chaque adresse en Map modifiable
         List<Map<String, dynamic>> addressesCopy = [];
@@ -3939,7 +4077,9 @@ class DatabaseHelper {
           where: 'healthProfessionalId = ?',
           whereArgs: [professional['id']],
         );
-        Log.d('Récupération health_professional_establishments:[${establishmentLinks.toString()}]');
+        Log.d(
+          'Récupération health_professional_establishments:[${establishmentLinks.toString()}]',
+        );
 
         List<Map<String, dynamic>> establishments = [];
         for (var link in establishmentLinks) {
@@ -3951,7 +4091,8 @@ class DatabaseHelper {
 
           if (establishmentResults.isNotEmpty) {
             // Créer une copie modifiable de l'établissement
-            final Map<String, dynamic> establishment = Map<String, dynamic>.from(establishmentResults.first);
+            final Map<String, dynamic> establishment =
+                Map<String, dynamic>.from(establishmentResults.first);
             establishment['role'] = link['role'];
             establishments.add(establishment);
           }
@@ -3967,7 +4108,9 @@ class DatabaseHelper {
         );
 
         if (categoryResults.isNotEmpty) {
-          professionalCopy['category'] = Map<String, dynamic>.from(categoryResults.first);
+          professionalCopy['category'] = Map<String, dynamic>.from(
+            categoryResults.first,
+          );
         }
 
         result.add(professionalCopy);
@@ -3975,7 +4118,9 @@ class DatabaseHelper {
 
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des professionnels de santé: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la récupération des professionnels de santé: $e",
+      );
       return [];
     }
   }
@@ -3984,93 +4129,113 @@ class DatabaseHelper {
     Log.d("DatabaseHelper: Insertion d'un professionnel de santé");
     final db = await database;
 
-      return await db.transaction((txn) async {
-        // Insérer le professionnel de santé de base
-        final professionalData = {
-          'id': healthProfessional['id'] ?? Uuid().v4(),
-          'firstName': healthProfessional['firstName'],
-          'lastName': healthProfessional['lastName'],
-          'categoryId': healthProfessional['categoryId'],
-          'specialtyDetails': healthProfessional['specialtyDetails'],
-          'notes': healthProfessional['notes'],
-        };
+    return await db.transaction((txn) async {
+      // Insérer le professionnel de santé de base
+      final professionalData = {
+        'id': healthProfessional['id'] ?? Uuid().v4(),
+        'firstName': healthProfessional['firstName'],
+        'lastName': healthProfessional['lastName'],
+        'categoryId': healthProfessional['categoryId'],
+        'specialtyDetails': healthProfessional['specialtyDetails'],
+        'notes': healthProfessional['notes'],
+      };
 
-        try {
-          await txn.insert('health_professionals', professionalData,
-              conflictAlgorithm: ConflictAlgorithm.replace);
-        } catch (e) {
-          Log.d('Erreur lors de l nsertion de health_professionals $e');
-        }
-        Log.d('Insertion de health_professionals OK');
+      try {
+        await txn.insert(
+          'health_professionals',
+          professionalData,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } catch (e) {
+        Log.d('Erreur lors de l nsertion de health_professionals $e');
+      }
+      Log.d('Insertion de health_professionals OK');
 
-        // Insérer les contacts
-        if (healthProfessional['contacts'] != null) {
-          Log.d('Insertion Contact');
-          for (var contact in healthProfessional['contacts']) {
-            Log.d('    contact:[${healthProfessional['contacts']}]');
-            final contactData = {
-              'id': contact['id'] ?? Uuid().v4(),
-              'healthProfessionalId': professionalData['id'],
-              'type': contact['type'],
-              'value': contact['value'],
-              'label': contact['label'],
-              'isPrimary': contact['isPrimary'],
-            };
-            try {
-              Log.d('    contactData:[${contactData.toString()}]');
-              await txn.insert('health_professional_contacts', contactData,
-                  conflictAlgorithm: ConflictAlgorithm.replace);
-            } catch (e) {
-              Log.d('Erreur lors de l insertion de health_professional_contacts $e');
-            }
-            Log.d('Insertion de health_professional_contacts id:[${contact['id']}] healthProfessionalId:[${professionalData['id']} type:[${contact['type']} value:[${contact['value']} label:[${contact['label']} isPrimary:[${contact['isPrimary']}] OK');
+      // Insérer les contacts
+      if (healthProfessional['contacts'] != null) {
+        Log.d('Insertion Contact');
+        for (var contact in healthProfessional['contacts']) {
+          Log.d('    contact:[${healthProfessional['contacts']}]');
+          final contactData = {
+            'id': contact['id'] ?? Uuid().v4(),
+            'healthProfessionalId': professionalData['id'],
+            'type': contact['type'],
+            'value': contact['value'],
+            'label': contact['label'],
+            'isPrimary': contact['isPrimary'],
+          };
+          try {
+            Log.d('    contactData:[${contactData.toString()}]');
+            await txn.insert(
+              'health_professional_contacts',
+              contactData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          } catch (e) {
+            Log.d(
+              'Erreur lors de l insertion de health_professional_contacts $e',
+            );
           }
-          Log.d('Insertion de health_professional_contacts OK');
+          Log.d(
+            'Insertion de health_professional_contacts id:[${contact['id']}] healthProfessionalId:[${professionalData['id']} type:[${contact['type']} value:[${contact['value']} label:[${contact['label']} isPrimary:[${contact['isPrimary']}] OK',
+          );
         }
+        Log.d('Insertion de health_professional_contacts OK');
+      }
 
-        // Insérer les adresses
-        if (healthProfessional['addresses'] != null) {
-          for (var address in healthProfessional['addresses']) {
-            final addressData = {
-              'id': address['id'] ?? Uuid().v4(),
-              'healthProfessionalId': professionalData['id'],
-              'street': address['street'],
-              'city': address['city'],
-              'postalCode': address['postalCode'],
-              'country': address['country'] ?? 'France',
-              'label': address['label'],
-              'isPrimary': address['isPrimary'],
-            };
-            try {
-              await txn.insert('health_professional_addresses', addressData,
-                  conflictAlgorithm: ConflictAlgorithm.replace);
-            } catch (e) {
-              Log.d('Erreur lors de l nsertion de health_professional_addresses $e');
-            }
+      // Insérer les adresses
+      if (healthProfessional['addresses'] != null) {
+        for (var address in healthProfessional['addresses']) {
+          final addressData = {
+            'id': address['id'] ?? Uuid().v4(),
+            'healthProfessionalId': professionalData['id'],
+            'street': address['street'],
+            'city': address['city'],
+            'postalCode': address['postalCode'],
+            'country': address['country'] ?? 'France',
+            'label': address['label'],
+            'isPrimary': address['isPrimary'],
+          };
+          try {
+            await txn.insert(
+              'health_professional_addresses',
+              addressData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          } catch (e) {
+            Log.d(
+              'Erreur lors de l nsertion de health_professional_addresses $e',
+            );
           }
-          Log.d('Insertion de health_professional_addresses OK');
         }
+        Log.d('Insertion de health_professional_addresses OK');
+      }
 
-        // Lier aux établissements
-        if (healthProfessional['establishments'] != null) {
-          for (var establishment in healthProfessional['establishments']) {
-            final linkData = {
-              'healthProfessionalId': professionalData['id'],
-              'establishmentId': establishment['id'],
-              'role': establishment['role'],
-            };
-            try {
-              await txn.insert('health_professional_establishments', linkData,
-                  conflictAlgorithm: ConflictAlgorithm.replace);
-            }catch (e) {
-              Log.d('Erreur lors de l nsertion de health_professional_establishments $e');
-            }
+      // Lier aux établissements
+      if (healthProfessional['establishments'] != null) {
+        for (var establishment in healthProfessional['establishments']) {
+          final linkData = {
+            'healthProfessionalId': professionalData['id'],
+            'establishmentId': establishment['id'],
+            'role': establishment['role'],
+          };
+          try {
+            await txn.insert(
+              'health_professional_establishments',
+              linkData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          } catch (e) {
+            Log.d(
+              'Erreur lors de l nsertion de health_professional_establishments $e',
+            );
           }
-          Log.d('Insertion de health_professional_establishments OK');
         }
+        Log.d('Insertion de health_professional_establishments OK');
+      }
 
-        return true; // Succès
-      });
+      return true; // Succès
+    });
   }
 
   Future<int> deleteHealthProfessional(String id) async {
@@ -4097,16 +4262,22 @@ class DatabaseHelper {
         whereArgs: [id],
       );
 
-      Log.d("DatabaseHelper: Professionnel supprimé avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Professionnel supprimé avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la suppression du professionnel de santé: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la suppression du professionnel de santé: $e",
+      );
       return -1;
     }
   }
 
   Future<bool> updatePS(Map<String, dynamic> healthProfessional) async {
-    Log.d("DatabaseHelper: Mise à jour du professionnel de santé ${healthProfessional['id']}");
+    Log.d(
+      "DatabaseHelper: Mise à jour du professionnel de santé ${healthProfessional['id']}",
+    );
     final db = await database;
 
     try {
@@ -4120,12 +4291,19 @@ class DatabaseHelper {
           'notes': healthProfessional['notes'],
         };
 
-        await txn.update('health_professionals', professionalData,
-            where: 'id = ?', whereArgs: [healthProfessional['id']]);
+        await txn.update(
+          'health_professionals',
+          professionalData,
+          where: 'id = ?',
+          whereArgs: [healthProfessional['id']],
+        );
 
         // Supprimer les contacts existants
-        await txn.delete('health_professional_contacts',
-            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+        await txn.delete(
+          'health_professional_contacts',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [healthProfessional['id']],
+        );
 
         // Insérer les nouveaux contacts
         if (healthProfessional['contacts'] != null) {
@@ -4138,14 +4316,20 @@ class DatabaseHelper {
               'label': contact['label'],
               'isPrimary': contact['isPrimary'],
             };
-            await txn.insert('health_professional_contacts', contactData,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert(
+              'health_professional_contacts',
+              contactData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         }
 
         // Supprimer les adresses existantes
-        await txn.delete('health_professional_addresses',
-            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+        await txn.delete(
+          'health_professional_addresses',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [healthProfessional['id']],
+        );
 
         // Insérer les nouvelles adresses
         if (healthProfessional['addresses'] != null) {
@@ -4160,14 +4344,20 @@ class DatabaseHelper {
               'label': address['label'],
               'isPrimary': address['isPrimary'],
             };
-            await txn.insert('health_professional_addresses', addressData,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert(
+              'health_professional_addresses',
+              addressData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         }
 
         // Supprimer les liens avec les établissements existants
-        await txn.delete('health_professional_establishments',
-            where: 'healthProfessionalId = ?', whereArgs: [healthProfessional['id']]);
+        await txn.delete(
+          'health_professional_establishments',
+          where: 'healthProfessionalId = ?',
+          whereArgs: [healthProfessional['id']],
+        );
 
         // Lier aux établissements
         if (healthProfessional['establishments'] != null) {
@@ -4179,8 +4369,11 @@ class DatabaseHelper {
               'establishmentId': establishment['id'],
               'role': establishment['role'],
             };
-            await txn.insert('health_professional_establishments', linkData,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert(
+              'health_professional_establishments',
+              linkData,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         } else {
           Log.d("Pad d'établissment pour le PS");
@@ -4189,13 +4382,16 @@ class DatabaseHelper {
         return true; // Succès
       });
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la mise à jour du professionnel de santé: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la mise à jour du professionnel de santé: $e",
+      );
       return false;
     }
   }
 
-
-  Future<List<Map<String, dynamic>>> getPSContacts(String healthProfessionalId) async {
+  Future<List<Map<String, dynamic>>> getPSContacts(
+    String healthProfessionalId,
+  ) async {
     final db = await database;
     return await db.query(
       'health_professional_contacts',
@@ -4204,7 +4400,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getPSAddresses(String healthProfessionalId) async {
+  Future<List<Map<String, dynamic>>> getPSAddresses(
+    String healthProfessionalId,
+  ) async {
     final db = await database;
     return await db.query(
       'health_professional_addresses',
@@ -4213,7 +4411,9 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getPSEstablishments(String healthProfessionalId) async {
+  Future<List<Map<String, dynamic>>> getPSEstablishments(
+    String healthProfessionalId,
+  ) async {
     final db = await database;
     // Récupérer les ID des établissements liés au PS
     final links = await db.query(
@@ -4245,7 +4445,9 @@ class DatabaseHelper {
   }
 
   Future<Map<String, dynamic>?> getHealthProfessional(String id) async {
-    Log.d("DatabaseHelper: Récupération du professionnel de santé avec ID: $id");
+    Log.d(
+      "DatabaseHelper: Récupération du professionnel de santé avec ID: $id",
+    );
     final db = await database;
 
     try {
@@ -4279,12 +4481,15 @@ class DatabaseHelper {
       completeProfile['addresses'] = addresses;
 
       // Récupérer les établissements liés
-      final List<Map<String, dynamic>> establishments = await db.rawQuery('''
+      final List<Map<String, dynamic>> establishments = await db.rawQuery(
+        '''
       SELECT e.*, hpe.role
       FROM establishments e
       INNER JOIN health_professional_establishments hpe ON e.id = hpe.establishmentId
       WHERE hpe.healthProfessionalId = ?
-    ''', [id]);
+    ''',
+        [id],
+      );
       completeProfile['establishments'] = establishments;
 
       // Récupérer la catégorie
@@ -4299,14 +4504,20 @@ class DatabaseHelper {
 
       return completeProfile;
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la récupération du professionnel de santé: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la récupération du professionnel de santé: $e",
+      );
       return null;
     }
   }
 
   // Insérer une catégorie
-  Future<int> insertHealthProfessionalCategory(Map<String, dynamic> category) async {
-    Log.d("DatabaseHelper: Insertion d'une catégorie de professionnel de santé");
+  Future<int> insertHealthProfessionalCategory(
+    Map<String, dynamic> category,
+  ) async {
+    Log.d(
+      "DatabaseHelper: Insertion d'une catégorie de professionnel de santé",
+    );
     final db = await database;
 
     try {
@@ -4317,8 +4528,11 @@ class DatabaseHelper {
         'isActive': category['isActive'],
       };
 
-      final result = await db.insert('health_professional_categories', categoryData,
-          conflictAlgorithm: ConflictAlgorithm.replace);
+      final result = await db.insert(
+        'health_professional_categories',
+        categoryData,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
       Log.d("DatabaseHelper: Catégorie insérée avec succès, résultat: $result");
       return result;
@@ -4330,7 +4544,9 @@ class DatabaseHelper {
 
   // Récupérer toutes les catégories
   Future<List<Map<String, dynamic>>> getHealthProfessionalCategories() async {
-    Log.d("DatabaseHelper: Récupération des catégories de professionnels de santé");
+    Log.d(
+      "DatabaseHelper: Récupération des catégories de professionnels de santé",
+    );
     final db = await database;
 
     try {
@@ -4342,18 +4558,21 @@ class DatabaseHelper {
       Log.d("DatabaseHelper: ${categories.length} catégories récupérées");
       return categories;
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la récupération des catégories: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la récupération des catégories: $e",
+      );
       return [];
     }
   }
-
 
   // Insérer une prise de médicament
   Future<int> insertMedicationIntake(Map<String, dynamic> intake) async {
     final db = await database;
 
     // Extraire les médicaments pour les stocker séparément
-    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(intake['medications']);
+    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(
+      intake['medications'],
+    );
 
     // Créer une copie de l'intake sans les médicaments pour la table principale
     Map<String, dynamic> intakeData = Map<String, dynamic>.from(intake);
@@ -4376,7 +4595,9 @@ class DatabaseHelper {
   }
 
   // Récupérer les prises de médicaments pour un cycle
-  Future<List<Map<String, dynamic>>> getMedicationIntakesByCycle(String cycleId) async {
+  Future<List<Map<String, dynamic>>> getMedicationIntakesByCycle(
+    String cycleId,
+  ) async {
     final db = await database;
 
     // Récupérer les prises de médicaments pour ce cycle
@@ -4409,7 +4630,9 @@ class DatabaseHelper {
     final db = await database;
 
     // Extraire les médicaments
-    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(intake['medications']);
+    List<Map<String, dynamic>> medications = List<Map<String, dynamic>>.from(
+      intake['medications'],
+    );
 
     // Créer une copie de l'intake sans les médicaments
     Map<String, dynamic> intakeData = Map<String, dynamic>.from(intake);
@@ -4449,20 +4672,27 @@ class DatabaseHelper {
     final db = await database;
     try {
       final result = await db.delete(
-          'medication_intakes',
-          where: 'id = ?',
-          whereArgs: [id]
+        'medication_intakes',
+        where: 'id = ?',
+        whereArgs: [id],
       );
-      Log.d("DatabaseHelper: Prise de médicament supprimée avec succès, lignes affectées: $result");
+      Log.d(
+        "DatabaseHelper: Prise de médicament supprimée avec succès, lignes affectées: $result",
+      );
       return result;
     } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la suppression de la prise de médicament: $e");
+      Log.d(
+        "DatabaseHelper: Erreur lors de la suppression de la prise de médicament: $e",
+      );
       return -1;
     }
   }
 
   // Mettre à jour le statut d'une prise de médicament (pris/non pris)
-  Future<int> updateMedicationIntakeCompletionStatus(String id, bool isCompleted) async {
+  Future<int> updateMedicationIntakeCompletionStatus(
+    String id,
+    bool isCompleted,
+  ) async {
     final db = await database;
     try {
       final result = await db.update(
@@ -4473,7 +4703,9 @@ class DatabaseHelper {
       );
       return result;
     } catch (e) {
-      print("Erreur lors de la mise à jour du statut de la prise de médicament: $e");
+      Log.d(
+        "Erreur lors de la mise à jour du statut de la prise de médicament: $e",
+      );
       return -1;
     }
   }

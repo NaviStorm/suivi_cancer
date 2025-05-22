@@ -2,18 +2,12 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-import 'package:suivi_cancer/features/treatment/models/ps.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/contact.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/list_health_ps.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/list_establishment_selection_dialog.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
-
 // Formulaire de contact (modal bottom sheet)
 class ContactFormSheet extends StatefulWidget {
   final Map<String, dynamic>? contact;
   final Function(Map<String, dynamic>) onSave;
 
-  ContactFormSheet({this.contact, required this.onSave});
+  const ContactFormSheet({super.key, this.contact, required this.onSave});
 
   @override
   _ContactFormSheetState createState() => _ContactFormSheetState();
@@ -67,8 +61,8 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: Text('Enregistrer'),
           onPressed: _save,
+          child: Text('Enregistrer'),
         ),
       ),
       child: SafeArea(
@@ -97,16 +91,18 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
                 TextFormField(
                   controller: _valueController,
                   decoration: InputDecoration(
-                    labelText: _contactType == 0
-                        ? 'Numéro de téléphone'
-                        : _contactType == 1
-                        ? 'Adresse email'
-                        : 'Numéro de fax',
+                    labelText:
+                        _contactType == 0
+                            ? 'Numéro de téléphone'
+                            : _contactType == 1
+                            ? 'Adresse email'
+                            : 'Numéro de fax',
                     border: OutlineInputBorder(),
                   ),
-                  keyboardType: _contactType == 1
-                      ? TextInputType.emailAddress
-                      : TextInputType.phone,
+                  keyboardType:
+                      _contactType == 1
+                          ? TextInputType.emailAddress
+                          : TextInputType.phone,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Ce champ est requis';
@@ -145,14 +141,13 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
   }
 }
 
-
 // Formulaire d'adresse (modal bottom sheet)
 class AddressFormSheet extends StatefulWidget {
   final Map<String, dynamic>? address;
   final Function(Map<String, dynamic>) onSave;
-  
-  AddressFormSheet({this.address, required this.onSave});
-  
+
+  const AddressFormSheet({super.key, this.address, required this.onSave});
+
   @override
   _AddressFormSheetState createState() => _AddressFormSheetState();
 }
@@ -164,13 +159,13 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
   final _postalCodeController = TextEditingController();
   final _countryController = TextEditingController();
   final _labelController = TextEditingController();
-  
+
   bool _isPrimary = false;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     if (widget.address != null) {
       _streetController.text = widget.address!['street'] ?? '';
       _cityController.text = widget.address!['city'] ?? '';
@@ -182,7 +177,7 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
       _countryController.text = 'France';
     }
   }
-  
+
   void _save() {
     if (_formKey.currentState!.validate()) {
       final address = {
@@ -194,7 +189,7 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
         'label': _labelController.text,
         'isPrimary': _isPrimary ? 1 : 0,
       };
-      
+
       widget.onSave(address);
     }
   }
@@ -209,12 +204,14 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
           onPressed: () => Navigator.pop(context),
         ),
         middle: Text(
-          widget.address != null ? 'Modifier l\'adresse' : 'Ajouter une adresse',
+          widget.address != null
+              ? 'Modifier l\'adresse'
+              : 'Ajouter une adresse',
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: Text('Enregistrer'),
           onPressed: _save,
+          child: Text('Enregistrer'),
         ),
       ),
       child: SafeArea(
@@ -303,4 +300,3 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
     );
   }
 }
-

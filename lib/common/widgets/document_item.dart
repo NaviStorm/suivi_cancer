@@ -8,11 +8,11 @@ class DocumentItem extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const DocumentItem({
-    Key? key,
+    super.key,
     required this.document,
     required this.onTap,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,12 +43,10 @@ class DocumentItem extends StatelessWidget {
                     SizedBox(height: 4),
                     Text(
                       'Ajouté le ${DateFormat('dd/MM/yyyy').format(document.dateAdded)}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
-                    if (document.description != null && document.description!.isNotEmpty) ...[
+                    if (document.description != null &&
+                        document.description!.isNotEmpty) ...[
                       SizedBox(height: 4),
                       Text(
                         document.description!,
@@ -66,23 +64,29 @@ class DocumentItem extends StatelessWidget {
                   onPressed: () {
                     showDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Supprimer le document'),
-                        content: Text('Êtes-vous sûr de vouloir supprimer ce document ?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('ANNULER'),
+                      builder:
+                          (context) => AlertDialog(
+                            title: Text('Supprimer le document'),
+                            content: Text(
+                              'Êtes-vous sûr de vouloir supprimer ce document ?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('ANNULER'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  onDelete!();
+                                },
+                                child: Text(
+                                  'SUPPRIMER',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              onDelete!();
-                            },
-                            child: Text('SUPPRIMER', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
                     );
                   },
                 ),
@@ -128,12 +132,7 @@ class DocumentItem extends StatelessWidget {
         color: iconColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(
-        iconData,
-        color: iconColor,
-        size: 24,
-      ),
+      child: Icon(iconData, color: iconColor, size: 24),
     );
   }
 }
-

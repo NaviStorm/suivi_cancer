@@ -1,9 +1,6 @@
-import 'dart:io' show Platform;
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'custom_text_field.dart';
-import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/utils/fctDate.dart';
 
 class DateTimePicker extends StatelessWidget {
@@ -16,7 +13,7 @@ class DateTimePicker extends StatelessWidget {
   final String? Function(DateTime?)? validator;
 
   const DateTimePicker({
-    Key? key,
+    super.key,
     required this.label,
     this.initialValue,
     required this.onDateTimeSelected,
@@ -24,19 +21,19 @@ class DateTimePicker extends StatelessWidget {
     this.firstDate,
     this.lastDate,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-
-    Log.d('Création écran DateTimePicker ${this.label}');
+    // Log.d('Création écran DateTimePicker ${this.label}');
 
     final TextEditingController controller = TextEditingController(
-      text: initialValue != null
-          ? showTime
-              ? DateFormat(getFmtDateTime()).format(initialValue!)
-              : DateFormat(getFmtDate()).format(initialValue!)
-          : '',
+      text:
+          initialValue != null
+              ? showTime
+                  ? DateFormat(getFmtDateTime()).format(initialValue!)
+                  : DateFormat(getFmtDate()).format(initialValue!)
+              : '',
     );
 
     return CustomTextField(
@@ -64,9 +61,10 @@ class DateTimePicker extends StatelessWidget {
           if (showTime) {
             final TimeOfDay? pickedTime = await showTimePicker(
               context: context,
-              initialTime: initialValue != null
-                  ? TimeOfDay.fromDateTime(initialValue!)
-                  : TimeOfDay.now(),
+              initialTime:
+                  initialValue != null
+                      ? TimeOfDay.fromDateTime(initialValue!)
+                      : TimeOfDay.now(),
             );
 
             if (pickedTime != null) {
@@ -82,15 +80,14 @@ class DateTimePicker extends StatelessWidget {
             }
           }
 
-          controller.text = showTime
-              ? getLocalizedDateTimeFormat(selectedDateTime)
-              : DateFormat(getFmtDate()).format(selectedDateTime);
+          controller.text =
+              showTime
+                  ? getLocalizedDateTimeFormat(selectedDateTime)
+                  : DateFormat(getFmtDate()).format(selectedDateTime);
 
           onDateTimeSelected(selectedDateTime);
         }
       },
     );
   }
-
 }
-

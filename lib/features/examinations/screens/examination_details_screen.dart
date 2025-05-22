@@ -1,14 +1,7 @@
 import 'dart:io';
-import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
@@ -25,14 +18,15 @@ class ExaminationDetailsScreen extends StatefulWidget {
   final List<Session> sessions;
 
   const ExaminationDetailsScreen({
-    Key? key,
+    super.key,
     required this.examination,
     required this.cycleId,
     required this.sessions,
-  }) : super(key: key);
+  });
 
   @override
-  _ExaminationDetailsScreenState createState() => _ExaminationDetailsScreenState();
+  _ExaminationDetailsScreenState createState() =>
+      _ExaminationDetailsScreenState();
 }
 
 class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
@@ -50,12 +44,13 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
     super.initState();
     _examination = widget.examination;
     _loadData();
-    
+
     // Trouver la séance associée si cet examen est lié à une séance
     if (_examination.prereqForSessionId != null) {
-      _relatedSession = widget.sessions.where(
-        (s) => s.id == _examination.prereqForSessionId
-      ).firstOrNull;
+      _relatedSession =
+          widget.sessions
+              .where((s) => s.id == _examination.prereqForSessionId)
+              .firstOrNull;
     }
   }
 
@@ -66,7 +61,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
     try {
       // Charger les documents de l'examen
-      final documentMaps = await _dbHelper.getDocumentsByEntity('examination', _examination.id);
+      final documentMaps = await _dbHelper.getDocumentsByEntity(
+        'examination',
+        _examination.id,
+      );
       _documents = documentMaps.map((map) => Document.fromMap(map)).toList();
 
       setState(() {
@@ -97,26 +95,26 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildExaminationCard(),
-                  SizedBox(height: 24),
-                  _buildDocumentsSection(),
-                  SizedBox(height: 16),
-                  if (_relatedSession != null)
-                    _buildRelatedSessionSection(),
-                ],
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildExaminationCard(),
+                    SizedBox(height: 24),
+                    _buildDocumentsSection(),
+                    SizedBox(height: 16),
+                    if (_relatedSession != null) _buildRelatedSessionSection(),
+                  ],
+                ),
               ),
-            ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
         tooltip: 'Ajouter un document',
         onPressed: _showAddDocumentDialog,
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -158,22 +156,30 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
                       ),
                       SizedBox(height: 4),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: _examination.isCompleted 
-                              ? Colors.green.withOpacity(0.1) 
-                              : Colors.blue.withOpacity(0.1),
+                          color:
+                              _examination.isCompleted
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _examination.isCompleted 
-                                ? Colors.green.withOpacity(0.5) 
-                                : Colors.blue.withOpacity(0.5),
+                            color:
+                                _examination.isCompleted
+                                    ? Colors.green.withOpacity(0.5)
+                                    : Colors.blue.withOpacity(0.5),
                           ),
                         ),
                         child: Text(
                           _examination.isCompleted ? 'Terminé' : 'À venir',
                           style: TextStyle(
-                            color: _examination.isCompleted ? Colors.green : Colors.blue,
+                            color:
+                                _examination.isCompleted
+                                    ? Colors.green
+                                    : Colors.blue,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -213,22 +219,15 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
                 _getSessionTimeRelationLabel(),
               ),
             ],
-            if (_examination.notes != null && _examination.notes!.isNotEmpty) ...[
+            if (_examination.notes != null &&
+                _examination.notes!.isNotEmpty) ...[
               Divider(height: 32),
               Text(
                 'Notes:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               SizedBox(height: 8),
-              Text(
-                _examination.notes!,
-                style: TextStyle(
-                  fontSize: 14,
-                ),
-              ),
+              Text(_examination.notes!, style: TextStyle(fontSize: 14)),
             ],
             Divider(height: 32),
             Center(
@@ -238,7 +237,9 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
                   size: 18,
                 ),
                 label: Text(
-                  _examination.isCompleted ? 'Marquer comme non terminé' : 'Marquer comme terminé',
+                  _examination.isCompleted
+                      ? 'Marquer comme non terminé'
+                      : 'Marquer comme terminé',
                 ),
                 onPressed: _toggleExaminationCompleted,
               ),
@@ -258,10 +259,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
           children: [
             Text(
               'Documents',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             TextButton.icon(
               icon: Icon(Icons.add, size: 16),
@@ -311,26 +309,29 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
   Widget _buildRelatedSessionSection() {
     if (_relatedSession == null) return SizedBox.shrink();
-    
-    final sessionDate = DateFormat(getFmtDate() ).format(_relatedSession!.dateTime);
-    final sessionTime = DateFormat(getFmtTime()).format(_relatedSession!.dateTime);
-    
+
+    final sessionDate = DateFormat(
+      getFmtDate(),
+    ).format(_relatedSession!.dateTime);
+    final sessionTime = DateFormat(
+      getFmtTime(),
+    ).format(_relatedSession!.dateTime);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Séance associée',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         Card(
           child: ListTile(
             leading: Icon(Icons.event, color: Colors.blue),
             title: Text('Séance du $sessionDate'),
-            subtitle: Text('à $sessionTime - ${_relatedSession!.establishment.name}'),
+            subtitle: Text(
+              'à $sessionTime - ${_relatedSession!.establishment.name}',
+            ),
             trailing: Icon(Icons.chevron_right),
             onTap: () => _navigateToSessionDetails(_relatedSession!),
           ),
@@ -342,7 +343,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   Widget _buildDocumentCard(Document document) {
     IconData documentIcon;
     Color iconColor;
-    
+
     switch (document.type) {
       case DocumentType.PDF:
         documentIcon = Icons.picture_as_pdf;
@@ -389,7 +390,8 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
               'Ajouté le ${DateFormat(getFmtDate()).format(document.dateAdded)}',
               style: TextStyle(fontSize: 12),
             ),
-            if (document.description != null && document.description!.isNotEmpty)
+            if (document.description != null &&
+                document.description!.isNotEmpty)
               Text(
                 document.description!,
                 style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
@@ -423,12 +425,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       children: [
         Icon(icon, size: 18, color: Colors.grey[700]),
         SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 14),
-          ),
-        ),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 14))),
       ],
     );
   }
@@ -466,6 +463,8 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
         return Icons.directions_run;
       case ExaminationType.EFR:
         return Icons.air;
+      case ExaminationType.Soin:
+        return Icons.health_and_safety;
       case ExaminationType.Autre:
         return Icons.science;
     }
@@ -477,27 +476,28 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       // Afficher un dialogue pour demander si la modification concerne toutes les occurrences
       final choice = await showDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Modifier l\'examen'),
-          content: Text(
-              'Cet examen fait partie d\'un groupe d\'examens liés à toutes les séances du cycle. '
-                  'Souhaitez-vous modifier uniquement cet examen ou tous les examens similaires ?'
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'single'),
-              child: Text('Cet examen uniquement'),
+        builder:
+            (context) => AlertDialog(
+              title: Text('Modifier l\'examen'),
+              content: Text(
+                'Cet examen fait partie d\'un groupe d\'examens liés à toutes les séances du cycle. '
+                'Souhaitez-vous modifier uniquement cet examen ou tous les examens similaires ?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'single'),
+                  child: Text('Cet examen uniquement'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, 'all'),
+                  child: Text('Tous les examens'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Annuler'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'all'),
-              child: Text('Tous les examens'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler'),
-            ),
-          ],
-        ),
       );
 
       if (choice == null) {
@@ -511,11 +511,13 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AddExaminationScreen(
-              cycleId: widget.cycleId,
-              examination: _examination,
-              detachFromGroup: true, // Nouveau flag pour indiquer qu'on détache du groupe
-            ),
+            builder:
+                (context) => AddExaminationScreen(
+                  cycleId: widget.cycleId,
+                  examination: _examination,
+                  detachFromGroup:
+                      true, // Nouveau flag pour indiquer qu'on détache du groupe
+                ),
           ),
         );
 
@@ -528,11 +530,13 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AddExaminationScreen(
-              cycleId: widget.cycleId,
-              examination: _examination,
-              forAllSessions: true,  // Indiquer que c'est pour tous les examens du groupe
-            ),
+            builder:
+                (context) => AddExaminationScreen(
+                  cycleId: widget.cycleId,
+                  examination: _examination,
+                  forAllSessions:
+                      true, // Indiquer que c'est pour tous les examens du groupe
+                ),
           ),
         );
 
@@ -547,10 +551,11 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AddExaminationScreen(
-            cycleId: widget.cycleId,
-            examination: _examination,
-          ),
+          builder:
+              (context) => AddExaminationScreen(
+                cycleId: widget.cycleId,
+                examination: _examination,
+              ),
         ),
       );
 
@@ -587,7 +592,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
       // Recharger les documents explicitement
       Log.d("Chargement des documents pour l'examen: ${_examination.id}");
-      final documentMaps = await dbHelper.getDocumentsByEntity('examination', _examination.id);
+      final documentMaps = await dbHelper.getDocumentsByEntity(
+        'examination',
+        _examination.id,
+      );
       Log.d("Nombre de documents trouvés: ${documentMaps.length}");
 
       setState(() {
@@ -596,9 +604,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
       // Si l'examen est associé à une séance, recharger la séance également
       if (_examination.prereqForSessionId != null) {
-        _relatedSession = widget.sessions.where(
-                (s) => s.id == _examination.prereqForSessionId
-        ).firstOrNull;
+        _relatedSession =
+            widget.sessions
+                .where((s) => s.id == _examination.prereqForSessionId)
+                .firstOrNull;
       }
     } catch (e) {
       Log.e("Erreur lors du rechargement de l'examen: $e");
@@ -616,7 +625,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       final bool newCompletionState = !_examination.isCompleted;
 
       // Mettre à jour dans la base de données
-      await _dbHelper.updateExaminationCompletionStatus(_examination.id, newCompletionState);
+      await _dbHelper.updateExaminationCompletionStatus(
+        _examination.id,
+        newCompletionState,
+      );
 
       // Mettre à jour l'UI
       setState(() {
@@ -627,7 +639,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       _showMessage(
         newCompletionState
             ? 'Examen marqué comme terminé'
-            : 'Examen marqué comme non terminé'
+            : 'Examen marqué comme non terminé',
       );
     } catch (e) {
       Log.e("Erreur lors de la mise à jour de l'état de l'examen: $e");
@@ -638,13 +650,15 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   Future<void> _confirmDeleteExamination() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer l\'examen',
-        content: 'Êtes-vous sûr de vouloir supprimer cet examen et tous les documents associés ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer l\'examen',
+            content:
+                'Êtes-vous sûr de vouloir supprimer cet examen et tous les documents associés ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {
@@ -655,7 +669,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       try {
         await _dbHelper.deleteExamination(_examination.id);
         _showMessage('Examen supprimé avec succès');
-        Navigator.pop(context, true); // Retourner true pour indiquer que l'examen a été supprimé
+        Navigator.pop(
+          context,
+          true,
+        ); // Retourner true pour indiquer que l'examen a été supprimé
       } catch (e) {
         Log.e("Erreur lors de la suppression de l'examen: $e");
         _showErrorMessage("Impossible de supprimer l'examen");
@@ -687,7 +704,11 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
       final dbHelper = DatabaseHelper();
       final docResult = await dbHelper.insertDocument(document.toMap());
       if (docResult > 0) {
-        final linkResult = await dbHelper.linkDocumentToEntity('examination', _examination.id, document.id);
+        final linkResult = await dbHelper.linkDocumentToEntity(
+          'examination',
+          _examination.id,
+          document.id,
+        );
         if (linkResult > 0) {
           await _loadData(); // Recharger les documents
         }
@@ -699,31 +720,40 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
     _documentService.viewDocument(context, document);
   }
 
-
   Future<void> _confirmRemoveDocument(Document document) async {
     final confirmed = await showDialog(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer le document',
-        content: 'Êtes-vous sûr de vouloir supprimer ce document de l\'examen ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer le document',
+            content:
+                'Êtes-vous sûr de vouloir supprimer ce document de l\'examen ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {
       try {
         // 1. Supprimer le lien entre le document et l'examen
-        await _dbHelper.unlinkDocumentFromEntity('examination', _examination.id, document.id);
+        await _dbHelper.unlinkDocumentFromEntity(
+          'examination',
+          _examination.id,
+          document.id,
+        );
 
         // 2. Vérifier si le document est lié à d'autres entités
-        final linkedEntities = await _dbHelper.getEntitiesLinkedToDocument(document.id);
+        final linkedEntities = await _dbHelper.getEntitiesLinkedToDocument(
+          document.id,
+        );
 
         // Si le document n'est lié à aucune autre entité, le supprimer complètement
         if (linkedEntities.isEmpty) {
           // 3. Supprimer le fichier du disque
-          final absolutePath = await _documentService.getAbsolutePath(document.path);
+          final absolutePath = await _documentService.getAbsolutePath(
+            document.path,
+          );
           final file = File(absolutePath);
           if (await file.exists()) {
             await file.delete();
@@ -752,17 +782,14 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 }

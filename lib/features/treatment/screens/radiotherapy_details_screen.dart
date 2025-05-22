@@ -9,14 +9,15 @@ import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 class RadiotherapyDetailsScreen extends StatefulWidget {
   final Radiotherapy radiotherapy;
 
-  const RadiotherapyDetailsScreen({Key? key, required this.radiotherapy}) : super(key: key);
+  const RadiotherapyDetailsScreen({super.key, required this.radiotherapy});
 
   @override
-  _RadiotherapyDetailsScreenState createState() => _RadiotherapyDetailsScreenState();
+  _RadiotherapyDetailsScreenState createState() =>
+      _RadiotherapyDetailsScreenState();
 }
 
 class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
-  bool _isLoading = false;
+  final bool _isLoading = false;
   late Radiotherapy _radiotherapy;
 
   @override
@@ -44,38 +45,40 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildRadiotherapyInfoCard(),
-            SizedBox(height: 24),
-            _buildSessionsSection(),
-            SizedBox(height: 24),
-            _buildDocumentationSection(),
-            SizedBox(height: 24),
-            _buildSideEffectsSection(),
-          ],
-        ),
-      ),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRadiotherapyInfoCard(),
+                    SizedBox(height: 24),
+                    _buildSessionsSection(),
+                    SizedBox(height: 24),
+                    _buildDocumentationSection(),
+                    SizedBox(height: 24),
+                    _buildSideEffectsSection(),
+                  ],
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddSideEffectScreen(
-                entityType: 'radiotherapy',
-                entityId: _radiotherapy.id,
-                entityName: _radiotherapy.title,
-              ),
+              builder:
+                  (context) => AddSideEffectScreen(
+                    entityType: 'radiotherapy',
+                    entityId: _radiotherapy.id,
+                    entityName: _radiotherapy.title,
+                  ),
             ),
           );
         },
-        child: Icon(Icons.add),
         tooltip: 'Ajouter un effet secondaire',
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -92,10 +95,7 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
               children: [
                 Text(
                   'Informations de la radiothérapie',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 _buildStatusChip(
                   _radiotherapy.isCompleted ? 'Terminé' : 'En cours',
@@ -105,15 +105,28 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
             ),
             SizedBox(height: 16),
             _buildInfoRow('Titre', _radiotherapy.title),
-            _buildInfoRow('Début', DateFormat('dd/MM/yyyy').format(_radiotherapy.startDate)),
-            _buildInfoRow('Fin', DateFormat('dd/MM/yyyy').format(_radiotherapy.endDate)),
-            _buildInfoRow('Nombre de séances', _radiotherapy.sessionCount.toString()),
+            _buildInfoRow(
+              'Début',
+              DateFormat('dd/MM/yyyy').format(_radiotherapy.startDate),
+            ),
+            _buildInfoRow(
+              'Fin',
+              DateFormat('dd/MM/yyyy').format(_radiotherapy.endDate),
+            ),
+            _buildInfoRow(
+              'Nombre de séances',
+              _radiotherapy.sessionCount.toString(),
+            ),
             _buildInfoRow('Établissement', _radiotherapy.establishment.name),
-            if (_radiotherapy.doctors.isNotEmpty)
-              _buildInfoRow('Médecins', _radiotherapy.doctors.map((doc) => doc.fullName).join(', ')),
+            if (_radiotherapy.ps.isNotEmpty)
+              _buildInfoRow(
+                'Médecins',
+                _radiotherapy.ps.map((doc) => doc.fullName).join(', '),
+              ),
             if (_radiotherapy.notes != null && _radiotherapy.notes!.isNotEmpty)
               _buildInfoRow('Notes', _radiotherapy.notes!),
-            if (_radiotherapy.conclusion != null && _radiotherapy.conclusion!.isNotEmpty)
+            if (_radiotherapy.conclusion != null &&
+                _radiotherapy.conclusion!.isNotEmpty)
               _buildInfoRow('Conclusion', _radiotherapy.conclusion!),
           ],
         ),
@@ -138,12 +151,7 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w400)),
           ),
         ],
       ),
@@ -156,59 +164,54 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
       children: [
         Text(
           'Calendrier des séances',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         _radiotherapy.sessions.isEmpty
             ? Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Aucune séance programmée',
-                style: TextStyle(color: Colors.grey[600]),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Aucune séance programmée',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
               ),
-            ),
-          ),
-        )
+            )
             : ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: _radiotherapy.sessions.length,
-          itemBuilder: (context, index) {
-            final session = _radiotherapy.sessions[index];
-            return Card(
-              margin: EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                title: Text('Séance ${index + 1}'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(DateFormat('dd/MM/yyyy HH:mm').format(session.dateTime)),
-                    if (session.area != null)
-                      Text('Zone: ${session.area}'),
-                    if (session.dose != null)
-                      Text('Dose: ${session.dose}'),
-                  ],
-                ),
-                trailing: Icon(
-                  session.isCompleted
-                      ? Icons.check_circle
-                      : Icons.schedule,
-                  color: session.isCompleted
-                      ? Colors.green
-                      : Colors.orange,
-                ),
-                onTap: () {
-                  // Afficher les détails de la séance
-                },
-              ),
-            );
-          },
-        ),
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _radiotherapy.sessions.length,
+              itemBuilder: (context, index) {
+                final session = _radiotherapy.sessions[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text('Séance ${index + 1}'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateFormat(
+                            'dd/MM/yyyy HH:mm',
+                          ).format(session.dateTime),
+                        ),
+                        if (session.area != null) Text('Zone: ${session.area}'),
+                        if (session.dose != null) Text('Dose: ${session.dose}'),
+                      ],
+                    ),
+                    trailing: Icon(
+                      session.isCompleted ? Icons.check_circle : Icons.schedule,
+                      color: session.isCompleted ? Colors.green : Colors.orange,
+                    ),
+                    onTap: () {
+                      // Afficher les détails de la séance
+                    },
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
@@ -219,43 +222,42 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
       children: [
         Text(
           'Documents',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         _radiotherapy.documents.isEmpty
             ? Card(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'Aucun document disponible',
-                style: TextStyle(color: Colors.grey[600]),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    'Aucun document disponible',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
               ),
-            ),
-          ),
-        )
+            )
             : ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: _radiotherapy.documents.length,
-          itemBuilder: (context, index) {
-            final document = _radiotherapy.documents[index];
-            return Card(
-              margin: EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: Icon(Icons.description),
-                title: Text(document.name),
-                subtitle: Text(DateFormat('dd/MM/yyyy').format(document.dateAdded)),
-                onTap: () {
-                  // Ouvrir le document
-                },
-              ),
-            );
-          },
-        ),
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _radiotherapy.documents.length,
+              itemBuilder: (context, index) {
+                final document = _radiotherapy.documents[index];
+                return Card(
+                  margin: EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(Icons.description),
+                    title: Text(document.name),
+                    subtitle: Text(
+                      DateFormat('dd/MM/yyyy').format(document.dateAdded),
+                    ),
+                    onTap: () {
+                      // Ouvrir le document
+                    },
+                  ),
+                );
+              },
+            ),
       ],
     );
   }
@@ -267,10 +269,7 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
       children: [
         Text(
           'Effets secondaires',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 8),
         // Placeholder pour les effets secondaires (à remplacer par votre implémentation)
@@ -292,13 +291,15 @@ class _RadiotherapyDetailsScreenState extends State<RadiotherapyDetailsScreen> {
   Future<void> _confirmDeleteRadiotherapy() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer la radiothérapie',
-        content: 'Êtes-vous sûr de vouloir supprimer cette radiothérapie ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer la radiothérapie',
+            content:
+                'Êtes-vous sûr de vouloir supprimer cette radiothérapie ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {

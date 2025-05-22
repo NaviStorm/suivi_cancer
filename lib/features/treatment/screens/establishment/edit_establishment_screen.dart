@@ -7,10 +7,11 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 class EditEstablishmentScreen extends StatefulWidget {
   final Establishment establishment;
 
-  const EditEstablishmentScreen({Key? key, required this.establishment}) : super(key: key);
+  const EditEstablishmentScreen({super.key, required this.establishment});
 
   @override
-  _EditEstablishmentScreenState createState() => _EditEstablishmentScreenState();
+  _EditEstablishmentScreenState createState() =>
+      _EditEstablishmentScreenState();
 }
 
 class _EditEstablishmentScreenState extends State<EditEstablishmentScreen> {
@@ -30,13 +31,27 @@ class _EditEstablishmentScreenState extends State<EditEstablishmentScreen> {
     super.initState();
     // Initialiser les contrôleurs avec les valeurs de l'établissement
     _nameController = TextEditingController(text: widget.establishment.name);
-    _addressController = TextEditingController(text: widget.establishment.address ?? '');
-    _cityController = TextEditingController(text: widget.establishment.city ?? '');
-    _postalCodeController = TextEditingController(text: widget.establishment.postalCode ?? '');
-    _phoneController = TextEditingController(text: widget.establishment.phone ?? '');
-    _emailController = TextEditingController(text: widget.establishment.email ?? '');
-    _websiteController = TextEditingController(text: widget.establishment.website ?? '');
-    _notesController = TextEditingController(text: widget.establishment.notes ?? '');
+    _addressController = TextEditingController(
+      text: widget.establishment.address ?? '',
+    );
+    _cityController = TextEditingController(
+      text: widget.establishment.city ?? '',
+    );
+    _postalCodeController = TextEditingController(
+      text: widget.establishment.postalCode ?? '',
+    );
+    _phoneController = TextEditingController(
+      text: widget.establishment.phone ?? '',
+    );
+    _emailController = TextEditingController(
+      text: widget.establishment.email ?? '',
+    );
+    _websiteController = TextEditingController(
+      text: widget.establishment.website ?? '',
+    );
+    _notesController = TextEditingController(
+      text: widget.establishment.notes ?? '',
+    );
   }
 
   @override
@@ -57,9 +72,7 @@ class _EditEstablishmentScreenState extends State<EditEstablishmentScreen> {
   Widget build(BuildContext context) {
     Log.d('build');
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Modifier un établissement'),
-      ),
+      appBar: AppBar(title: Text('Modifier un établissement')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -169,12 +182,13 @@ class _EditEstablishmentScreenState extends State<EditEstablishmentScreen> {
             // Bouton de sauvegarde
             ElevatedButton(
               onPressed: _isLoading ? null : _updateEstablishment,
-              child: _isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Enregistrer les modifications'),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
+              child:
+                  _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Enregistrer les modifications'),
             ),
           ],
         ),
@@ -183,45 +197,71 @@ class _EditEstablishmentScreenState extends State<EditEstablishmentScreen> {
   }
 
   Future<void> _updateEstablishment() async {
-    Log.d("EditEstablishmentScreen: Tentative de mise à jour de l'établissement");
-    
+    Log.d(
+      "EditEstablishmentScreen: Tentative de mise à jour de l'établissement",
+    );
+
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
-      
+
       try {
         // Mettre à jour l'établissement
         final updatedEstablishment = Establishment(
           id: widget.establishment.id,
           name: _nameController.text,
-          address: _addressController.text.isNotEmpty ? _addressController.text : null,
+          address:
+              _addressController.text.isNotEmpty
+                  ? _addressController.text
+                  : null,
           city: _cityController.text.isNotEmpty ? _cityController.text : null,
-          postalCode: _postalCodeController.text.isNotEmpty ? _postalCodeController.text : null,
-          phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
-          email: _emailController.text.isNotEmpty ? _emailController.text : null,
-          website: _websiteController.text.isNotEmpty ? _websiteController.text : null,
-          notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+          postalCode:
+              _postalCodeController.text.isNotEmpty
+                  ? _postalCodeController.text
+                  : null,
+          phone:
+              _phoneController.text.isNotEmpty ? _phoneController.text : null,
+          email:
+              _emailController.text.isNotEmpty ? _emailController.text : null,
+          website:
+              _websiteController.text.isNotEmpty
+                  ? _websiteController.text
+                  : null,
+          notes:
+              _notesController.text.isNotEmpty ? _notesController.text : null,
         );
-        
-        Log.d("EditEstablishmentScreen: Établissement mis à jour avec ID: ${updatedEstablishment.id}");
-        
+
+        Log.d(
+          "EditEstablishmentScreen: Établissement mis à jour avec ID: ${updatedEstablishment.id}",
+        );
+
         // Sauvegarde dans la base de données
         final dbHelper = DatabaseHelper();
-        final result = await dbHelper.updateEstablishment(updatedEstablishment.toMap());
-        Log.d("EditEstablishmentScreen: Résultat de la mise à jour en base de données: $result");
-        
+        final result = await dbHelper.updateEstablishment(
+          updatedEstablishment.toMap(),
+        );
+        Log.d(
+          "EditEstablishmentScreen: Résultat de la mise à jour en base de données: $result",
+        );
+
         // Afficher un message de confirmation
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Établissement mis à jour avec succès')),
         );
-        
+
         // Retourner à l'écran précédent avec un résultat positif
         Navigator.pop(context, true);
       } catch (e) {
-        Log.d("EditEstablishmentScreen: Erreur lors de la mise à jour de l'établissement: $e");
+        Log.d(
+          "EditEstablishmentScreen: Erreur lors de la mise à jour de l'établissement: $e",
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la mise à jour de l\'établissement: $e')),
+          SnackBar(
+            content: Text(
+              'Erreur lors de la mise à jour de l\'établissement: $e',
+            ),
+          ),
         );
       } finally {
         setState(() {

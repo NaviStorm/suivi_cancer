@@ -1,6 +1,5 @@
 // lib/features/treatment/models/surgery.dart
-import 'package:flutter/foundation.dart';
-import 'doctor.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'establishment.dart';
 import 'appointment.dart';
 import 'document.dart';
@@ -10,8 +9,8 @@ class Surgery {
   final String title;
   final DateTime date;
   final Establishment establishment;
-  final List<Doctor> surgeons;
-  final List<Doctor> anesthetists;
+  final List<PS> surgeons;
+  final List<PS> anesthetists;
   final Appointment? preOperationAppointment;
   final List<Document> documents;
   final String? operationReport;
@@ -54,8 +53,8 @@ class Surgery {
       title: map['title'],
       date: DateTime.parse(map['date']),
       establishment: Establishment.fromMap(map['establishment']),
-      surgeons: List<Doctor>.from(map['surgeons']?.map((x) => Doctor.fromMap(x))),
-      anesthetists: List<Doctor>.from(map['anesthetists']?.map((x) => Doctor.fromMap(x))),
+      surgeons: List<PS>.from(map['surgeons']?.map((x) => PS.fromMap(x))),
+      anesthetists: List<PS>.from(map['anesthetists']?.map((x) => PS.fromMap(x))),
       preOperationAppointment: map['preOperationAppointment'] != null 
           ? Appointment.fromMap(map['preOperationAppointment']) 
           : null,

@@ -1,7 +1,6 @@
 // lib/features/treatment/models/radiotherapy.dart
-import 'package:flutter/foundation.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 
@@ -11,7 +10,7 @@ class Radiotherapy {
   final DateTime startDate;
   final DateTime endDate;
   final Establishment establishment;
-  final List<Doctor> doctors;
+  final List<PS> ps;
   final int sessionCount;
   final List<RadiotherapySession> sessions;
   final List<Document> documents;
@@ -25,7 +24,7 @@ class Radiotherapy {
     required this.startDate,
     required this.endDate,
     required this.establishment,
-    this.doctors = const [],
+    this.ps = const [],
     required this.sessionCount,
     this.sessions = const [],
     this.documents = const [],
@@ -41,7 +40,7 @@ class Radiotherapy {
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
       'establishment': establishment.toMap(),
-      'doctors': doctors.map((x) => x.toMap()).toList(),
+      'ps': ps.map((x) => x.toMap()).toList(),
       'sessionCount': sessionCount,
       'sessions': sessions.map((x) => x.toMap()).toList(),
       'documents': documents.map((x) => x.toMap()).toList(),
@@ -58,7 +57,7 @@ class Radiotherapy {
       startDate: DateTime.parse(map['startDate']),
       endDate: DateTime.parse(map['endDate']),
       establishment: Establishment.fromMap(map['establishment']),
-      doctors: List<Doctor>.from(map['doctors']?.map((x) => Doctor.fromMap(x))),
+      ps: List<PS>.from(map['ps']?.map((x) => PS.fromMap(x))),
       sessionCount: map['sessionCount'],
       sessions: List<RadiotherapySession>.from(map['sessions']?.map((x) => RadiotherapySession.fromMap(x))),
       documents: List<Document>.from(map['documents']?.map((x) => Document.fromMap(x))),

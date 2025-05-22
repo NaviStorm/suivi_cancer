@@ -3,29 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
+import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/features/treatment/screens/doctor/add_doctor_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
 
+enum TreatmentType { Cycle, Surgery, Radiotherapy }
 
-enum TreatmentType {
-  Cycle,
-  Surgery,
-  Radiotherapy
-}
-
-enum CycleType {
-  Chemotherapy,
-  Immunotherapy,
-  Hormonotherapy,
-  Combined
-}
+enum CycleType { Chemotherapy, Immunotherapy, Hormonotherapy, Combined }
 
 class AddTreatmentScreen extends StatefulWidget {
-  const AddTreatmentScreen({Key? key}) : super(key: key);
+  const AddTreatmentScreen({super.key});
 
   @override
   _AddTreatmentScreenState createState() => _AddTreatmentScreenState();
@@ -43,15 +32,25 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   CycleType _selectedCycleType = CycleType.Chemotherapy;
   final TextEditingController _sessionCountController = TextEditingController();
   final TextEditingController _intervalDaysController = TextEditingController();
-  DateTime _firstSessionDate = DateTime.now().add(Duration(days: 7)); // Par défaut 1 semaine après le début du traitement
+  DateTime _firstSessionDate = DateTime.now().add(
+    Duration(days: 7),
+  ); // Par défaut 1 semaine après le début du traitement
 
   final TextEditingController _surgeryTitleController = TextEditingController();
-  DateTime _surgeryDate = DateTime.now().add(Duration(days: 7)); // Par défaut 1 semaine après le début du traitement
+  DateTime _surgeryDate = DateTime.now().add(
+    Duration(days: 7),
+  ); // Par défaut 1 semaine après le début du traitement
 
-  final TextEditingController _radiotherapyTitleController = TextEditingController();
-  final TextEditingController _radiotherapySessionCountController = TextEditingController();
-  DateTime _radiotherapyStartDate = DateTime.now().add(Duration(days: 7)); // Par défaut 1 semaine après le début du traitement
-  DateTime _radiotherapyEndDate = DateTime.now().add(Duration(days: 37)); // Par défaut 30 jours après le début de la radiothérapie
+  final TextEditingController _radiotherapyTitleController =
+      TextEditingController();
+  final TextEditingController _radiotherapySessionCountController =
+      TextEditingController();
+  DateTime _radiotherapyStartDate = DateTime.now().add(
+    Duration(days: 7),
+  ); // Par défaut 1 semaine après le début du traitement
+  DateTime _radiotherapyEndDate = DateTime.now().add(
+    Duration(days: 37),
+  ); // Par défaut 30 jours après le début de la radiothérapie
 
   List<Establishment> _establishments = [];
   List<PS> _selectedHealthProfessionals = [];
@@ -79,7 +78,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
       // Charger les établissements
       final establishmentMaps = await dbHelper.getEstablishments();
-      _establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+      _establishments =
+          establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
       // Charger les professionnels de santé au lieu des médecins
       final psMaps = await dbHelper.getPS();
@@ -108,69 +108,73 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Nouveau traitement'),
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                label: 'Nom du traitement',
-                controller: _labelController,
-                placeholder: 'Ex: Chimiothérapie FEC',
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez saisir un nom de traitement';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              DateTimePicker(
-                label: 'Date de début du traitement',
-                initialValue: _startDate,
-                showTime: false,
-                onDateTimeSelected: (dateTime) {
-                  setState(() {
-                    _startDate = dateTime;
+      appBar: AppBar(title: Text('Nouveau traitement')),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      CustomTextField(
+                        label: 'Nom du traitement',
+                        controller: _labelController,
+                        placeholder: 'Ex: Chimiothérapie FEC',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Veuillez saisir un nom de traitement';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      DateTimePicker(
+                        label: 'Date de début du traitement',
+                        initialValue: _startDate,
+                        showTime: false,
+                        onDateTimeSelected: (dateTime) {
+                          setState(() {
+                            _startDate = dateTime;
 
-                    // Mettre à jour les dates de première séance/opération/radiothérapie
-                    // par défaut 7 jours après la date de début du traitement
-                    _firstSessionDate = dateTime.add(Duration(days: 7));
-                    _surgeryDate = dateTime.add(Duration(days: 7));
-                    _radiotherapyStartDate = dateTime.add(Duration(days: 7));
-                    _radiotherapyEndDate = _radiotherapyStartDate.add(Duration(days: 30));
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-              _buildTreatmentTypeSelection(),
-              SizedBox(height: 16),
-              _buildTypeSpecificFields(),
-              SizedBox(height: 16),
-              _buildEstablishmentSection(),
-              SizedBox(height: 16),
-              _buildHealthProfessionalSection(),
-              SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _saveTreatment,
-                child: _isSaving
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Enregistrer'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                            // Mettre à jour les dates de première séance/opération/radiothérapie
+                            // par défaut 7 jours après la date de début du traitement
+                            _firstSessionDate = dateTime.add(Duration(days: 7));
+                            _surgeryDate = dateTime.add(Duration(days: 7));
+                            _radiotherapyStartDate = dateTime.add(
+                              Duration(days: 7),
+                            );
+                            _radiotherapyEndDate = _radiotherapyStartDate.add(
+                              Duration(days: 30),
+                            );
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      _buildTreatmentTypeSelection(),
+                      SizedBox(height: 16),
+                      _buildTypeSpecificFields(),
+                      SizedBox(height: 16),
+                      _buildEstablishmentSection(),
+                      SizedBox(height: 16),
+                      _buildHealthProfessionalSection(),
+                      SizedBox(height: 32),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _saveTreatment,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child:
+                            _isSaving
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text('Enregistrer'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -180,10 +184,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
       children: [
         Text(
           'Type de traitement',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Row(
@@ -259,10 +260,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           children: [
             Text(
               'Détails du cycle',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             _buildCycleTypeDropdown(),
@@ -332,12 +330,13 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       value: _selectedCycleType,
-      items: CycleType.values.map((type) {
-        return DropdownMenuItem<CycleType>(
-          value: type,
-          child: Text(_getCycleTypeLabel(type)),
-        );
-      }).toList(),
+      items:
+          CycleType.values.map((type) {
+            return DropdownMenuItem<CycleType>(
+              value: type,
+              child: Text(_getCycleTypeLabel(type)),
+            );
+          }).toList(),
       onChanged: (CycleType? value) {
         if (value != null) {
           setState(() {
@@ -363,10 +362,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           children: [
             Text(
               'Détails de la chirurgie',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             CustomTextField(
@@ -415,10 +411,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           children: [
             Text(
               'Détails de la radiothérapie',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             CustomTextField(
@@ -442,7 +435,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                   _radiotherapyStartDate = dateTime;
                   // Si la date de fin est avant la date de début, l'ajuster
                   if (_radiotherapyEndDate.isBefore(_radiotherapyStartDate)) {
-                    _radiotherapyEndDate = _radiotherapyStartDate.add(Duration(days: 1));
+                    _radiotherapyEndDate = _radiotherapyStartDate.add(
+                      Duration(days: 1),
+                    );
                   }
                 });
               },
@@ -499,10 +494,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           children: [
             Text(
               'Établissement principal',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             TextButton.icon(
               icon: Icon(Icons.add),
@@ -540,12 +532,13 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             value: _selectedEstablishment,
-            items: _establishments.map((establishment) {
-              return DropdownMenuItem<Establishment>(
-                value: establishment,
-                child: Text(establishment.name),
-              );
-            }).toList(),
+            items:
+                _establishments.map((establishment) {
+                  return DropdownMenuItem<Establishment>(
+                    value: establishment,
+                    child: Text(establishment.name),
+                  );
+                }).toList(),
             onChanged: (Establishment? value) {
               setState(() {
                 _selectedEstablishment = value;
@@ -571,10 +564,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           children: [
             Text(
               'Professionnels de santé',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             TextButton.icon(
               icon: Icon(Icons.add),
@@ -584,7 +574,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           ],
         ),
         SizedBox(height: 8),
-        _buildHealthProfessionalMultiSelect(_selectedHealthProfessionals, (healthProfessionals) {
+        _buildHealthProfessionalMultiSelect(_selectedHealthProfessionals, (
+          healthProfessionals,
+        ) {
           setState(() {
             _selectedHealthProfessionals = healthProfessionals;
           });
@@ -593,7 +585,10 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     );
   }
 
-  Widget _buildHealthProfessionalMultiSelect(List<PS> selectedHealthProfessionals, Function(List<PS>) onChanged) {
+  Widget _buildHealthProfessionalMultiSelect(
+    List<PS> selectedHealthProfessionals,
+    Function(List<PS>) onChanged,
+  ) {
     return Card(
       margin: EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -603,30 +598,52 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
             // Affichage des professionnels de santé sélectionnés
             if (selectedHealthProfessionals.isNotEmpty)
               Column(
-                children: selectedHealthProfessionals.map((ps) => ListTile(
-                  title: Text(ps.fullName),
-                  subtitle: ps.category != null ? Text(ps.category!['name']) : null,
-                  trailing: IconButton(
-                    icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: () {
-                      onChanged(selectedHealthProfessionals.where((p) => p.id != ps.id).toList());
-                    },
-                  ),
-                )).toList(),
+                children:
+                    selectedHealthProfessionals
+                        .map(
+                          (ps) => ListTile(
+                            title: Text(ps.fullName),
+                            subtitle:
+                                ps.category != null
+                                    ? Text(ps.category!['name'])
+                                    : null,
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                onChanged(
+                                  selectedHealthProfessionals
+                                      .where((p) => p.id != ps.id)
+                                      .toList(),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                        .toList(),
               ),
             // Dropdown pour ajouter un professionnel de santé
             if (_healthProfessionals.isNotEmpty)
               DropdownButton<PS>(
                 isExpanded: true,
                 hint: Text('Ajouter un professionnel de santé'),
-                items: _healthProfessionals
-                    .where((ps) => !selectedHealthProfessionals.any((p) => p.id == ps.id))
-                    .map((ps) {
-                  return DropdownMenuItem<PS>(
-                    value: ps,
-                    child: Text(ps.fullName),
-                  );
-                }).toList(),
+                items:
+                    _healthProfessionals
+                        .where(
+                          (ps) =>
+                              !selectedHealthProfessionals.any(
+                                (p) => p.id == ps.id,
+                              ),
+                        )
+                        .map((ps) {
+                          return DropdownMenuItem<PS>(
+                            value: ps,
+                            child: Text(ps.fullName),
+                          );
+                        })
+                        .toList(),
                 onChanged: (PS? value) {
                   if (value != null) {
                     onChanged([...selectedHealthProfessionals, value]);
@@ -647,11 +664,10 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     );
   }
 
-
   Future<void> _addNewEstablishment() async {
     final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => AddEstablishmentScreen())
+      context,
+      MaterialPageRoute(builder: (context) => AddEstablishmentScreen()),
     );
 
     if (result == true) {
@@ -668,19 +684,21 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
   Future<void> _addNewHealthProfessional() async {
     final result = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => EditPSScreen())
+      context,
+      MaterialPageRoute(builder: (context) => AddPSScreen()),
     );
     if (result != null && result is PS) {
       // Recharger les données
       await _loadData();
       // Ajouter le professionnel de santé à la liste des professionnels sélectionnés
       setState(() {
-        _selectedHealthProfessionals = [..._selectedHealthProfessionals, result];
+        _selectedHealthProfessionals = [
+          ..._selectedHealthProfessionals,
+          result,
+        ];
       });
     }
   }
-
 
   Future<void> _saveTreatment() async {
     if (_formKey.currentState!.validate()) {
@@ -715,7 +733,10 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         }
 
         // 3. Ajouter la relation avec l'établissement
-        await dbHelper.linkTreatmentEstablishment(treatmentId, _selectedEstablishment!.id);
+        await dbHelper.linkTreatmentEstablishment(
+          treatmentId,
+          _selectedEstablishment!.id,
+        );
 
         // 4. Créer l'entité spécifique en fonction du type sélectionné
         switch (_selectedType) {
@@ -755,7 +776,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
     // Calculer la date de fin estimée en fonction de la date de première séance,
     // du nombre de séances et de l'intervalle
-    final cycleEndDate = _firstSessionDate.add(Duration(days: (sessionCount - 1) * intervalDays));
+    final cycleEndDate = _firstSessionDate.add(
+      Duration(days: (sessionCount - 1) * intervalDays),
+    );
 
     // Créer le cycle
     final cycleData = {
@@ -777,7 +800,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
     for (int i = 0; i < sessionCount; i++) {
       final sessionId = Uuid().v4();
-      final sessionDate = _firstSessionDate.add(Duration(days: i * intervalDays));
+      final sessionDate = _firstSessionDate.add(
+        Duration(days: i * intervalDays),
+      );
 
       final sessionData = {
         'id': sessionId,
@@ -837,19 +862,25 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
     // Ajouter les médecins comme radiothérapeutes
     for (final HealthProfessionals in _selectedHealthProfessionals) {
-      await dbHelper.addDoctorToRadiotherapy(radiotherapyId, HealthProfessionals.id);
+      await dbHelper.addDoctorToRadiotherapy(
+        radiotherapyId,
+        HealthProfessionals.id,
+      );
     }
 
     // Créer les sessions de radiothérapie
     // Calculer l'intervalle entre les séances en jours
-    final totalDays = _radiotherapyEndDate.difference(_radiotherapyStartDate).inDays;
+    final totalDays =
+        _radiotherapyEndDate.difference(_radiotherapyStartDate).inDays;
     final intervalDays = totalDays / (sessionCount - 1);
 
     List<Map<String, dynamic>> sessionDataList = [];
 
     for (int i = 0; i < sessionCount; i++) {
       final sessionId = Uuid().v4();
-      final sessionDate = _radiotherapyStartDate.add(Duration(days: (i * intervalDays).round()));
+      final sessionDate = _radiotherapyStartDate.add(
+        Duration(days: (i * intervalDays).round()),
+      );
 
       final sessionData = {
         'id': sessionId,

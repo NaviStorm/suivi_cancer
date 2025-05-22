@@ -1,5 +1,6 @@
 ﻿// lib/features/treatment/screens/cycle_details_screen.dart
 import 'dart:ui' as ui;
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 
+import 'package:suivi_cancer/core/storage/database_helper.dart';
+
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
-import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 
 import 'package:suivi_cancer/features/treatment/providers/cycle_provider.dart';
@@ -26,11 +28,12 @@ import 'package:suivi_cancer/features/sessions/screens/add_session_screen.dart';
 import 'package:suivi_cancer/features/sessions/screens/session_details_screen.dart';
 import 'package:suivi_cancer/features/examinations/screens/examination_details_screen.dart';
 
+import 'package:suivi_cancer/features/appointments/screens/add_appointment_screen.dart';
 
 class CycleDetailsScreen extends StatefulWidget {
   final Cycle cycle;
 
-  const CycleDetailsScreen({Key? key, required this.cycle}) : super(key: key);
+  const CycleDetailsScreen({super.key, required this.cycle});
 
   @override
   _CycleDetailsScreenState createState() => _CycleDetailsScreenState();
@@ -60,9 +63,11 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
 
 // Widget séparé pour consommer le provider
 class _CycleDetailsContent extends StatelessWidget {
-  final currentLocale = ui.PlatformDispatcher.instance.locale.toString() ?? Intl.getCurrentLocale();
+  final currentLocale =
+      ui.PlatformDispatcher.instance.locale.toString() ??
+      Intl.getCurrentLocale();
 
-  _CycleDetailsContent({Key? key}) : super(key: key);
+  _CycleDetailsContent();
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +79,15 @@ class _CycleDetailsContent extends StatelessWidget {
         actions: [
           // Toggle pour masquer/afficher les événements passés
           IconButton(
-            icon: Icon(provider.hideCompletedEvents ? Icons.visibility_off : Icons.visibility),
-            tooltip: provider.hideCompletedEvents ? "Afficher les événements passés" : "Masquer les événements passés",
+            icon: Icon(
+              provider.hideCompletedEvents
+                  ? Icons.visibility_off
+                  : Icons.visibility,
+            ),
+            tooltip:
+                provider.hideCompletedEvents
+                    ? "Afficher les événements passés"
+                    : "Masquer les événements passés",
             onPressed: () => provider.toggleHideCompletedEvents(),
           ),
           IconButton(
@@ -88,36 +100,38 @@ class _CycleDetailsContent extends StatelessWidget {
           ),
         ],
       ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-        onRefresh: () => provider.refreshCycleData(),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CycleInfoCard(cycle: provider.cycle!),
-              SizedBox(height: 16),
-              _buildTimelineTitle(context),
-              _buildChronologicalTimeline(context),
-              SizedBox(height: 24),
-              if (!provider.cycle!.isCompleted)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: _buildCompleteCycleButton(context),
+      body:
+          provider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                onRefresh: () => provider.refreshCycleData(),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CycleInfoCard(cycle: provider.cycle!),
+                      SizedBox(height: 16),
+                      _buildTimelineTitle(context),
+                      _buildChronologicalTimeline(context),
+                      SizedBox(height: 24),
+                      if (!provider.cycle!.isCompleted)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: _buildCompleteCycleButton(context),
+                        ),
+                      SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-              SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: provider.cycle!.isCompleted
-          ? null
-          : FloatingActionButton(
-        child: Icon(Icons.add),
-        tooltip: 'Ajouter un événement',
-        onPressed: () => _showAddEventDialog(context),
-      ),
+              ),
+      floatingActionButton:
+          provider.cycle!.isCompleted
+              ? null
+              : FloatingActionButton(
+                tooltip: 'Ajouter un événement',
+                onPressed: () => _showAddEventDialog(context),
+                child: Icon(Icons.add),
+              ),
     );
   }
 
@@ -129,10 +143,7 @@ class _CycleDetailsContent extends StatelessWidget {
         children: [
           Text(
             'Calendrier des événements',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           OutlinedButton.icon(
             icon: Icon(Icons.filter_list, size: 16),
@@ -170,7 +181,10 @@ class _CycleDetailsContent extends StatelessWidget {
           children: [
             // En-tête du mois
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 4.0,
+              ),
               child: Text(
                 DateFormat('MMMM yyyy', currentLocale).format(monthDate),
                 style: TextStyle(
@@ -189,8 +203,11 @@ class _CycleDetailsContent extends StatelessWidget {
               itemBuilder: (context, eventIndex) {
                 return EventCard(
                   event: monthEvents[eventIndex],
-                  onToggleCompleted: (event) => _toggleEventCompleted(context, event),
+                  onToggleCompleted:
+                      (event) => _toggleEventCompleted(context, event),
                   onTap: (event) => _navigateToEventDetails(context, event),
+                  onLongPress:
+                      (event) => _navigateToEventLongPress(context, event),
                   locale: currentLocale,
                 );
               },
@@ -211,27 +228,17 @@ class _CycleDetailsContent extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.event_busy,
-              size: 48,
-              color: Colors.grey,
-            ),
+            Icon(Icons.event_busy, size: 48, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Aucun événement programmé',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
             Text(
               'Utilisez le bouton + pour ajouter des séances ou des examens à ce cycle',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -243,44 +250,90 @@ class _CycleDetailsContent extends StatelessWidget {
   Widget _buildCompleteCycleButton(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context);
     return ElevatedButton(
-      onPressed: provider.isCompletingCycle ? null : () => _confirmCompleteCycle(context),
+      onPressed:
+          provider.isCompletingCycle
+              ? null
+              : () => _confirmCompleteCycle(context),
       style: ElevatedButton.styleFrom(
         minimumSize: Size(double.infinity, 45),
         backgroundColor: Colors.green,
       ),
-      child: provider.isCompletingCycle
-          ? CircularProgressIndicator(color: Colors.white)
-          : Text(
-        'Marquer le cycle comme terminé',
-        style: TextStyle(fontSize: 14),
-      ),
+      child:
+          provider.isCompletingCycle
+              ? CircularProgressIndicator(color: Colors.white)
+              : Text(
+                'Marquer le cycle comme terminé',
+                style: TextStyle(fontSize: 14),
+              ),
     );
   }
 
   void _showFilterDialog(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    showDialog(
+
+    showCupertinoDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Filtrer les événements'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              title: Text('Masquer les événements terminés'),
-              value: provider.hideCompletedEvents,
-              onChanged: (value) {
-                provider.toggleHideCompletedEvents();
-                Navigator.pop(context);
-              },
+      builder:
+          (context) => CupertinoAlertDialog(
+            title: Text('Masquer les événements : '),
+            content: CupertinoTheme(
+              data: CupertinoThemeData(),
+              child: Container(
+                margin: EdgeInsets.only(top: 16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildCupertinoSwitchRow(
+                      'Prises de Médicaments',
+                      provider.hideCompletedEvents,
+                      (value) {
+                        provider.toggleHideCompletedEvents();
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildCupertinoSwitchRow(
+                      'Examens',
+                      provider.hideCompletedEvents,
+                      (value) {
+                        provider.toggleHideCompletedEvents();
+                        Navigator.pop(context);
+                      },
+                    ),
+                    _buildCupertinoSwitchRow(
+                      'Evénements terminés',
+                      provider.hideCompletedEvents,
+                      (value) {
+                        provider.toggleHideCompletedEvents();
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Fermer'),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Fermer'),
+              ),
+            ],
           ),
+    );
+  }
+
+  Widget _buildCupertinoSwitchRow(
+    String title,
+    bool value,
+    Function(bool) onChanged, [
+    TextStyle? style,
+  ]) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(title, style: style)),
+          CupertinoSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );
@@ -292,12 +345,15 @@ class _CycleDetailsContent extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      builder: (context) => AddEventBottomSheet(
-        onAddSession: () => _navigateToAddSession(originalContext),
-        onAddExamination: () => _navigateToAddExamination(originalContext),
-        onAddDocument: () => _navigateToAddDocument(originalContext),
-        onAddMedicationIntake: () => _navigateToAddMedicationIntake(originalContext),
-      ),
+      builder:
+          (context) => AddEventBottomSheet(
+            onAddSession: () => _navigateToAddSession(originalContext),
+            onAddExamination: () => _navigateToAddExamination(originalContext),
+            onAddDocument: () => _navigateToAddDocument(originalContext),
+            onAddMedicationIntake:
+                () => _navigateToAddMedicationIntake(originalContext),
+            onAddAppointment: () => _navigateToAddAppointment(originalContext),
+          ),
     );
   }
 
@@ -307,40 +363,204 @@ class _CycleDetailsContent extends StatelessWidget {
       if (event is Session) {
         final newState = await provider.toggleSessionCompleted(event);
         _showMessage(
-            context,
-            newState ? 'Séance marquée comme terminée' : 'Séance marquée comme non terminée'
+          context,
+          newState
+              ? 'Séance marquée comme terminée'
+              : 'Séance marquée comme non terminée',
         );
       } else if (event is Examination) {
         final newState = await provider.toggleExaminationCompleted(event);
         _showMessage(
-            context,
-            newState ? 'Examen marqué comme terminé' : 'Examen marqué comme non terminé'
+          context,
+          newState
+              ? 'Examen marqué comme terminé'
+              : 'Examen marqué comme non terminé',
         );
       } else if (event is MedicationIntake) {
         final newState = await provider.toggleMedicationIntakeCompleted(event);
         _showMessage(
-            context,
-            newState ? 'Médicament marqué comme pris' : 'Médicament marqué comme non pris'
+          context,
+          newState
+              ? 'Médicament marqué comme pris'
+              : 'Médicament marqué comme non pris',
         );
       }
     } catch (e) {
-      _showErrorMessage(context, "Une erreur est survenue lors de la mise à jour");
+      _showErrorMessage(
+        context,
+        "Une erreur est survenue lors de la mise à jour",
+      );
     }
   }
 
-  void _navigateToEventDetails(BuildContext context, Map<String, dynamic> event) async {
+  void _duplicateMedicationIntake(
+    BuildContext context,
+    MedicationIntake medications,
+  ) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final dbHelper = DatabaseHelper();
+
+    // Créer une copie de la prise avec un nouvel ID
+    final newIntake = MedicationIntake(
+      id: Uuid().v4(),
+      dateTime: DateTime.now(),
+      cycleId: provider.cycle!.id,
+      medications: medications.medications,
+      isCompleted: false,
+      notes: medications.notes,
+    );
+
+    // Utiliser showDialog au lieu de Navigator.push
+    final result = await showDialog<MedicationIntake>(
+      context: context,
+      builder:
+          (context) => AddMedicationIntakeDialog(
+            cycleId: provider.cycle!.id,
+            medicationIntake: newIntake,
+          ),
+    );
+
+    if (result != null) {
+      await dbHelper.insertMedicationIntake(result.toMap());
+      provider.refreshCycleData();
+    }
+  }
+
+  void _editMedicationIntake(
+    BuildContext context,
+    MedicationIntake intake,
+  ) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final dbHelper = DatabaseHelper();
+
+    final result = await showDialog<MedicationIntake>(
+      context: context,
+      builder:
+          (context) => AddMedicationIntakeDialog(
+            cycleId: provider.cycle!.id,
+            medicationIntake: intake,
+          ),
+    );
+
+    if (result != null) {
+      // Mettre à jour la prise de médicament dans la base de données
+      await dbHelper.updateMedicationIntake(result.toMap());
+      provider.refreshCycleData();
+    }
+  }
+
+  void _confirmDeleteMedicationIntake(
+    BuildContext context,
+    MedicationIntake intake,
+  ) {
+    Log.d('_confirmDeleteMedicationIntake');
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final dbHelper = DatabaseHelper();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Supprimer la prise'),
+            content: Text(
+              'Êtes-vous sûr de vouloir supprimer cette prise de médicament ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await dbHelper.deleteMedicationIntake(intake.id);
+                  provider.refreshCycleData();
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text('Supprimer'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showMedicationIntakeOptions(
+    BuildContext context,
+    MedicationIntake intake,
+  ) {
+    final originalContext = context;
+
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit),
+                title: Text('Modifier'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _editMedicationIntake(originalContext, intake);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.copy),
+                title: Text('Dupliquer'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _duplicateMedicationIntake(originalContext, intake);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete),
+                title: Text('Supprimer'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteMedicationIntake(originalContext, intake);
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _navigateToEventLongPress(
+    BuildContext context,
+    Map<String, dynamic> event,
+  ) async {
+    final originalContext = context;
+    final provider = Provider.of<CycleProvider>(originalContext, listen: false);
+    final String type = event['type'] as String;
+
+    if (type == 'medication_intake') {
+      _showMedicationIntakeOptions(
+        originalContext,
+        event['object'] as MedicationIntake,
+      );
+    }
+  }
+
+  void _navigateToEventDetails(
+    BuildContext context,
+    Map<String, dynamic> event,
+  ) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
     final String type = event['type'] as String;
     bool refresh = false;
+
+    Log.d('context:[${context.toString()}]');
+    Log.d('event:[${event.toString()}]');
 
     if (type == 'session') {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SessionDetailsScreen(
-            session: event['object'] as Session,
-            cycle: provider.cycle!,
-          ),
+          builder:
+              (context) => SessionDetailsScreen(
+                session: event['object'] as Session,
+                cycle: provider.cycle!,
+              ),
         ),
       );
       refresh = result == true;
@@ -348,11 +568,12 @@ class _CycleDetailsContent extends StatelessWidget {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ExaminationDetailsScreen(
-            examination: event['object'] as Examination,
-            cycleId: provider.cycle!.id,
-            sessions: provider.sessions,
-          ),
+          builder:
+              (context) => ExaminationDetailsScreen(
+                examination: event['object'] as Examination,
+                cycleId: provider.cycle!.id,
+                sessions: provider.sessions,
+              ),
         ),
       );
       refresh = result == true;
@@ -360,7 +581,10 @@ class _CycleDetailsContent extends StatelessWidget {
       _openDocument(context, event['object'] as Document);
     } else if (type == 'medication_intake') {
       Log.d('Appel _showMedicationIntakeDetails');
-      _showMedicationIntakeDetails(context, event['object'] as MedicationIntake);
+      _showMedicationIntakeDetails(
+        context,
+        event['object'] as MedicationIntake,
+      );
       Log.d('Retour appel _showMedicationIntakeDetails');
     }
 
@@ -370,20 +594,25 @@ class _CycleDetailsContent extends StatelessWidget {
   }
 
   void _navigateToEditCycle(BuildContext context) {
-    _showMessage(context, "La fonctionnalité d'édition du cycle sera disponible prochainement");
+    _showMessage(
+      context,
+      "La fonctionnalité d'édition du cycle sera disponible prochainement",
+    );
   }
 
   Future<void> _confirmDeleteCycle(BuildContext context) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
     final confirmed = await showDialog(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Supprimer le cycle',
-        content: 'Êtes-vous sûr de vouloir supprimer ce cycle et toutes ses séances ? Cette action est irréversible.',
-        confirmText: 'Supprimer',
-        cancelText: 'Annuler',
-        isDestructive: true,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Supprimer le cycle',
+            content:
+                'Êtes-vous sûr de vouloir supprimer ce cycle et toutes ses séances ? Cette action est irréversible.',
+            confirmText: 'Supprimer',
+            cancelText: 'Annuler',
+            isDestructive: true,
+          ),
     );
 
     if (confirmed == true) {
@@ -401,13 +630,15 @@ class _CycleDetailsContent extends StatelessWidget {
     final provider = Provider.of<CycleProvider>(context, listen: false);
     final confirmed = await showDialog(
       context: context,
-      builder: (context) => ConfirmationDialog(
-        title: 'Terminer le cycle',
-        content: 'Êtes-vous sûr de vouloir marquer ce cycle comme terminé ?',
-        confirmText: 'Confirmer',
-        cancelText: 'Annuler',
-        isDestructive: false,
-      ),
+      builder:
+          (context) => ConfirmationDialog(
+            title: 'Terminer le cycle',
+            content:
+                'Êtes-vous sûr de vouloir marquer ce cycle comme terminé ?',
+            confirmText: 'Confirmer',
+            cancelText: 'Annuler',
+            isDestructive: false,
+          ),
     );
 
     if (confirmed == true) {
@@ -454,24 +685,42 @@ class _CycleDetailsContent extends StatelessWidget {
               SizedBox(height: 16),
               ListTile(
                 leading: Icon(Icons.calendar_today, color: Colors.blue),
-                title: Text('Pour le cycle entier', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Examen lié au traitement global', style: TextStyle(fontSize: 12)),
+                title: Text(
+                  'Pour le cycle entier',
+                  style: TextStyle(fontSize: 14),
+                ),
+                subtitle: Text(
+                  'Examen lié au traitement global',
+                  style: TextStyle(fontSize: 12),
+                ),
                 onTap: () => Navigator.pop(context, 'cycle'),
                 dense: true,
               ),
               Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.event_note, color: Colors.purple),
-                title: Text('Pour une séance spécifique', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Prérequis pour une séance particulière', style: TextStyle(fontSize: 12)),
+                title: Text(
+                  'Pour une séance spécifique',
+                  style: TextStyle(fontSize: 14),
+                ),
+                subtitle: Text(
+                  'Prérequis pour une séance particulière',
+                  style: TextStyle(fontSize: 12),
+                ),
                 onTap: () => Navigator.pop(context, 'session'),
                 dense: true,
               ),
               Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.calendar_month, color: Colors.teal),
-                title: Text('Pour toutes les séances', style: TextStyle(fontSize: 14)),
-                subtitle: Text('Même examen pour chaque séance', style: TextStyle(fontSize: 12)),
+                title: Text(
+                  'Pour toutes les séances',
+                  style: TextStyle(fontSize: 14),
+                ),
+                subtitle: Text(
+                  'Même examen pour chaque séance',
+                  style: TextStyle(fontSize: 12),
+                ),
                 onTap: () => Navigator.pop(context, 'all_sessions'),
                 dense: true,
               ),
@@ -504,11 +753,26 @@ class _CycleDetailsContent extends StatelessWidget {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddExaminationScreen(
-          cycleId: provider.cycle!.id,
-          sessionId: selectedSessionId,
-          forAllSessions: examinationType == 'all_sessions',
-        ),
+        builder:
+            (context) => AddExaminationScreen(
+              cycleId: provider.cycle!.id,
+              sessionId: selectedSessionId,
+              forAllSessions: examinationType == 'all_sessions',
+            ),
+      ),
+    );
+
+    if (result == true) {
+      provider.refreshCycleData();
+    }
+  }
+
+  void _navigateToAddAppointment(BuildContext context) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddAppointmentScreen(cycleId: provider.cycle!.id),
       ),
     );
 
@@ -524,15 +788,21 @@ class _CycleDetailsContent extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Sélectionner une séance'),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: provider.sessions.length,
               itemBuilder: (context, index) {
                 final session = provider.sessions[index];
-                final date = DateFormat('dd/MM/yyyy', currentLocale).format(session.dateTime);
-                final time = DateFormat('HH:mm', currentLocale).format(session.dateTime);
+                final date = DateFormat(
+                  'dd/MM/yyyy',
+                  currentLocale,
+                ).format(session.dateTime);
+                final time = DateFormat(
+                  'HH:mm',
+                  currentLocale,
+                ).format(session.dateTime);
                 final isCompleted = session.isCompleted;
 
                 return ListTile(
@@ -555,9 +825,14 @@ class _CycleDetailsContent extends StatelessWidget {
                       color: isCompleted ? Colors.grey : null,
                     ),
                   ),
-                  trailing: isCompleted
-                      ? Icon(Icons.check_circle, color: Colors.green, size: 16)
-                      : null,
+                  trailing:
+                      isCompleted
+                          ? Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 16,
+                          )
+                          : null,
                   dense: true,
                   onTap: () => Navigator.pop(context, session.id),
                 );
@@ -576,14 +851,18 @@ class _CycleDetailsContent extends StatelessWidget {
   }
 
   void _navigateToAddDocument(BuildContext context) {
-    _showMessage(context, "La fonctionnalité d'ajout de document sera disponible prochainement");
+    _showMessage(
+      context,
+      "La fonctionnalité d'ajout de document sera disponible prochainement",
+    );
   }
 
   void _navigateToAddMedicationIntake(BuildContext context) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
     final result = await showDialog<MedicationIntake>(
       context: context,
-      builder: (context) => AddMedicationIntakeDialog(cycleId: provider.cycle!.id),
+      builder:
+          (context) => AddMedicationIntakeDialog(cycleId: provider.cycle!.id),
     );
 
     if (result != null) {
@@ -591,57 +870,79 @@ class _CycleDetailsContent extends StatelessWidget {
         await provider.addMedicationIntake(result);
         _showMessage(context, "Prise de médicament ajoutée");
       } catch (e) {
-        _showErrorMessage(context, "Erreur lors de l'ajout de la prise de médicament");
+        _showErrorMessage(
+          context,
+          "Erreur lors de l'ajout de la prise de médicament",
+        );
       }
     }
   }
 
-  void _showMedicationIntakeDetails(BuildContext context, MedicationIntake intake) {
+  void _showMedicationIntakeDetails(
+    BuildContext context,
+    MedicationIntake intake,
+  ) {
     Log.d('_showMedicationIntakeDetails');
     final provider = Provider.of<CycleProvider>(context, listen: false);
     showDialog(
       context: context,
-        builder: (context) => ChangeNotifierProvider.value(
-          value: provider,
-          child: AlertDialog(
-            title: Text('Détails de la prise de médicament'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Date: ${DateFormat('dd/MM/yyyy à HH:mm', currentLocale).format(intake.dateTime)}'),
-                  SizedBox(height: 12),
-                  Text('Médicaments:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
-                  ...intake.medications.map((med) => Padding(
-                    padding: EdgeInsets.only(left: 8, bottom: 4),
-                    child: Text('• ${med.quantity}x ${med.medicationName}'),
-                  )),
-                  SizedBox(height: 12),
-                  Text('Statut: ${intake.isCompleted ? "Prise effectuée" : "À prendre"}'),
-                  if (intake.notes != null && intake.notes!.isNotEmpty) ...[
+      builder:
+          (context) => ChangeNotifierProvider.value(
+            value: provider,
+            child: AlertDialog(
+              title: Text('Détails de la prise de médicament'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Date: ${DateFormat('dd/MM/yyyy à HH:mm', currentLocale).format(intake.dateTime)}',
+                    ),
                     SizedBox(height: 12),
-                    Text('Notes:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 4),
-                    Text(intake.notes!),
+                    Text(
+                      'Médicaments:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    ...intake.medications.map(
+                      (med) => Padding(
+                        padding: EdgeInsets.only(left: 8, bottom: 4),
+                        child: Text('• ${med.quantity}x ${med.medicationName}'),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Statut: ${intake.isCompleted ? "Prise effectuée" : "À prendre"}',
+                    ),
+                    if (intake.notes != null && intake.notes!.isNotEmpty) ...[
+                      SizedBox(height: 12),
+                      Text(
+                        'Notes:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(intake.notes!),
+                    ],
                   ],
-                ],
+                ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Fermer'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Fermer'),
-              ),
-            ],
           ),
-        ),
     );
   }
 
   void _openDocument(BuildContext context, Document document) {
-    _showMessage(context, "La fonctionnalité d'ouverture de document sera disponible prochainement");
+    _showMessage(
+      context,
+      "La fonctionnalité d'ouverture de document sera disponible prochainement",
+    );
   }
 
   void _showMessage(BuildContext context, String message) {
@@ -659,5 +960,3 @@ class _CycleDetailsContent extends StatelessWidget {
     );
   }
 }
-
-

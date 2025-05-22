@@ -8,20 +8,22 @@ class EstablishmentItem extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const EstablishmentItem({
-    Key? key,
+    super.key,
     required this.establishment,
     this.onDelete,
-    this.onEdit,  // Add this parameter
-  }) : super(key: key);
+    this.onEdit, // Add this parameter
+  });
 
-// Add the property declaration
+  // Add the property declaration
   final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
-    final hasPhone = establishment.phone != null && establishment.phone!.isNotEmpty;
-    final hasEmail = establishment.email != null && establishment.email!.isNotEmpty;
-    
+    final hasPhone =
+        establishment.phone != null && establishment.phone!.isNotEmpty;
+    final hasEmail =
+        establishment.email != null && establishment.email!.isNotEmpty;
+
     return Card(
       margin: EdgeInsets.symmetric(vertical: 4),
       child: Padding(
@@ -47,22 +49,17 @@ class EstablishmentItem extends StatelessWidget {
                 children: [
                   Text(
                     establishment.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  if (establishment.address != null || establishment.city != null)
+                  if (establishment.address != null ||
+                      establishment.city != null)
                     Text(
                       [
                         establishment.address,
                         establishment.postalCode,
-                        establishment.city
+                        establishment.city,
                       ].where((s) => s != null && s.isNotEmpty).join(', '),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                 ],
               ),
@@ -78,7 +75,8 @@ class EstablishmentItem extends StatelessWidget {
                 Icons.phone,
                 color: hasPhone ? Colors.green : Colors.grey[400],
               ),
-              onPressed: hasPhone ? () => _makePhoneCall(establishment.phone!) : null,
+              onPressed:
+                  hasPhone ? () => _makePhoneCall(establishment.phone!) : null,
               tooltip: hasPhone ? 'Appeler' : 'Aucun numéro',
             ),
             IconButton(
@@ -86,7 +84,8 @@ class EstablishmentItem extends StatelessWidget {
                 Icons.email,
                 color: hasEmail ? Colors.blue : Colors.grey[400],
               ),
-              onPressed: hasEmail ? () => _sendEmail(establishment.email!) : null,
+              onPressed:
+                  hasEmail ? () => _sendEmail(establishment.email!) : null,
               tooltip: hasEmail ? 'Envoyer un email' : 'Aucun email',
             ),
           ],
@@ -94,14 +93,14 @@ class EstablishmentItem extends StatelessWidget {
       ),
     );
   }
-  
+
   Future<void> _makePhoneCall(String phoneNumber) async {
     final Uri uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
   }
-  
+
   Future<void> _sendEmail(String email) async {
     final Uri uri = Uri.parse('mailto:$email');
     if (await canLaunchUrl(uri)) {
@@ -109,4 +108,3 @@ class EstablishmentItem extends StatelessWidget {
     }
   }
 }
-

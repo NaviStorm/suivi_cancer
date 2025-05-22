@@ -1,21 +1,18 @@
-// lib/widgets/doctor_list_widget.dart
+// lib/widgets/ps_list_widget.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:suivi_cancer/features/treatment/models/doctor.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart'; // Nouveau modèle
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/features/treatment/screens/doctor/edit_doctor_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/ps/edit_ps_creen.dart';
+import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 
-
-class DoctorListWidget extends StatefulWidget {
-  const DoctorListWidget({Key? key}) : super(key: key);
+class PSListWidget extends StatefulWidget {
+  const PSListWidget({super.key});
 
   @override
-  State<DoctorListWidget> createState() => DoctorListWidgetState();
+  State<PSListWidget> createState() => PSListWidgetState();
 }
 
-class DoctorListWidgetState extends State<DoctorListWidget> {
+class PSListWidgetState extends State<PSListWidget> {
   List<PS> _professionals = [];
   bool _isLoading = true;
 
@@ -66,9 +63,7 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
 
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => EditPSScreen(ps: psMap),
-      ),
+      MaterialPageRoute(builder: (context) => AddPSScreen(ps: psMap)),
     );
 
     if (result == true) {
@@ -104,12 +99,16 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
         final professional = _professionals[index];
 
         // Trouver les contacts de téléphone et email
-        final phoneContacts = professional.contacts
-            ?.where((contact) => contact.type == 0) // Type téléphone
-            .toList() ?? [];
-        final emailContacts = professional.contacts
-            ?.where((contact) => contact.type == 1) // Type email
-            .toList() ?? [];
+        final phoneContacts =
+            professional.contacts
+                ?.where((contact) => contact.type == 0) // Type téléphone
+                .toList() ??
+            [];
+        final emailContacts =
+            professional.contacts
+                ?.where((contact) => contact.type == 1) // Type email
+                .toList() ??
+            [];
 
         final bool hasPhone = phoneContacts.isNotEmpty;
         final bool hasEmail = emailContacts.isNotEmpty;
@@ -118,7 +117,9 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
           margin: EdgeInsets.only(bottom: 8),
           child: ListTile(
             title: Text(professional.fullName),
-            subtitle: Text(professional.category?['name'] ?? 'Catégorie non spécifiée'),
+            subtitle: Text(
+              professional.category?['name'] ?? 'Catégorie non spécifiée',
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -128,9 +129,10 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
                     Icons.phone,
                     color: hasPhone ? Colors.blue : Colors.grey,
                   ),
-                  onPressed: hasPhone
-                      ? () => _showContactOptions(context, phoneContacts, 0)
-                      : null,
+                  onPressed:
+                      hasPhone
+                          ? () => _showContactOptions(context, phoneContacts, 0)
+                          : null,
                 ),
                 // Icône d'email
                 IconButton(
@@ -138,9 +140,10 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
                     Icons.email,
                     color: hasEmail ? Colors.blue : Colors.grey,
                   ),
-                  onPressed: hasEmail
-                      ? () => _showContactOptions(context, emailContacts, 1)
-                      : null,
+                  onPressed:
+                      hasEmail
+                          ? () => _showContactOptions(context, emailContacts, 1)
+                          : null,
                 ),
                 // Icône de modification
                 IconButton(
@@ -165,16 +168,21 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
     );
   }
 
-
   // Afficher une liste d'options si plusieurs contacts sont disponibles
-  void _showContactOptions(BuildContext context, List<HealthProfessionalContact> contacts, int type) {
+  void _showContactOptions(
+    BuildContext context,
+    List<HealthProfessionalContact> contacts,
+    int type,
+  ) {
     if (contacts.isEmpty) return;
 
     if (contacts.length == 1) {
       // S'il n'y a qu'un seul contact, l'utiliser directement
-      if (type == 0) { // Téléphone
+      if (type == 0) {
+        // Téléphone
         _makePhoneCall(contacts[0].value);
-      } else if (type == 1) { // Email
+      } else if (type == 1) {
+        // Email
         _sendEmail(contacts[0].value);
       }
       return;
@@ -183,57 +191,43 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
     // S'il y a plusieurs contacts, afficher une liste d'options
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                type == 0 ? 'Choisir un numéro de téléphone' : 'Choisir un email',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    type == 0
+                        ? 'Choisir un numéro de téléphone'
+                        : 'Choisir un email',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
+                Divider(),
+                ...contacts.map(
+                  (contact) => ListTile(
+                    leading: Icon(
+                      type == 0 ? Icons.phone : Icons.email,
+                      color: Colors.blue,
+                    ),
+                    title: Text(contact.value),
+                    subtitle: Text(contact.label ?? 'Non spécifié'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (type == 0) {
+                        _makePhoneCall(contact.value);
+                      } else if (type == 1) {
+                        _sendEmail(contact.value);
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
-            Divider(),
-            ...contacts.map((contact) => ListTile(
-              leading: Icon(
-                type == 0 ? Icons.phone : Icons.email,
-                color: Colors.blue,
-              ),
-              title: Text(contact.value),
-              subtitle: Text(contact.label ?? 'Non spécifié'),
-              onTap: () {
-                Navigator.pop(context);
-                if (type == 0) {
-                  _makePhoneCall(contact.value);
-                } else if (type == 1) {
-                  _sendEmail(contact.value);
-                }
-              },
-            )),
-          ],
-        ),
-      ),
+          ),
     );
-  }
-
-  // Fonction pour obtenir le texte correspondant à la catégorie
-  String _getCategoryText(ContactCategory category) {
-    switch (category) {
-      case ContactCategory.Cabinet:
-        return 'Cabinet';
-      case ContactCategory.Hopital:
-        return 'Hôpital';
-      case ContactCategory.Personnel:
-        return 'Personnel';
-      case ContactCategory.Autre:
-        return 'Autre';
-      default:
-        return 'Non spécifié';
-    }
   }
 
   // Fonction pour passer un appel téléphonique
@@ -243,7 +237,9 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
       await launchUrl(uri);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible de passer un appel au $phoneNumber')),
+        SnackBar(
+          content: Text('Impossible de passer un appel au $phoneNumber'),
+        ),
       );
     }
   }
@@ -263,33 +259,31 @@ class DoctorListWidgetState extends State<DoctorListWidget> {
   void _confirmDelete(BuildContext context, PS professional) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Supprimer ce professionnel?'),
-        content: Text(
-            'Êtes-vous sûr de vouloir supprimer ${professional.firstName} ${professional.lastName}? Cette action est irréversible.'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deletePS(professional.id);
-            },
-            child: Text('Supprimer'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Supprimer ce professionnel?'),
+            content: Text(
+              'Êtes-vous sûr de vouloir supprimer ${professional.firstName} ${professional.lastName}? Cette action est irréversible.',
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await _deletePS(professional.id);
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: Text('Supprimer'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
-
 
   Future<void> _deletePS(String id) async {
     try {

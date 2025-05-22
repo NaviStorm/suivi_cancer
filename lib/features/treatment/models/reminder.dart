@@ -1,6 +1,4 @@
 // lib/features/treatment/models/reminder.dart
-import 'package:flutter/foundation.dart';
-
 enum ReminderFrequency {
   Once,
   Daily,

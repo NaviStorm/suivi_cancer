@@ -1,6 +1,4 @@
 // lib/features/treatment/models/establishment.dart
-import 'package:flutter/foundation.dart';
-
 class Establishment {
   final String id;
   final String name;

@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 // lib/common/widgets/custom_text_field.dart
 import 'package:flutter/material.dart';
 
@@ -22,7 +19,7 @@ class CustomTextField extends StatelessWidget {
   final FocusNode? focusNode;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.label,
     required this.controller,
     this.obscureText = false,
@@ -38,7 +35,7 @@ class CustomTextField extends StatelessWidget {
     this.readOnly = false,
     this.autovalidateMode = AutovalidateMode.onUserInteraction,
     this.focusNode,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +56,12 @@ class CustomTextField extends StatelessWidget {
         hintText: placeholder, // Utilisé ici comme hintText
         suffixIcon: suffix,
         prefixIcon: prefix,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: maxLines > 1 ? 16 : 8,
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: maxLines > 1 ? 16 : 8),
       ),
     );
   }
 }
-

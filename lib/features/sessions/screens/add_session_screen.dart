@@ -13,11 +13,7 @@ class AddSessionScreen extends StatefulWidget {
   final Cycle cycle;
   final Session? session; // Optionnel pour l'édition
 
-  const AddSessionScreen({
-    Key? key,
-    required this.cycle,
-    this.session,
-  }) : super(key: key);
+  const AddSessionScreen({super.key, required this.cycle, this.session});
 
   @override
   _AddSessionScreenState createState() => _AddSessionScreenState();
@@ -53,7 +49,8 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
 
       // Charger les médicaments disponibles
       final medicationMaps = await dbHelper.getMedications();
-      _availableMedications = medicationMaps.map((map) => Medication.fromMap(map)).toList();
+      _availableMedications =
+          medicationMaps.map((map) => Medication.fromMap(map)).toList();
 
       // Si en mode édition, initialiser les valeurs
       if (_isEditMode) {
@@ -92,70 +89,79 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
       appBar: AppBar(
         title: Text(_isEditMode ? 'Modifier la séance' : 'Nouvelle séance'),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildCycleInfoCard(),
-              SizedBox(height: 16),
-              DateTimePicker(
-                label: 'Date et heure de la séance',
-                initialValue: _dateTime,
-                showTime: true,
-                onDateTimeSelected: (dateTime) {
-                  setState(() {
-                    _dateTime = dateTime;
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-              _buildMedicationSection(
-                'Médicaments',
-                _selectedMedications,
-                _availableMedications.where((m) => !m.isRinsing).toList(),
-                    (medications) {
-                  setState(() {
-                    _selectedMedications = medications;
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-              _buildMedicationSection(
-                'Produits de rinçage',
-                _selectedRinsingProducts,
-                _availableMedications.where((m) => m.isRinsing).toList(),
-                    (medications) {
-                  setState(() {
-                    _selectedRinsingProducts = medications;
-                  });
-                },
-              ),
-              SizedBox(height: 16),
-              CustomTextField(
-                label: 'Notes (optionnel)',
-                controller: _notesController,
-                maxLines: 4,
-                placeholder: 'Ajoutez des notes importantes concernant cette séance',
-              ),
-              SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _saveSession,
-                child: _isSaving
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(_isEditMode ? 'Mettre à jour' : 'Enregistrer'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildCycleInfoCard(),
+                      SizedBox(height: 16),
+                      DateTimePicker(
+                        label: 'Date et heure de la séance',
+                        initialValue: _dateTime,
+                        showTime: true,
+                        onDateTimeSelected: (dateTime) {
+                          setState(() {
+                            _dateTime = dateTime;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      _buildMedicationSection(
+                        'Médicaments',
+                        _selectedMedications,
+                        _availableMedications
+                            .where((m) => !m.isRinsing)
+                            .toList(),
+                        (medications) {
+                          setState(() {
+                            _selectedMedications = medications;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      _buildMedicationSection(
+                        'Produits de rinçage',
+                        _selectedRinsingProducts,
+                        _availableMedications
+                            .where((m) => m.isRinsing)
+                            .toList(),
+                        (medications) {
+                          setState(() {
+                            _selectedRinsingProducts = medications;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Notes (optionnel)',
+                        controller: _notesController,
+                        maxLines: 4,
+                        placeholder:
+                            'Ajoutez des notes importantes concernant cette séance',
+                      ),
+                      SizedBox(height: 32),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _saveSession,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child:
+                            _isSaving
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                  _isEditMode ? 'Mettre à jour' : 'Enregistrer',
+                                ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -168,15 +174,15 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           children: [
             Text(
               'Cycle associé',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             _buildInfoRow('Type', _getCycleTypeLabel(widget.cycle.type)),
             _buildInfoRow('Établissement', widget.cycle.establishment.name),
-            _buildInfoRow('Période', '${DateFormat('dd/MM/yyyy').format(widget.cycle.startDate)} - ${DateFormat('dd/MM/yyyy').format(widget.cycle.endDate)}'),
+            _buildInfoRow(
+              'Période',
+              '${DateFormat('dd/MM/yyyy').format(widget.cycle.startDate)} - ${DateFormat('dd/MM/yyyy').format(widget.cycle.endDate)}',
+            ),
           ],
         ),
       ),
@@ -200,12 +206,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
+            child: Text(value, style: TextStyle(fontWeight: FontWeight.w400)),
           ),
         ],
       ),
@@ -213,20 +214,17 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
   }
 
   Widget _buildMedicationSection(
-      String title,
-      List<Medication> selectedMedications,
-      List<Medication> availableMedications,
-      Function(List<Medication>) onChanged,
-      ) {
+    String title,
+    List<Medication> selectedMedications,
+    List<Medication> availableMedications,
+    Function(List<Medication>) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Card(
@@ -238,18 +236,32 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
                 // Affichage des médicaments sélectionnés
                 if (selectedMedications.isNotEmpty)
                   Column(
-                    children: selectedMedications.map((medication) => ListTile(
-                      title: Text(medication.name),
-                      subtitle: medication.formattedDosage != medication.name
-                          ? Text(medication.formattedDosage)
-                          : null,
-                      trailing: IconButton(
-                        icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                        onPressed: () {
-                          onChanged(selectedMedications.where((m) => m.id != medication.id).toList());
-                        },
-                      ),
-                    )).toList(),
+                    children:
+                        selectedMedications
+                            .map(
+                              (medication) => ListTile(
+                                title: Text(medication.name),
+                                subtitle:
+                                    medication.formattedDosage !=
+                                            medication.name
+                                        ? Text(medication.formattedDosage)
+                                        : null,
+                                trailing: IconButton(
+                                  icon: Icon(
+                                    Icons.remove_circle_outline,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    onChanged(
+                                      selectedMedications
+                                          .where((m) => m.id != medication.id)
+                                          .toList(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                            .toList(),
                   ),
 
                 // Dropdown pour ajouter un médicament
@@ -257,14 +269,21 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
                   DropdownButton<Medication>(
                     isExpanded: true,
                     hint: Text('Ajouter un ${title.toLowerCase()}'),
-                    items: availableMedications
-                        .where((medication) => !selectedMedications.any((m) => m.id == medication.id))
-                        .map((medication) {
-                      return DropdownMenuItem<Medication>(
-                        value: medication,
-                        child: Text(medication.formattedDosage),
-                      );
-                    }).toList(),
+                    items:
+                        availableMedications
+                            .where(
+                              (medication) =>
+                                  !selectedMedications.any(
+                                    (m) => m.id == medication.id,
+                                  ),
+                            )
+                            .map((medication) {
+                              return DropdownMenuItem<Medication>(
+                                value: medication,
+                                child: Text(medication.formattedDosage),
+                              );
+                            })
+                            .toList(),
                     onChanged: (Medication? value) {
                       if (value != null) {
                         onChanged([...selectedMedications, value]);
@@ -304,22 +323,26 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           'cycleId': widget.cycle.id,
           'dateTime': _dateTime.toIso8601String(),
           'establishmentId': widget.cycle.establishment.id,
-          'notes': _notesController.text.isNotEmpty ? _notesController.text : null,
-          'isCompleted': _isEditMode ? (widget.session!.isCompleted ? 1 : 0) : 0,
+          'notes':
+              _notesController.text.isNotEmpty ? _notesController.text : null,
+          'isCompleted':
+              _isEditMode ? (widget.session!.isCompleted ? 1 : 0) : 0,
         };
 
         // Extraire les IDs des médicaments
-        List<String> medicationIds = _selectedMedications.map((m) => m.id).toList();
-        List<String> rinsingProductIds = _selectedRinsingProducts.map((m) => m.id).toList();
+        List<String> medicationIds =
+            _selectedMedications.map((m) => m.id).toList();
+        List<String> rinsingProductIds =
+            _selectedRinsingProducts.map((m) => m.id).toList();
 
         if (_isEditMode) {
           await dbHelper.updateSession(sessionData);
 
           // Mettre à jour les relations avec les médicaments
           await dbHelper.updateSessionMedications(
-              sessionId,
-              medicationIds,
-              rinsingProductIds
+            sessionId,
+            medicationIds,
+            rinsingProductIds,
           );
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -330,14 +353,14 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
 
           // Ajouter les relations avec les médicaments
           await dbHelper.addSessionMedications(
-              sessionId,
-              medicationIds,
-              rinsingProductIds
+            sessionId,
+            medicationIds,
+            rinsingProductIds,
           );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Séance ajoutée avec succès')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Séance ajoutée avec succès')));
         }
 
         Navigator.pop(context, true);

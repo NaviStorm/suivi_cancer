@@ -12,23 +12,23 @@ class ExaminationCard extends StatelessWidget {
   final String? sessionRelationLabel;
 
   const ExaminationCard({
-    Key? key,
+    super.key,
     required this.examination,
     required this.onToggleCompleted,
     required this.onTap,
     required this.locale,
     this.sessionRelationLabel,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final bool isPast = examination.dateTime.isBefore(DateTime.now());
     final bool isCompleted = examination.isCompleted;
-    
+
     // Déterminer la couleur de fond et la bordure
     Color backgroundColor;
     BorderSide? border;
-    
+
     if (examination.type == ExaminationType.PriseDeSang) {
       backgroundColor = const Color(0xFFFFF9C4); // Jaune très pâle
       border = BorderSide(color: Colors.amber[300]!, width: 1);
@@ -63,7 +63,7 @@ class ExaminationCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Date
-              Container(
+              SizedBox(
                 width: 50,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -77,7 +77,10 @@ class ExaminationCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      DateFormat('MMM', locale).format(examination.dateTime).toUpperCase(),
+                      DateFormat(
+                        'MMM',
+                        locale,
+                      ).format(examination.dateTime).toUpperCase(),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -87,10 +90,7 @@ class ExaminationCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       DateFormat('HH:mm', locale).format(examination.dateTime),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -126,7 +126,9 @@ class ExaminationCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            EventFormatter.getExaminationTypeLabel(examination.type),
+                            EventFormatter.getExaminationTypeLabel(
+                              examination.type,
+                            ),
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -138,31 +140,50 @@ class ExaminationCard extends StatelessWidget {
                         GestureDetector(
                           onTap: () => onToggleCompleted(examination),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isCompleted ? Colors.green.withAlpha(20) : Colors.grey.withAlpha(10),
+                              color:
+                                  isCompleted
+                                      ? Colors.green.withAlpha(20)
+                                      : Colors.grey.withAlpha(10),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Icon(
-                              isCompleted ? Icons.check_circle : Icons.check_circle_outline,
+                              isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
                               size: 16,
                               color: isCompleted ? Colors.green : Colors.grey,
                             ),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: isCompleted
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
+                            color:
+                                isCompleted
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.grey.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            isCompleted ? 'Terminé' : (isPast ? 'En retard' : 'À venir'),
+                            isCompleted
+                                ? 'Terminé'
+                                : (isPast ? 'En retard' : 'À venir'),
                             style: TextStyle(
                               fontSize: 9,
-                              color: isCompleted ? Colors.green : (isPast ? Colors.amber.shade900 : Colors.grey[700]),
+                              color:
+                                  isCompleted
+                                      ? Colors.green
+                                      : (isPast
+                                          ? Colors.amber.shade900
+                                          : Colors.grey[700]),
                             ),
                           ),
                         ),
@@ -220,7 +241,10 @@ class ExaminationCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   sessionRelationLabel!,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -235,7 +259,10 @@ class ExaminationCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   examination.notes!,
-                  style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -246,4 +273,3 @@ class ExaminationCard extends StatelessWidget {
     );
   }
 }
-

@@ -1,8 +1,3 @@
-import 'package:flutter/foundation.dart';
-import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:suivi_cancer/features/treatment/models/document.dart';
-
 class HealthProfessionalCategory {
   final String id;
   final String name;

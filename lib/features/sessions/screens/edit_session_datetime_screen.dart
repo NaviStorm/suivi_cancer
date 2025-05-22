@@ -8,13 +8,11 @@ import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 class EditSessionDateTimeScreen extends StatefulWidget {
   final Session session;
 
-  const EditSessionDateTimeScreen({
-    Key? key,
-    required this.session,
-  }) : super(key: key);
+  const EditSessionDateTimeScreen({super.key, required this.session});
 
   @override
-  _EditSessionDateTimeScreenState createState() => _EditSessionDateTimeScreenState();
+  _EditSessionDateTimeScreenState createState() =>
+      _EditSessionDateTimeScreenState();
 }
 
 class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
@@ -30,9 +28,7 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Modifier la date et l\'heure'),
-      ),
+      appBar: AppBar(title: Text('Modifier la date et l\'heure')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -54,10 +50,7 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
                     SizedBox(height: 8),
                     Text(
                       'Vous pouvez modifier uniquement la date et l\'heure de cette séance. Les médicaments et autres paramètres sont définis par le protocole du cycle et ne peuvent pas être modifiés individuellement.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -85,13 +78,14 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _saveDateTime,
-              child: _isSaving
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Enregistrer'),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 minimumSize: Size(double.infinity, 50),
               ),
+              child:
+                  _isSaving
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Enregistrer'),
             ),
           ],
         ),
@@ -103,22 +97,22 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
     setState(() {
       _isSaving = true;
     });
-    
+
     try {
       final dbHelper = DatabaseHelper();
-      
+
       // Mettre à jour uniquement la date et l'heure
       final sessionData = {
         'id': widget.session.id,
         'dateTime': _dateTime.toIso8601String(),
       };
-      
+
       await dbHelper.updateSession(sessionData);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Date et heure modifiées avec succès')),
       );
-      
+
       Navigator.pop(context, true);
     } catch (e) {
       print('Erreur lors de la modification de la date: $e');

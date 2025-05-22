@@ -1,12 +1,13 @@
 // lib/features/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:suivi_cancer/features/home/home_screen.dart';
-import 'package:suivi_cancer/features/auth/password_setup_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:suivi_cancer/core/encryption/encryption_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -51,41 +52,39 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       print("Erreur sur l'apple de : getPassword $e");
     }
-    if (storedPassword == null) {
-      Log.d("Le mot de passe n'existe pas : Création storedPassword:[${storedPassword}]");
-      // Aucun mot de passe n'existe, rediriger vers l'écran de configuration
-      Log.d("Appel creatio du pwd");
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => PasswordSetupScreen()),
-      );
-    } else {
-      Log.d("Le mot de passe existe : storedPassword:[${storedPassword}]");
-
-    }
+    Log.d("Le mot de passe existe : storedPassword:[$storedPassword]");
   }
 
   Future<void> _verifyPassword() async {
     final prefs = await SharedPreferences.getInstance();
     final storedPassword = await _encryptionService.getPassword();
-    
+
     if (storedPassword == _passwordController.text) {
       await prefs.setInt('failed_attempts', 0);
-    Navigator.pushReplacement(
-      context, 
-      MaterialPageRoute(builder: (context) => HomeScreen()),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
     } else {
       _failedAttempts++;
       await prefs.setInt('failed_attempts', _failedAttempts);
-      
+
       if (_failedAttempts >= 10) {
         // Supprimer toutes les données
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Trop de tentatives. Toutes les données ont été supprimées.')),
+          SnackBar(
+            content: Text(
+              'Trop de tentatives. Toutes les données ont été supprimées.',
+            ),
+          ),
         );
       } else if (_failedAttempts >= 8) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Attention! Après 10 tentatives échouées, toutes les données seront supprimées.')),
+          SnackBar(
+            content: Text(
+              'Attention! Après 10 tentatives échouées, toutes les données seront supprimées.',
+            ),
+          ),
         );
         _setLockout();
       } else if (_failedAttempts >= 3) {
@@ -108,7 +107,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Suivi Cancer', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              'Suivi Cancer',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 20),
             Text(
               'Cette application contient des données sensibles concernant votre santé. Un mot de passe est requis pour protéger vos informations.',
@@ -125,8 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _lockoutTime != null && DateTime.now().isBefore(_lockoutTime!)
-                  ? null : _verifyPassword,
+              onPressed:
+                  _lockoutTime != null && DateTime.now().isBefore(_lockoutTime!)
+                      ? null
+                      : _verifyPassword,
               child: Text('Se connecter'),
             ),
           ],
@@ -135,4 +139,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

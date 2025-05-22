@@ -5,8 +5,9 @@ import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 
-
 class AddEstablishmentScreen extends StatefulWidget {
+  const AddEstablishmentScreen({super.key});
+
   @override
   _AddEstablishmentScreenState createState() => _AddEstablishmentScreenState();
 }
@@ -36,14 +37,11 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     Log.d('build');
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Ajouter un établissement'),
-      ),
+      appBar: AppBar(title: Text('Ajouter un établissement')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -153,10 +151,10 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
             // Bouton de sauvegarde
             ElevatedButton(
               onPressed: _saveEstablishment,
-              child: Text('Ajouter l\'établissement'),
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
+              child: Text('Ajouter l\'établissement'),
             ),
           ],
         ),
@@ -175,28 +173,50 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
         final establishment = Establishment(
           id: Uuid().v4(),
           name: _nameController.text,
-          address: _addressController.text.isNotEmpty ? _addressController.text : null,
+          address:
+              _addressController.text.isNotEmpty
+                  ? _addressController.text
+                  : null,
           city: _cityController.text.isNotEmpty ? _cityController.text : null,
-          postalCode: _postalCodeController.text.isNotEmpty ? _postalCodeController.text : null,
-          phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
-          email: _emailController.text.isNotEmpty ? _emailController.text : null,
-          website: _websiteController.text.isNotEmpty ? _websiteController.text : null,
-          notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+          postalCode:
+              _postalCodeController.text.isNotEmpty
+                  ? _postalCodeController.text
+                  : null,
+          phone:
+              _phoneController.text.isNotEmpty ? _phoneController.text : null,
+          email:
+              _emailController.text.isNotEmpty ? _emailController.text : null,
+          website:
+              _websiteController.text.isNotEmpty
+                  ? _websiteController.text
+                  : null,
+          notes:
+              _notesController.text.isNotEmpty ? _notesController.text : null,
         );
 
-        Log.d("AddEstablishmentScreen: Établissement créé avec ID: ${establishment.id}");
+        Log.d(
+          "AddEstablishmentScreen: Établissement créé avec ID: ${establishment.id}",
+        );
 
         // AJOUTER CES LIGNES: Sauvegarde dans la base de données
         final dbHelper = DatabaseHelper();
-        final result = await dbHelper.insertEstablishment(establishment.toMap());
-        Log.d("AddEstablishmentScreen: Résultat de l'insertion en base de données: $result");
+        final result = await dbHelper.insertEstablishment(
+          establishment.toMap(),
+        );
+        Log.d(
+          "AddEstablishmentScreen: Résultat de l'insertion en base de données: $result",
+        );
 
         // Retourner à l'écran précédent avec un résultat positif
         Navigator.pop(context, true);
       } catch (e) {
-        Log.d("AddEstablishmentScreen: Erreur lors de la création de l'établissement: $e");
+        Log.d(
+          "AddEstablishmentScreen: Erreur lors de la création de l'établissement: $e",
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création de l\'établissement: $e')),
+          SnackBar(
+            content: Text('Erreur lors de la création de l\'établissement: $e'),
+          ),
         );
       }
     } else {
@@ -204,4 +224,3 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
     }
   }
 }
-

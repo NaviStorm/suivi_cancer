@@ -1,9 +1,7 @@
 // lib/features/treatment/screens/add_first_session_screen.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
-import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
@@ -12,10 +10,7 @@ import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 class AddFirstSessionScreen extends StatefulWidget {
   final Cycle cycle;
 
-  const AddFirstSessionScreen({
-    Key? key,
-    required this.cycle,
-  }) : super(key: key);
+  const AddFirstSessionScreen({super.key, required this.cycle});
 
   @override
   _AddFirstSessionScreenState createState() => _AddFirstSessionScreenState();
@@ -28,7 +23,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
   List<Medication> _selectedMedications = [];
   List<Medication> _selectedRinsingProducts = [];
   List<Medication> _availableMedications = [];
-  
+
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -44,14 +39,15 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final dbHelper = DatabaseHelper();
-      
+
       // Charger les médicaments disponibles
       final medicationMaps = await dbHelper.getMedications();
-      _availableMedications = medicationMaps.map((map) => Medication.fromMap(map)).toList();
-      
+      _availableMedications =
+          medicationMaps.map((map) => Medication.fromMap(map)).toList();
+
       setState(() {
         _isLoading = false;
       });
@@ -60,7 +56,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
       setState(() {
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur lors du chargement des données')),
       );
@@ -70,75 +66,80 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Configuration des séances'),
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildInfoCard(),
-                    SizedBox(height: 16),
-                    DateTimePicker(
-                      label: 'Date et heure de la première séance',
-                      initialValue: _dateTime,
-                      showTime: true,
-                      onDateTimeSelected: (dateTime) {
-                        setState(() {
-                          _dateTime = dateTime;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    _buildMedicationSection(
-                      'Médicaments',
-                      _selectedMedications,
-                      _availableMedications.where((m) => !m.isRinsing).toList(),
-                      (medications) {
-                        setState(() {
-                          _selectedMedications = medications;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    _buildMedicationSection(
-                      'Produits de rinçage',
-                      _selectedRinsingProducts,
-                      _availableMedications.where((m) => m.isRinsing).toList(),
-                      (medications) {
-                        setState(() {
-                          _selectedRinsingProducts = medications;
-                        });
-                      },
-                    ),
-                    SizedBox(height: 16),
-                    CustomTextField(
-                      label: 'Notes (optionnel)',
-                      controller: _notesController,
-                      maxLines: 4,
-                      placeholder: 'Ajoutez des notes importantes concernant les séances',
-                    ),
-                    SizedBox(height: 32),
-                    _buildPrerequisiteExplanation(),
-                    SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _isSaving ? null : _generateSessions,
-                      child: _isSaving
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Générer les séances'),
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16),
+      appBar: AppBar(title: Text('Configuration des séances')),
+      body:
+          _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildInfoCard(),
+                      SizedBox(height: 16),
+                      DateTimePicker(
+                        label: 'Date et heure de la première séance',
+                        initialValue: _dateTime,
+                        showTime: true,
+                        onDateTimeSelected: (dateTime) {
+                          setState(() {
+                            _dateTime = dateTime;
+                          });
+                        },
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 16),
+                      _buildMedicationSection(
+                        'Médicaments',
+                        _selectedMedications,
+                        _availableMedications
+                            .where((m) => !m.isRinsing)
+                            .toList(),
+                        (medications) {
+                          setState(() {
+                            _selectedMedications = medications;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      _buildMedicationSection(
+                        'Produits de rinçage',
+                        _selectedRinsingProducts,
+                        _availableMedications
+                            .where((m) => m.isRinsing)
+                            .toList(),
+                        (medications) {
+                          setState(() {
+                            _selectedRinsingProducts = medications;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Notes (optionnel)',
+                        controller: _notesController,
+                        maxLines: 4,
+                        placeholder:
+                            'Ajoutez des notes importantes concernant les séances',
+                      ),
+                      SizedBox(height: 32),
+                      _buildPrerequisiteExplanation(),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : _generateSessions,
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child:
+                            _isSaving
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text('Générer les séances'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
@@ -151,26 +152,17 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
           children: [
             Text(
               'Information sur le cycle',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
               'Vous allez configurer ${widget.cycle.sessionCount} séances pour ce cycle. La première séance commencera à la date et l\'heure que vous indiquez ci-dessous. Les autres séances seront automatiquement programmées à intervalle de ${widget.cycle.sessionInterval.inDays} jours.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
             SizedBox(height: 8),
             Text(
               'Les médicaments sélectionnés seront appliqués à toutes les séances et ne pourront pas être modifiés individuellement. Cela garantit l\'intégrité du protocole de traitement.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
             ),
           ],
         ),
@@ -188,17 +180,12 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
           children: [
             Text(
               'À propos des prérequis',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
               'Après avoir généré les séances, vous pourrez ajouter des prérequis spécifiques pour chaque séance (comme des analyses de sang préalables ou des médicaments à prendre avant).',
-              style: TextStyle(
-                fontSize: 14,
-              ),
+              style: TextStyle(fontSize: 14),
             ),
           ],
         ),
@@ -217,10 +204,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Card(
@@ -232,40 +216,61 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
                 // Affichage des médicaments sélectionnés
                 if (selectedMedications.isNotEmpty)
                   Column(
-                    children: selectedMedications.map((medication) => ListTile(
-                      title: Text(medication.name),
-                      subtitle: medication.formattedDosage != medication.name 
-                        ? Text(medication.formattedDosage)
-                        : null,
-                      trailing: IconButton(
-                        icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                        onPressed: () {
-                          onChanged(selectedMedications.where((m) => m.id != medication.id).toList());
-                        },
-                      ),
-                    )).toList(),
+                    children:
+                        selectedMedications
+                            .map(
+                              (medication) => ListTile(
+                                title: Text(medication.name),
+                                subtitle:
+                                    medication.formattedDosage !=
+                                            medication.name
+                                        ? Text(medication.formattedDosage)
+                                        : null,
+                                trailing: IconButton(
+                                  icon: Icon(
+                                    Icons.remove_circle_outline,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    onChanged(
+                                      selectedMedications
+                                          .where((m) => m.id != medication.id)
+                                          .toList(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                            .toList(),
                   ),
-                
+
                 // Dropdown pour ajouter un médicament
                 if (availableMedications.isNotEmpty)
                   DropdownButton<Medication>(
                     isExpanded: true,
                     hint: Text('Ajouter un ${title.toLowerCase()}'),
-                    items: availableMedications
-                        .where((medication) => !selectedMedications.any((m) => m.id == medication.id))
-                        .map((medication) {
-                      return DropdownMenuItem<Medication>(
-                        value: medication,
-                        child: Text(medication.formattedDosage),
-                      );
-                    }).toList(),
+                    items:
+                        availableMedications
+                            .where(
+                              (medication) =>
+                                  !selectedMedications.any(
+                                    (m) => m.id == medication.id,
+                                  ),
+                            )
+                            .map((medication) {
+                              return DropdownMenuItem<Medication>(
+                                value: medication,
+                                child: Text(medication.formattedDosage),
+                              );
+                            })
+                            .toList(),
                     onChanged: (Medication? value) {
                       if (value != null) {
                         onChanged([...selectedMedications, value]);
                       }
                     },
                   ),
-                
+
                 if (availableMedications.isEmpty)
                   Padding(
                     padding: EdgeInsets.all(8),
@@ -287,19 +292,23 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
       setState(() {
         _isSaving = true;
       });
-      
+
       try {
         final dbHelper = DatabaseHelper();
-        
+
         // Préparer les listes d'IDs de médicaments
-        List<String> medicationIds = _selectedMedications.map((m) => m.id).toList();
-        List<String> rinsingProductIds = _selectedRinsingProducts.map((m) => m.id).toList();
-        
+        List<String> medicationIds =
+            _selectedMedications.map((m) => m.id).toList();
+        List<String> rinsingProductIds =
+            _selectedRinsingProducts.map((m) => m.id).toList();
+
         // Générer les sessions pour tout le cycle
         for (int i = 0; i < widget.cycle.sessionCount; i++) {
           // Calculer la date de la session
-          final sessionDate = _dateTime.add(Duration(days: i * widget.cycle.sessionInterval.inDays));
-          
+          final sessionDate = _dateTime.add(
+            Duration(days: i * widget.cycle.sessionInterval.inDays),
+          );
+
           // Créer la session
           final sessionId = Uuid().v4();
           final sessionData = {
@@ -307,30 +316,39 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
             'cycleId': widget.cycle.id,
             'dateTime': sessionDate.toIso8601String(),
             'establishmentId': widget.cycle.establishment.id,
-            'notes': i == 0 ? _notesController.text : null, // Notes uniquement pour la première séance
+            'notes':
+                i == 0
+                    ? _notesController.text
+                    : null, // Notes uniquement pour la première séance
             'isCompleted': 0,
           };
-          
+
           // Enregistrer la session
           await dbHelper.insertSession(sessionData);
-          
+
           // Ajouter les médicaments à la session
           await dbHelper.addSessionMedications(
-            sessionId, 
+            sessionId,
             medicationIds,
-            rinsingProductIds
+            rinsingProductIds,
           );
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${widget.cycle.sessionCount} séances générées avec succès')),
+          SnackBar(
+            content: Text(
+              '${widget.cycle.sessionCount} séances générées avec succès',
+            ),
+          ),
         );
-        
+
         Navigator.pop(context, true);
       } catch (e) {
         print('Erreur lors de la génération des séances: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la génération des séances: $e')),
+          SnackBar(
+            content: Text('Erreur lors de la génération des séances: $e'),
+          ),
         );
         setState(() {
           _isSaving = false;

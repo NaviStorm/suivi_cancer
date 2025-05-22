@@ -1,5 +1,4 @@
 // lib/features/treatment/models/session.dart
-import 'package:flutter/foundation.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';

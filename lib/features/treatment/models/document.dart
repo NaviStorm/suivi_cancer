@@ -1,5 +1,4 @@
 // lib/features/treatment/models/document.dart
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 enum DocumentType {
