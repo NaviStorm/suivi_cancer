@@ -25,6 +25,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _labelController = TextEditingController();
 
+  bool _excludeSaturday = true; // Exclure spécifiquement le samedi
+  bool _excludeSunday = true;   // Exclure spécifiquement le dimanche
+
   DateTime _startDate = DateTime.now();
   TreatmentType _selectedType = TreatmentType.Cycle;
   Establishment? _selectedEstablishment;
@@ -189,6 +192,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   }
 
   Widget _buildCycleFields() {
+    // Vérifier si c'est une chirurgie
+    bool isSurgery = _selectedCycleType == CureType.Surgery;
+
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -196,15 +202,20 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Détails du cycle',
+              isSurgery ? 'Détails de la chirurgie' : 'Détails du cycle',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             _buildCycleTypeDropdown(),
             SizedBox(height: 16),
+
+            // Nombre de séances - désactivé pour la chirurgie
             CustomTextField(
               label: 'Nombre de séances',
-              controller: _sessionCountController,
+              controller: isSurgery
+                  ? TextEditingController(text: '1')
+                  : _sessionCountController,
+              enabled: !isSurgery, // Désactiver pour la chirurgie
               keyboardType: TextInputType.number,
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -217,36 +228,111 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                 return null;
               },
             ),
+            if (isSurgery) ...[
+              SizedBox(height: 8),
+              Text(
+                'Note: Pour une chirurgie, le nombre de séances est fixé à 1.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
             SizedBox(height: 16),
+
+            // Intervalle entre séances - désactivé pour la chirurgie
             CustomTextField(
               label: 'Intervalle entre les séances (jours)',
-              controller: _intervalDaysController,
+              controller: isSurgery
+                  ? TextEditingController(text: '0')
+                  : _intervalDaysController,
+              enabled: !isSurgery, // Désactiver pour la chirurgie
               keyboardType: TextInputType.number,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Veuillez saisir un intervalle';
                 }
                 final days = int.tryParse(value);
-                if (days == null || days <= 0) {
+                if (days == null || days < 0) {
                   return 'Veuillez saisir un nombre valide';
                 }
                 return null;
               },
             ),
+            if (isSurgery) ...[
+              SizedBox(height: 8),
+              Text(
+                'Note: Pour une chirurgie, il n\'y a pas d\'intervalle entre les séances.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
             SizedBox(height: 16),
+
             DateTimePicker(
-              label: 'Date de la première séance',
+              label: isSurgery ? 'Date de l\'opération' : 'Date de la première séance',
               initialValue: _firstSessionDate,
-              showTime: true, // Permettre de sélectionner l'heure aussi
+              showTime: true,
+              selectableDayPredicate: _isDateSelectable,
               onDateTimeSelected: (dateTime) {
                 setState(() {
                   _firstSessionDate = dateTime;
                 });
               },
             ),
+            SizedBox(height: 16),
+
+            // Options pour exclure les week-ends
+            Card(
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Options de planification',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: Text('Exclure les samedis'),
+                      subtitle: Text('Les séances ne peuvent pas avoir lieu le samedi'),
+                      value: _excludeSaturday,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _excludeSaturday = value ?? true;
+                        });
+                      },
+                      dense: true,
+                    ),
+                    CheckboxListTile(
+                      title: Text('Exclure les dimanches'),
+                      subtitle: Text('Les séances ne peuvent pas avoir lieu le dimanche'),
+                      value: _excludeSunday,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          _excludeSunday = value ?? true;
+                        });
+                      },
+                      dense: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             SizedBox(height: 8),
             Text(
-              'Conseil: La date de la première séance peut être différente de la date de début du traitement.',
+              isSurgery
+                  ? 'Conseil: La date de l\'opération peut être différente de la date de début du traitement.'
+                  : 'Conseil: La date de la première séance peut être différente de la date de début du traitement.',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[700],
@@ -706,23 +792,27 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     }
   }
 
-  Future<void> _createCycle(String treatmentId) async {
+  Future _createCycle(String treatmentId) async {
     final dbHelper = DatabaseHelper();
     final cycleId = Uuid().v4();
-    final sessionCount = int.parse(_sessionCountController.text);
-    final intervalDays = int.parse(_intervalDaysController.text);
 
-    // Calculer la date de fin estimée en fonction de la date de première séance,
-    // du nombre de séances et de l'intervalle
-    final cycleEndDate = _firstSessionDate.add(
-      Duration(days: (sessionCount - 1) * intervalDays),
-    );
+    // Pour la chirurgie, forcer les valeurs
+    bool isSurgery = _selectedCycleType == CureType.Surgery;
+    final sessionCount = isSurgery ? 1 : int.parse(_sessionCountController.text);
+    final intervalDays = isSurgery ? 0 : int.parse(_intervalDaysController.text);
 
-    // Créer le cycle
+    // Calculer la date de fin en tenant compte des exclusions
+    DateTime cycleEndDate = _firstSessionDate;
+    if (!isSurgery && sessionCount > 1) {
+      for (int i = 1; i < sessionCount; i++) {
+        cycleEndDate = _getNextSessionDate(cycleEndDate, intervalDays);
+      }
+    }
+
     final cycleData = {
       'id': cycleId,
       'treatmentId': treatmentId,
-      'type': _selectedCycleType.index, // Stocker l'index de l'enum
+      'type': _selectedCycleType.index,
       'startDate': _firstSessionDate.toIso8601String(),
       'endDate': cycleEndDate.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
@@ -733,28 +823,28 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
     await dbHelper.insertCycle(cycleData);
 
-    // Créer toutes les sessions du cycle
+    // Créer les sessions en excluant les jours sélectionnés
     List<Map<String, dynamic>> sessionDataList = [];
+    DateTime currentSessionDate = _firstSessionDate;
 
-    Log.d('sessionCount:[$sessionCount]');
     for (int i = 0; i < sessionCount; i++) {
       final sessionId = Uuid().v4();
-      final sessionDate = _firstSessionDate.add(
-        Duration(days: i * intervalDays),
-      );
+
+      if (i > 0 && !isSurgery) {
+        currentSessionDate = _getNextSessionDate(currentSessionDate, intervalDays);
+      }
 
       final sessionData = {
         'id': sessionId,
         'cycleId': cycleId,
         'establishmentId': _selectedEstablishment!.id,
-        'dateTime': sessionDate.toIso8601String(),
+        'dateTime': currentSessionDate.toIso8601String(),
         'isCompleted': 0,
       };
-
       sessionDataList.add(sessionData);
     }
 
-    // Insérer toutes les sessions en base de données
+    // Insérer toutes les sessions
     for (var sessionData in sessionDataList) {
       await dbHelper.insertSession(sessionData);
     }
@@ -835,5 +925,41 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     for (var sessionData in sessionDataList) {
       await dbHelper.insertRadiotherapySession(sessionData);
     }
+  }
+
+// Fonction pour vérifier si une date est sélectionnable
+  bool _isDateSelectable(DateTime date) {
+    // Exclure le samedi si l'option est activée
+    if (_excludeSaturday && date.weekday == DateTime.saturday) {
+      return false;
+    }
+
+    // Exclure le dimanche si l'option est activée
+    if (_excludeSunday && date.weekday == DateTime.sunday) {
+      return false;
+    }
+
+    return true;
+  }
+
+// Fonction pour calculer la prochaine date de séance en excluant les jours sélectionnés
+  DateTime _getNextSessionDate(DateTime startDate, int daysToAdd) {
+    if (!_excludeSaturday && !_excludeSunday) {
+      return startDate.add(Duration(days: daysToAdd));
+    }
+
+    DateTime currentDate = startDate;
+    int addedDays = 0;
+
+    while (addedDays < daysToAdd) {
+      currentDate = currentDate.add(Duration(days: 1));
+
+      // Vérifier si ce jour est autorisé
+      if (_isDateSelectable(currentDate)) {
+        addedDays++;
+      }
+    }
+
+    return currentDate;
   }
 }
