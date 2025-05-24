@@ -108,6 +108,7 @@ class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
         await _encryptionService.storePassword(_passwordController.text);
 
         // Naviguer vers l'écran d'accueil après avoir créé le mot de passe
+        if (!mounted) return; // Vérification après le premier await
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => HomeScreen()),
         );

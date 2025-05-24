@@ -270,24 +270,6 @@ class DatabaseHelper {
 ''');
     Log.d("DatabaseHelper: Table 'surgery_doctors' créée/modifiée");
 
-    // Table des radiothérapies
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS radiotherapies(
-        id TEXT PRIMARY KEY,
-        treatmentId TEXT NOT NULL,
-        title TEXT NOT NULL,
-        startDate TEXT NOT NULL,
-        endDate TEXT NOT NULL,
-        establishmentId TEXT NOT NULL,
-        sessionCount INTEGER NOT NULL,
-        description TEXT,
-        isCompleted INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (treatmentId) REFERENCES treatments (id) ON DELETE CASCADE,
-        FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE
-      )
-    ''');
-    Log.d("DatabaseHelper: Table 'radiotherapies' créée");
-
     // Table des rendez-vous
     await db.execute('''
       CREATE TABLE IF NOT EXISTS appointments(
@@ -1436,6 +1418,11 @@ class DatabaseHelper {
 
   // Méthodes mises à jour pour la gestion des chirurgies avec relations
 
+  Future<List<Map<String, dynamic>>> getSurgeries() async {
+    final db = await database;
+    return await db.query('surgeries');
+  }
+
   // Récupérer les chirurgies par traitement avec leurs relations
   Future<List<Map<String, dynamic>>> getSurgeriesByTreatment(
     String treatmentId,
@@ -1651,7 +1638,7 @@ class DatabaseHelper {
             'healthProfessionalId': appointment['healthProfessionalId'],
             'establishmentId': appointment['establishmentId'],
             'notes': appointment['notes'],
-            'isCompleted': appointment['isCompleted'] ? 1 : 0,
+            'isCompleted': appointment['isCompleted'],
             'Type': appointment['Type'],
           });
 
@@ -2496,6 +2483,48 @@ class DatabaseHelper {
         "DatabaseHelper: Erreur lors de la mise à jour des champs du cycle: $e",
       );
       return -1;
+    }
+  }
+
+  /// Vérifie si tous les cycles d'un traitement sont terminés
+  /// Retourne true si tous les cycles ont isCompleted = 1, false sinon
+  Future<bool> isTreatmentCyclesCompleted(String treatmentId) async {
+    Log.d("DatabaseHelper: Vérification si tous les cycles du traitement $treatmentId sont terminés");
+
+    try {
+      final db = await database;
+
+      // Récupérer tous les cycles du traitement
+      final List<Map<String, dynamic>> cycles = await db.query(
+        'cycles',
+        where: 'treatmentId = ?',
+        whereArgs: [treatmentId],
+      );
+
+      Log.d("DatabaseHelper: ${cycles.length} cycles trouvés pour le traitement $treatmentId");
+      Log.d("DatabaseHelper: ${cycles.length} cycles :[${cycles.toString()}]");
+
+      // Si aucun cycle n'existe, considérer comme non terminé
+      if (cycles.isEmpty) {
+        Log.d("DatabaseHelper: Aucun cycle trouvé, traitement considéré comme non terminé");
+        return false;
+      }
+
+      // Vérifier si tous les cycles sont terminés
+      bool allCompleted = cycles.every((cycle) => cycle['isCompleted'] == 1);
+
+      if (allCompleted) {
+        Log.d("DatabaseHelper: Tous les cycles du traitement $treatmentId sont terminés");
+      } else {
+        final incompleteCycles = cycles.where((cycle) => cycle['isCompleted'] != 1).length;
+        Log.d("DatabaseHelper: $incompleteCycles cycles non terminés sur ${cycles.length} pour le traitement $treatmentId");
+      }
+
+      return allCompleted;
+
+    } catch (e) {
+      Log.e("DatabaseHelper: Erreur lors de la vérification des cycles du traitement: $e");
+      return false;
     }
   }
 

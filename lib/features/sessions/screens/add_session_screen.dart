@@ -9,6 +9,7 @@ import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
+import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
 
 class AddSessionScreen extends StatefulWidget {
   final Cycle cycle;
@@ -178,7 +179,9 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            _buildInfoRow('Type', _getCycleTypeLabel(widget.cycle.type)),
+
+            _buildInfoRow('Type',EventFormatter.getCycleTypeLabel(widget.cycle.type)),
+//            _buildInfoRow('Type', _getCycleTypeLabel(widget.cycle.type)),
             _buildInfoRow('Établissement', widget.cycle.establishment.name),
             _buildInfoRow(
               'Période',
@@ -374,19 +377,6 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
           _isSaving = false;
         });
       }
-    }
-  }
-
-  String _getCycleTypeLabel(CureType type) {
-    switch (type) {
-      case CureType.Chemotherapy:
-        return 'Chimiothérapie';
-      case CureType.Immunotherapy:
-        return 'Immunothérapie';
-      case CureType.Hormonotherapy:
-        return 'Hormonothérapie';
-      case CureType.Combined:
-        return 'Traitement combiné';
     }
   }
 }

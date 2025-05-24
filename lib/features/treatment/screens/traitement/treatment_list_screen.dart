@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/treatment_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
 import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';

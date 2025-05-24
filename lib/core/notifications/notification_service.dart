@@ -45,7 +45,7 @@ class NotificationService {
       ),
       // Ajoutez ce paramètre qui est maintenant obligatoire
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+//      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );  }
 }
 

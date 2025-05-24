@@ -1,6 +1,7 @@
 // lib/features/treatment/screens/session_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/side_effect.dart';
@@ -9,7 +10,7 @@ import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list_screen.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list.dart';
-import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -147,7 +148,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               ],
             ),
             SizedBox(height: 16),
-            _buildInfoRow('Cycle', _getCycleTypeLabel(_cycle.type)),
+            _buildInfoRow('Cycle', EventFormatter.getCycleTypeLabel(_cycle.type)),
             _buildInfoRow(
               'Date et heure',
               DateFormat('dd/MM/yyyy à HH:mm').format(_session.dateTime),
@@ -381,19 +382,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         ),
       ),
     );
-  }
-
-  String _getCycleTypeLabel(CureType type) {
-    switch (type) {
-      case CureType.Chemotherapy:
-        return 'Chimiothérapie';
-      case CureType.Immunotherapy:
-        return 'Immunothérapie';
-      case CureType.Hormonotherapy:
-        return 'Hormonothérapie';
-      case CureType.Combined:
-        return 'Traitement combiné';
-    }
   }
 
   // TANDREU

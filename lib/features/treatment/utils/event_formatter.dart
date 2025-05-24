@@ -15,6 +15,10 @@ class EventFormatter {
         return 'Hormonothérapie';
       case CureType.Combined:
         return 'Traitement combiné';
+      case CureType.Surgery:
+        return 'Chirurgie';
+      case CureType.Radiotherapy:
+        return 'Radiothérapie';
     }
   }
   

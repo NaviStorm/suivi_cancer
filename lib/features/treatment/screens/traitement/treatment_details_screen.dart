@@ -38,7 +38,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _treatment = widget.treatment;
     _loadTreatmentDetails();
   }
@@ -50,6 +50,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
   }
 
   Future<void> _loadTreatmentDetails() async {
+    Log.d('Début _loadTreatmentDetails');
     setState(() {
       _isLoading = true;
     });
@@ -59,6 +60,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
 
       // Charger les cycles
       final cycleData = await dbHelper.getCyclesByTreatment(_treatment!.id);
+      Log.d('cycleData:[${cycleData.toList()}]');
       List<Cycle> cycles =
           cycleData
               .map(
@@ -82,9 +84,11 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
               .toList();
 
       // Charger les séances pour chaque cycle
+      Log.d('cycleData.length:[${cycleData.length}]');
       for (int i = 0; i < cycles.length; i++) {
         var cycle = cycles[i];
         final sessions = await _loadSessionsForCycle(cycle.id);
+        Log.d('sessions:[${sessions.toList()}]');
         cycles[i] = Cycle(
           id: cycle.id,
           type: cycle.type,
@@ -138,6 +142,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
   }
 
   CureType _parseCureType(String typeString) {
+    Log.d('typeString:[$typeString]');
     switch (typeString) {
       case 'Chemotherapy':
         return CureType.Chemotherapy;
@@ -147,6 +152,12 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
         return CureType.Hormonotherapy;
       case 'Combined':
         return CureType.Combined;
+      case 'Combined':
+        return CureType.Combined;
+      case 'Surgery':
+        return CureType.Surgery;
+      case 'Radiotherapy':
+        return CureType.Radiotherapy;
       default:
         return CureType.Chemotherapy;
     }
@@ -174,6 +185,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
           controller: _tabController,
           tabs: [
             Tab(text: 'Cycles'),
+            Tab(text: 'Equipes'),
             Tab(text: 'Chirurgies'),
             Tab(text: 'Radiothérapies'),
           ],
@@ -196,6 +208,7 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
   }
 
   Widget _buildCyclesTab() {
+    Log.d('_cycles:[${_cycles.length}]');
     if (_cycles.isEmpty) {
       return Center(
         child: Column(
@@ -677,6 +690,10 @@ class _TreatmentDetailsScreenState extends State<TreatmentDetailsScreen>
         return 'Hormonothérapie';
       case CureType.Combined:
         return 'Traitement combiné';
+      case CureType.Surgery:
+        return 'Chirurgie';
+      case CureType.Radiotherapy:
+        return 'Radiothérapie';
     }
   }
 }

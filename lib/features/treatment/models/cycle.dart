@@ -3,7 +3,14 @@ import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/reminder.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 
-enum CureType { Chemotherapy, Immunotherapy, Hormonotherapy, Combined }
+enum CureType {
+  Chemotherapy,
+  Immunotherapy,
+  Hormonotherapy,
+  Combined,
+  Surgery,
+  Radiotherapy
+}
 
 class Cycle {
   final String id;

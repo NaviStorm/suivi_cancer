@@ -1,22 +1,19 @@
 // lib/features/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/storage/database_helper.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/treatment.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/health_professionals_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/treatment_details_screen.dart';
-import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/utils/logger.dart';
-
 import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/surgery_details_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/radiotherapy_details_screen.dart';
+import 'package:suivi_cancer/features/treatment/providers/cycle_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   final Map<String, String> _treatmentTypes =
       {}; // Pour stocker le type principal de chaque traitement
+  Map<String, bool> _completionStatus = {};
 
   @override
   void initState() {
@@ -38,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadTreatments();
   }
 
-  Future<void> _loadTreatments() async {
+  Future _loadTreatments() async {
     setState(() {
       _isLoading = true;
     });
@@ -46,28 +44,23 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final dbHelper = DatabaseHelper();
       final treatmentMaps = await dbHelper.getTreatments();
-
       List<Treatment> loadedTreatments = [];
+      Map<String, bool> completionStatus = {}; // Cache temporaire
 
       for (var map in treatmentMaps) {
         final treatmentId = map['id'];
 
-        // Charger les établissements associés
-        final establishmentMaps = await dbHelper.getTreatmentEstablishments(
-          treatmentId,
-        );
-        final establishments =
-            establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+        // Charger les établissements et professionnels...
+        final establishmentMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
+        final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
 
-        // Charger les médecins associés
-        //        final doctorMaps = await dbHelper.getTreatmentDoctors(treatmentId);
-        //        final doctors = doctorMaps.map((map) => Doctor.fromMap(map)).toList();
-        final psMaps = await dbHelper.getTreatmentHealthProfessionals(
-          treatmentId,
-        );
-        final healthProfessionals =
-            psMaps.map((map) => PS.fromMap(map)).toList();
-        // Créer l'objet traitement
+        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
+        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+
+        // Récupérer le statut de completion des cycles
+        final isCompleted = await dbHelper.isTreatmentCyclesCompleted(treatmentId);
+        completionStatus[treatmentId] = isCompleted;
+
         final treatment = Treatment(
           id: treatmentId,
           label: map['label'],
@@ -77,13 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         loadedTreatments.add(treatment);
-
-        // Déterminer le type principal de traitement
         await _determineTreatmentType(treatmentId);
       }
 
       setState(() {
         _treatments = loadedTreatments;
+        _completionStatus = completionStatus; // Mettre à jour le cache
         _isLoading = false;
       });
     } catch (e) {
@@ -91,12 +83,9 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _isLoading = false;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des traitements')),
-      );
     }
   }
+
 
   // Méthode pour déterminer le type principal de traitement
   Future<void> _determineTreatmentType(String treatmentId) async {
@@ -104,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Vérifier si un cycle existe
     final cycleData = await dbHelper.getCyclesByTreatment(treatmentId);
+    Log.d('cycleData:[${cycleData.first['type']}');
     if (cycleData.isNotEmpty) {
       final cycleType = cycleData.first['type'];
       if (cycleType == 0) {
@@ -114,23 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
         _treatmentTypes[treatmentId] = "Hormonothérapie";
       } else if (cycleType == 3) {
         _treatmentTypes[treatmentId] = "Traitement combiné";
+      } else if (cycleType == 4) {
+        _treatmentTypes[treatmentId] = "Chirurgie";
+      } else if (cycleType == 5) {
+        _treatmentTypes[treatmentId] = "Radiothérapie";
       }
-      return;
-    }
-
-    // Vérifier si une chirurgie existe
-    final surgeryData = await dbHelper.getSurgeriesByTreatment(treatmentId);
-    if (surgeryData.isNotEmpty) {
-      _treatmentTypes[treatmentId] = "Chirurgie";
-      return;
-    }
-
-    // Vérifier si une radiothérapie existe
-    final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
-      treatmentId,
-    );
-    if (radiotherapyData.isNotEmpty) {
-      _treatmentTypes[treatmentId] = "Radiothérapie";
       return;
     }
 
@@ -260,14 +238,14 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, index) {
           final treatment = _treatments[index];
           final treatmentType = _treatmentTypes[treatment.id] ?? "Non spécifié";
-          final bool isCompleted =
-              false; // Supposé par défaut comme non complété
+
+          // Utiliser le cache au lieu de FutureBuilder pour un affichage immédiat
+          final bool isCompleted = _completionStatus[treatment.id] ?? false;
 
           return Card(
             margin: EdgeInsets.only(bottom: 16),
             child: InkWell(
-              onTap:
-                  () => _navigateToTreatmentDetails(treatment, treatmentType),
+              onTap: () => _navigateToTreatmentDetails(treatment, treatmentType),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -296,62 +274,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'Type: $treatmentType',
                       style: TextStyle(
-                        color: Colors.grey[800],
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Colors.grey[600],
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
+                    SizedBox(height: 8),
+                    // Afficher la date de début
+                    Text(
+                      'Début: ${DateFormat('dd/MM/yyyy').format(treatment.startDate)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    // Afficher les établissements
+                    if (treatment.establishments.isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      Text(
+                        'Établissement: ${treatment.establishments.first.name}',
+                        style: TextStyle(
+                          fontSize: 14,
                           color: Colors.grey[600],
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Début: ${DateFormat('dd/MM/yyyy').format(treatment.startDate)}',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    if (treatment.establishments.isNotEmpty)
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.business,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            treatment.establishments.first.name,
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
                       ),
-                    if (treatment.healthProfessionals.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.people,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Professionnels: ${treatment.healthProfessionals.map((ps) => ps.fullName).join(", ")}',
-                                style: TextStyle(color: Colors.grey[600]),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                    ],
+                    // Afficher les professionnels de santé
+                    if (treatment.healthProfessionals.isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      Text(
+                        'Professionnel: ${treatment.healthProfessionals.first.firstName} ${treatment.healthProfessionals.first.lastName}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -364,11 +321,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatusChip(String label, Color color) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color, width: 1),
       ),
       child: Text(
         label,
@@ -392,21 +349,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _navigateToTreatmentDetails(
-    Treatment treatment,
-    String treatmentType,
-  ) async {
+  void _navigateToTreatmentDetails(Treatment treatment, String treatmentType,) async {
     Log.d('_navigateToTreatmentDetails');
     Widget destinationScreen;
 
     try {
       final dbHelper = DatabaseHelper();
 
+      Log.d('treatmentType:[${treatmentType.toString()}]');
       switch (treatmentType) {
         case "Chimiothérapie":
         case "Immunothérapie":
         case "Hormonotherapy":
         case "Traitement combiné":
+        case "Chirurgie":
+        case "Radiothérapie":
           // Récupérer les cycles
           final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
           Log.d('cycleData:${cycleData.length}');
@@ -436,66 +393,6 @@ class _HomeScreenState extends State<HomeScreen> {
             destinationScreen = CycleDetailsScreen(cycle: cycle);
           } else {
             // Pas de cycle trouvé, rediriger vers l'écran de détails standard
-            destinationScreen = TreatmentDetailsScreen(treatment: treatment);
-          }
-          break;
-
-        case "Chirurgie":
-          // Récupérer les chirurgies
-          final surgeryData = await dbHelper.getSurgeriesByTreatment(
-            treatment.id,
-          );
-
-          if (surgeryData.isNotEmpty) {
-            final surgeryMap = surgeryData.first;
-
-            // Transformer en objet Surgery
-            final surgery = Surgery(
-              id: surgeryMap['id'] as String,
-              title: surgeryMap['title'] as String,
-              date: DateTime.parse(surgeryMap['date'] as String),
-              establishment:
-                  treatment.establishments.isNotEmpty
-                      ? treatment.establishments.first
-                      : Establishment(id: "default", name: "Non spécifié"),
-              isCompleted: surgeryMap['isCompleted'] == 1,
-            );
-
-            destinationScreen = SurgeryDetailsScreen(surgery: surgery);
-          } else {
-            // Pas de chirurgie trouvée, rediriger vers l'écran de détails standard
-            destinationScreen = TreatmentDetailsScreen(treatment: treatment);
-          }
-          break;
-
-        case "Radiothérapie":
-          // Récupérer les radiothérapies
-          final radiotherapyData = await dbHelper.getRadiotherapiesByTreatment(
-            treatment.id,
-          );
-
-          if (radiotherapyData.isNotEmpty) {
-            final radiotherapyMap = radiotherapyData.first;
-
-            // Transformer en objet Radiotherapy
-            final radiotherapy = Radiotherapy(
-              id: radiotherapyMap['id'] as String,
-              title: radiotherapyMap['title'] as String,
-              startDate: DateTime.parse(radiotherapyMap['startDate'] as String),
-              endDate: DateTime.parse(radiotherapyMap['endDate'] as String),
-              establishment:
-                  treatment.establishments.isNotEmpty
-                      ? treatment.establishments.first
-                      : Establishment(id: "default", name: "Non spécifié"),
-              sessionCount: radiotherapyMap['sessionCount'] as int,
-              isCompleted: radiotherapyMap['isCompleted'] == 1,
-            );
-
-            destinationScreen = RadiotherapyDetailsScreen(
-              radiotherapy: radiotherapy,
-            );
-          } else {
-            // Pas de radiothérapie trouvée, rediriger vers l'écran de détails standard
             destinationScreen = TreatmentDetailsScreen(treatment: treatment);
           }
           break;

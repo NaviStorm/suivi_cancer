@@ -61,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (storedPassword == _passwordController.text) {
       await prefs.setInt('failed_attempts', 0);
+      if (!mounted) return; // Vérification après le premier await
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
@@ -68,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       _failedAttempts++;
       await prefs.setInt('failed_attempts', _failedAttempts);
+      if (!mounted) return; // Vérification après le premier await
 
       if (_failedAttempts >= 10) {
         // Supprimer toutes les données

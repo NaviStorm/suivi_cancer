@@ -43,7 +43,7 @@ class AddExaminationScreen extends StatefulWidget {
   });
 
   @override
-  _AddExaminationScreenState createState() => _AddExaminationScreenState();
+  State<AddExaminationScreen> createState() => _AddExaminationScreenState();
 }
 
 class SaveExaminationResult {
@@ -1002,6 +1002,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Future _showAddDocumentDialog() async {
     final action = await _documentService.showAddDocumentDialog(context);
 
+    if (!mounted) return;
     if (action == null) return;
 
     Document? document;
@@ -1013,6 +1014,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       document = await _documentService.pickFile(context);
     }
 
+    if (!mounted) return;
     if (document != null) {
       setState(() {
         _attachedDocuments.add(

@@ -63,10 +63,12 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
     try {
       // Charger les établissements
       final establishmentMaps = await _dbHelper.getEstablishments();
+      if (!mounted) return; // Vérification après le premier await
       _establishments = establishmentMaps;
 
       // Charger les professionnels de santé
       final psMaps = await _dbHelper.getPS();
+      if (!mounted) return; // Vérification après le premier await
       _healthProfessionals = psMaps;
 
       // Si c'est une modification, charger les données du rendez-vous
@@ -162,6 +164,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
       // Assurer que la table de liaison existe
       await _dbHelper.ensureCycleAppointmentsTableExists();
 
+      if (!mounted) return; // Vérification après le premier await
       Navigator.of(context).pop(true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

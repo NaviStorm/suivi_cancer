@@ -25,7 +25,7 @@ class ExaminationDetailsScreen extends StatefulWidget {
   });
 
   @override
-  _ExaminationDetailsScreenState createState() =>
+  State<ExaminationDetailsScreen> createState() =>
       _ExaminationDetailsScreenState();
 }
 

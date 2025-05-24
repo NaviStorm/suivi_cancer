@@ -341,6 +341,15 @@ class CycleProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> isCompleteCycle(String treatmentId) async {
+    try {
+      return await _dbHelper.isTreatmentCyclesCompleted(treatmentId);
+    } catch (e) {
+      Log.e("Erreur pour savoir si le cycle est complet: $e");
+      rethrow;
+    }
+  }
+
   // Supprimer le cycle
   Future<void> deleteCycle() async {
     try {
