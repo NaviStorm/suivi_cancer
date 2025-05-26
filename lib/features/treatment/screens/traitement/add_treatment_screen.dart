@@ -9,7 +9,7 @@ import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
 
 enum TreatmentType { Cycle, Surgery, Radiotherapy }
@@ -763,17 +763,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
         // 4. Créer l'entité spécifique en fonction du type sélectionné
         Log.d('_selectedType:[${_selectedType.toString()}]');
-        switch (_selectedType) {
-          case TreatmentType.Cycle:
-            await _createCycle(treatmentId);
-            break;
-          case TreatmentType.Surgery:
-            await _createSurgery(treatmentId);
-            break;
-          case TreatmentType.Radiotherapy:
-            await _createRadiotherapy(treatmentId);
-            break;
-        }
+        await _createCycle(treatmentId);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Traitement ajouté avec succès')),
@@ -847,83 +837,6 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
     // Insérer toutes les sessions
     for (var sessionData in sessionDataList) {
       await dbHelper.insertSession(sessionData);
-    }
-  }
-
-  Future<void> _createSurgery(String treatmentId) async {
-    final dbHelper = DatabaseHelper();
-    final surgeryId = Uuid().v4();
-
-    final surgeryData = {
-      'id': surgeryId,
-      'treatmentId': treatmentId,
-      'title': _surgeryTitleController.text.trim(),
-      'date': _surgeryDate.toIso8601String(),
-      'establishmentId': _selectedEstablishment!.id,
-      'isCompleted': 0,
-    };
-
-    await dbHelper.insertSurgery(surgeryData);
-
-    // Ajouter les médecins comme chirurgiens
-    for (final HealthProfessionals in _selectedHealthProfessionals) {
-      await dbHelper.addSurgeonToSurgery(surgeryId, HealthProfessionals.id);
-    }
-  }
-
-  Future<void> _createRadiotherapy(String treatmentId) async {
-    final dbHelper = DatabaseHelper();
-    final radiotherapyId = Uuid().v4();
-    final sessionCount = int.parse(_radiotherapySessionCountController.text);
-
-    final radiotherapyData = {
-      'id': radiotherapyId,
-      'treatmentId': treatmentId,
-      'title': _radiotherapyTitleController.text.trim(),
-      'startDate': _radiotherapyStartDate.toIso8601String(),
-      'endDate': _radiotherapyEndDate.toIso8601String(),
-      'establishmentId': _selectedEstablishment!.id,
-      'sessionCount': sessionCount,
-      'isCompleted': 0,
-    };
-
-    await dbHelper.insertRadiotherapy(radiotherapyData);
-
-    // Ajouter les médecins comme radiothérapeutes
-    for (final HealthProfessionals in _selectedHealthProfessionals) {
-      await dbHelper.addDoctorToRadiotherapy(
-        radiotherapyId,
-        HealthProfessionals.id,
-      );
-    }
-
-    // Créer les sessions de radiothérapie
-    // Calculer l'intervalle entre les séances en jours
-    final totalDays =
-        _radiotherapyEndDate.difference(_radiotherapyStartDate).inDays;
-    final intervalDays = totalDays / (sessionCount - 1);
-
-    List<Map<String, dynamic>> sessionDataList = [];
-
-    for (int i = 0; i < sessionCount; i++) {
-      final sessionId = Uuid().v4();
-      final sessionDate = _radiotherapyStartDate.add(
-        Duration(days: (i * intervalDays).round()),
-      );
-
-      final sessionData = {
-        'id': sessionId,
-        'radiotherapyId': radiotherapyId,
-        'dateTime': sessionDate.toIso8601String(),
-        'isCompleted': 0,
-      };
-
-      sessionDataList.add(sessionData);
-    }
-
-    // Insérer toutes les sessions en base de données
-    for (var sessionData in sessionDataList) {
-      await dbHelper.insertRadiotherapySession(sessionData);
     }
   }
 

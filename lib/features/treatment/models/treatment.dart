@@ -2,8 +2,6 @@
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
-import 'package:suivi_cancer/features/treatment/models/surgery.dart';
-import 'package:suivi_cancer/features/treatment/models/radiotherapy.dart';
 
 class Treatment {
   final String id;
@@ -12,8 +10,6 @@ class Treatment {
   final List<PS> healthProfessionals;
   final List<Establishment> establishments;
   final List<Cycle> cycles;
-  final List<Surgery> surgeries;
-  final List<Radiotherapy> radiotherapies;
 
   Treatment({
     required this.id,
@@ -22,8 +18,6 @@ class Treatment {
     required this.healthProfessionals,
     required this.establishments,
     this.cycles = const [],
-    this.surgeries = const [],
-    this.radiotherapies = const [],
   });
 
   // Méthode pour convertir l'objet en Map pour la sérialisation

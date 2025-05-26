@@ -6,14 +6,11 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/treatment.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
-import 'package:suivi_cancer/features/treatment/models/surgery.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/health_professionals_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/traitement/treatment_details_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
-import 'package:suivi_cancer/features/treatment/providers/cycle_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,11 +41,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final dbHelper = DatabaseHelper();
       final treatmentMaps = await dbHelper.getTreatments();
+      Log.d('Nb treatmentMaps:[${treatmentMaps.length}]');
       List<Treatment> loadedTreatments = [];
       Map<String, bool> completionStatus = {}; // Cache temporaire
 
       for (var map in treatmentMaps) {
         final treatmentId = map['id'];
+        Log.d('treatmentId:[${map['id']}] Type traitement:[${map['label']}]');
 
         // Charger les établissements et professionnels...
         final establishmentMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
@@ -59,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Récupérer le statut de completion des cycles
         final isCompleted = await dbHelper.isTreatmentCyclesCompleted(treatmentId);
+        if (isCompleted) {
+          continue;
+        }
         completionStatus[treatmentId] = isCompleted;
 
         final treatment = Treatment(
@@ -357,66 +359,49 @@ class _HomeScreenState extends State<HomeScreen> {
       final dbHelper = DatabaseHelper();
 
       Log.d('treatmentType:[${treatmentType.toString()}]');
-      switch (treatmentType) {
-        case "Chimiothérapie":
-        case "Immunothérapie":
-        case "Hormonotherapy":
-        case "Traitement combiné":
-        case "Chirurgie":
-        case "Radiothérapie":
-          // Récupérer les cycles
-          final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
-          Log.d('cycleData:${cycleData.length}');
+        // Récupérer les cycles
+        final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
+        Log.d('cycleData:${cycleData.length}');
 
-          if (cycleData.isNotEmpty) {
-            final cycleMap = cycleData.first;
-            Log.d('cycleMap:${cycleMap['id']}');
+          final cycleMap = cycleData.first;
+          Log.d('cycleMap:${cycleMap['id']}');
 
-            // Créer l'objet Cycle
-            final cycle = Cycle(
-              id: cycleMap['id'] as String,
-              type: _parseCycleType(cycleMap['type']),
-              startDate: DateTime.parse(cycleMap['startDate'] as String),
-              endDate: DateTime.parse(cycleMap['endDate'] as String),
-              establishment:
-                  treatment.establishments.isNotEmpty
-                      ? treatment.establishments.first
-                      : Establishment(id: "default", name: "Non spécifié"),
-              sessionCount: cycleMap['sessionCount'] as int,
-              sessionInterval: Duration(
-                days: cycleMap['sessionInterval'] as int,
-              ),
-              isCompleted: cycleMap['isCompleted'] == 1,
-              conclusion: cycleMap['conclusion'] as String?,
-            );
+          // Créer l'objet Cycle
+          final cycle = Cycle(
+            id: cycleMap['id'] as String,
+            type: _parseCycleType(cycleMap['type']),
+            startDate: DateTime.parse(cycleMap['startDate'] as String),
+            endDate: DateTime.parse(cycleMap['endDate'] as String),
+            establishment:
+                treatment.establishments.isNotEmpty
+                    ? treatment.establishments.first
+                    : Establishment(id: "default", name: "Non spécifié"),
+            sessionCount: cycleMap['sessionCount'] as int,
+            sessionInterval: Duration(
+              days: cycleMap['sessionInterval'] as int,
+            ),
+            isCompleted: cycleMap['isCompleted'] == 1,
+            conclusion: cycleMap['conclusion'] as String?,
+          );
 
-            destinationScreen = CycleDetailsScreen(cycle: cycle);
-          } else {
-            // Pas de cycle trouvé, rediriger vers l'écran de détails standard
-            destinationScreen = TreatmentDetailsScreen(treatment: treatment);
-          }
-          break;
+          destinationScreen = CycleDetailsScreen(cycle: cycle);
 
-        default:
-          // Pour tout autre type ou non spécifié, utiliser l'écran standard
-          destinationScreen = TreatmentDetailsScreen(treatment: treatment);
-      }
+        // Naviguer vers l'écran approprié
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => destinationScreen),
+        );
+
+        // Si le traitement a été modifié ou supprimé, recharger la liste
+        if (result == true) {
+          Log.d('retour de _navigateToTreatmentDetails avec result=true');
+          _loadTreatments();
+        }
     } catch (e) {
       Log.e("Erreur lors de la navigation: $e");
       // En cas d'erreur, utilisez l'écran de détails standard
-      destinationScreen = TreatmentDetailsScreen(treatment: treatment);
     }
 
-    // Naviguer vers l'écran approprié
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => destinationScreen),
-    );
-
-    // Si le traitement a été modifié ou supprimé, recharger la liste
-    if (result == true) {
-      _loadTreatments();
-    }
   }
 
   void _onItemTapped(int index) {

@@ -2,7 +2,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:suivi_cancer/features/ps/screens/contact.dart';
-import 'package:suivi_cancer/features/ps/services/list_establishment_selection_dialog.dart';
+import 'package:suivi_cancer/features/establishment/widgets/list_establishment_selection_dialog.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/utils/logger.dart';

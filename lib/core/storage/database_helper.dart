@@ -1,8 +1,10 @@
 // lib/core/storage/database_helper.dart
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import 'package:suivi_cancer/utils/logger.dart';
+import 'dart:io';
 import 'package:uuid/uuid.dart';
+import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:suivi_cancer/utils/logger.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -39,7 +41,8 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _onCreate,
-      onOpen: (db) {
+      onOpen: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON;'); // Activation des clés étrangères
         Log.d("DatabaseHelper: Base de données ouverte avec succès");
       },
     );
@@ -145,10 +148,8 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE treatment_doctors(
         treatmentId TEXT NOT NULL,
-        doctorId TEXT NOT NULL,
-        PRIMARY KEY (treatmentId, doctorId),
-        FOREIGN KEY (treatmentId) REFERENCES treatments (id) ON DELETE CASCADE,
-        FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
+        PRIMARY KEY (treatmentId),
+        FOREIGN KEY (treatmentId) REFERENCES treatments (id) ON DELETE CASCADE
       )
     ''');
     Log.d("DatabaseHelper: Table 'treatment_doctors' créée");
@@ -236,40 +237,6 @@ class DatabaseHelper {
     ''');
     Log.d("DatabaseHelper: Table 'session_medications' créée");
 
-    // Table des opérations chirurgicales
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS surgeries(
-        id TEXT PRIMARY KEY,
-        treatmentId TEXT NOT NULL,
-        title TEXT NOT NULL,
-        date TEXT NOT NULL,
-        establishmentId TEXT NOT NULL,
-        description TEXT,
-        isCompleted INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY (treatmentId) REFERENCES treatments (id) ON DELETE CASCADE,
-        FOREIGN KEY (establishmentId) REFERENCES establishments (id) ON DELETE CASCADE
-      )
-    ''');
-    Log.d("DatabaseHelper: Table 'surgeries' créée");
-
-    // Ajout d'un champ 'role' à la table surgery_doctors pour distinguer chirurgiens et anesthésistes
-    // Si la table existe déjà, il faudra la modifier ou la recréer
-    await db.execute('''
-  DROP TABLE IF EXISTS surgery_doctors
-''');
-
-    await db.execute('''
-  CREATE TABLE IF NOT EXISTS surgery_doctors(
-    surgeryId TEXT NOT NULL,
-    doctorId TEXT NOT NULL,
-    role TEXT NOT NULL, -- 'surgeon' ou 'anesthetist'
-    PRIMARY KEY (surgeryId, doctorId, role),
-    FOREIGN KEY (surgeryId) REFERENCES surgeries (id) ON DELETE CASCADE,
-    FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-  )
-''');
-    Log.d("DatabaseHelper: Table 'surgery_doctors' créée/modifiée");
-
     // Table des rendez-vous
     await db.execute('''
       CREATE TABLE IF NOT EXISTS appointments(
@@ -334,39 +301,10 @@ class DatabaseHelper {
     description TEXT NOT NULL,
     severity INTEGER NOT NULL,
     notes TEXT,
-    FOREIGN KEY (entityId) REFERENCES sessions (id) ON DELETE CASCADE,
-    FOREIGN KEY (entityId) REFERENCES surgeries (id) ON DELETE CASCADE,
-    FOREIGN KEY (entityId) REFERENCES radiotherapies (id) ON DELETE CASCADE
+    FOREIGN KEY (entityId) REFERENCES sessions (id) ON DELETE CASCADE
   )
 ''');
     Log.d("DatabaseHelper: Table 'side_effects' créée");
-
-    // Table de relation entre radiothérapies et médecins
-    await db.execute('''
-  CREATE TABLE IF NOT EXISTS radiotherapy_doctors(
-    radiotherapyId TEXT NOT NULL,
-    doctorId TEXT NOT NULL,
-    PRIMARY KEY (radiotherapyId, doctorId),
-    FOREIGN KEY (radiotherapyId) REFERENCES radiotherapies (id) ON DELETE CASCADE,
-    FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-  )
-''');
-    Log.d("DatabaseHelper: Table 'radiotherapy_doctors' créée");
-
-    // Table des sessions de radiothérapie
-    await db.execute('''
-  CREATE TABLE IF NOT EXISTS radiotherapy_sessions(
-    id TEXT PRIMARY KEY,
-    radiotherapyId TEXT NOT NULL,
-    dateTime TEXT NOT NULL,
-    area TEXT,
-    dose REAL,
-    notes TEXT,
-    isCompleted INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (radiotherapyId) REFERENCES radiotherapies (id) ON DELETE CASCADE
-  )
-''');
-    Log.d("DatabaseHelper: Table 'radiotherapy_sessions' créée");
 
     // Modification de la table examinations pour ajouter le champ prereqForSessionId
     await db.execute('''
@@ -487,6 +425,7 @@ class DatabaseHelper {
   }
 
   Future<int> insertEstablishment(Map<String, dynamic> establishment) async {
+    Log.d('Insertion de l\'établissement : [${establishment.toString()}]');
     final db = await database;
     return await db.insert(
       'establishments',
@@ -546,22 +485,6 @@ class DatabaseHelper {
       // Mettre à null les références dans les cycles
       await db.update(
         'cycles',
-        {'establishmentId': null},
-        where: 'establishmentId = ?',
-        whereArgs: [id],
-      );
-
-      // Mettre à null les références dans les chirurgies
-      await db.update(
-        'surgeries',
-        {'establishmentId': null},
-        where: 'establishmentId = ?',
-        whereArgs: [id],
-      );
-
-      // Mettre à null les références dans les radiothérapies
-      await db.update(
-        'radiotherapies',
         {'establishmentId': null},
         where: 'establishmentId = ?',
         whereArgs: [id],
@@ -691,21 +614,6 @@ class DatabaseHelper {
       'treatment_health_professionals',
       where: 'treatmentId = ? AND healthProfessionalId = ?',
       whereArgs: [treatmentId, healthProfessionalId],
-    );
-  }
-
-  // Méthodes pour récupérer les médecins et établissements liés à un traitement
-  Future<List<Map<String, dynamic>>> getTreatmentDoctors(
-    String treatmentId,
-  ) async {
-    final db = await database;
-    return await db.rawQuery(
-      '''
-      SELECT d.* FROM doctors d
-      INNER JOIN treatment_doctors td ON d.id = td.doctorId
-      WHERE td.treatmentId = ?
-    ''',
-      [treatmentId],
     );
   }
 
@@ -1013,7 +921,487 @@ class DatabaseHelper {
 
   Future<int> deleteCycle(String id) async {
     final db = await database;
+    final String fichier;
+
+    return 0;
+    // Recherche des examens
+    /*
+    fichier = await db.rawQuery(
+      '''
+      SELECT d.path
+      FROM documents d
+      WHERE c.treatmentId = ?
+      ORDER BY c.startDate
+    ''',
+      [id],
+    );
+
+
+    db.delete('treatment_establishments', where: 'treatmentId = ?', whereArgs: [id]);
+    db.delete('treatment_health_professionals', where: 'treatmentId = ?', whereArgs: [id]);
+    db.delete('treatments', where: 'treatmentId = ?', whereArgs: [id]);
+    db.delete('treatments', where: 'treatmentId = ?', whereArgs: [id]);
     return await db.delete('cycles', where: 'id = ?', whereArgs: [id]);
+ */
+  }
+
+  Future<void> deleteTreatmentAndAllItsDependenciesFromCycle(String cycleIdToDelete,) async {
+    final db = await database;
+    Log.d("DatabaseHelper: Début de la suppression complète du traitement basé sur le cycle $cycleIdToDelete.",);
+    // Liste pour stocker les IDs des appointments à supprimer explicitement car ne focntionne pas le on delete cascade
+    List<String> appointmentIdsToDeleteExplicitly = [];
+
+    await db
+        .transaction((txn) async {
+      // --- Étape 1: Récupérer l'ID du traitement associé au cycle donné ---
+      final cycleInfoList = await txn.query(
+        'cycles',
+        columns: ['treatmentId'],
+        where: 'id = ?',
+        whereArgs: [cycleIdToDelete],
+      );
+      if (cycleInfoList.isEmpty) {
+        Log.w(
+          "DatabaseHelper: Cycle $cycleIdToDelete non trouvé. Aucune suppression effectuée.",
+        );
+        return;
+      }
+      final treatmentId = cycleInfoList.first['treatmentId'] as String;
+      Log.d(
+        "DatabaseHelper: Le cycle $cycleIdToDelete appartient au traitement $treatmentId. Poursuite de la suppression du traitement complet.",
+      );
+
+      // --- Étape 2: Collecter les IDs de toutes les entités dépendantes du TRAITEMENT qui pourraient avoir des documents ---
+      // Cette liste contiendra des maps {'id': entityId, 'type': entityType}
+      List<Map<String, String>> entitiesWithPotentialDocuments = [
+        {'id': treatmentId, 'type': 'treatment'}, // Le traitement lui-même
+      ];
+
+      // Tous les Cycles du traitement et leurs sous-dépendances
+      final allCyclesOfTreatment = await txn.query(
+        'cycles',
+        columns: ['id'],
+        where: 'treatmentId = ?',
+        whereArgs: [treatmentId],
+      );
+      for (final cycleMap in allCyclesOfTreatment) {
+        final cycleId = cycleMap['id'] as String;
+        entitiesWithPotentialDocuments.add({
+          'id': cycleId,
+          'type': 'cycle',
+        });
+
+        // Sessions du cycle
+        final sessions = await txn.query(
+          'sessions',
+          columns: ['id'],
+          where: 'cycleId = ?',
+          whereArgs: [cycleId],
+        );
+        for (final sessionMap in sessions) {
+          entitiesWithPotentialDocuments.add({
+            'id': sessionMap['id'] as String,
+            'type': 'session',
+          });
+          // Si les side_effects sont liés par entityType='session' et entityId=session.id
+          // et que side_effects peut avoir des documents (via entity_documents)
+          // entitiesWithPotentialDocuments.add({'id': sessionMap['id'] as String, 'type': 'side_effect_source'}); // ou un type plus spécifique
+        }
+
+        // Examinations du cycle
+        final examinations = await txn.query(
+          'examinations',
+          columns: ['id'],
+          where: 'cycleId = ?',
+          whereArgs: [cycleId],
+        );
+        for (final examMap in examinations) {
+          entitiesWithPotentialDocuments.add({
+            'id': examMap['id'] as String,
+            'type': 'examination',
+          });
+        }
+
+        // Appointments liés au cycle
+        final cycleAppointments = await txn.query(
+          'cycle_appointments',
+          columns: ['appointmentId'],
+          where: 'cycleId = ?',
+          whereArgs: [cycleId],
+        );
+        for (final caMap in cycleAppointments) {
+          entitiesWithPotentialDocuments.add({
+            'id': caMap['appointmentId'] as String,
+            'type': 'appointment',
+          });
+        }
+
+        // MedicationIntakes du cycle
+        final medicationIntakes = await txn.query(
+          'medication_intakes',
+          columns: ['id'],
+          where: 'cycleId = ?',
+          whereArgs: [cycleId],
+        );
+        for (final miMap in medicationIntakes) {
+          entitiesWithPotentialDocuments.add({
+            'id': miMap['id'] as String,
+            'type': 'medication_intake',
+          });
+          // Les medication_intake_items sont des sous-détails, généralement pas des entités avec documents propres
+        }
+
+        // Measures liées au cycle (si elles peuvent avoir des documents via entity_documents)
+        final measures = await txn.query(
+          'measure',
+          columns: ['id'],
+          where: 'cycleId = ?',
+          whereArgs: [cycleId],
+        );
+        for (final measureMap in measures) {
+          entitiesWithPotentialDocuments.add({
+            'id': measureMap['id'] as String,
+            'type': 'measure',
+          });
+        }
+      }
+
+      // Collecter les appointments liés à ce cycle pour suppression explicite et suppression de leurs documents
+      final cycleAppointmentsLinks = await txn.query('cycle_appointments', columns: ['appointmentId'], where: 'cycleId = ?', whereArgs: [cycleIdToDelete]);
+      for (final caMap in cycleAppointmentsLinks) {
+        final appointmentId = caMap['appointmentId'] as String;
+        if (!appointmentIdsToDeleteExplicitly.contains(appointmentId)) {
+          appointmentIdsToDeleteExplicitly.add(appointmentId);
+        }
+        // On ajoute aussi à entitiesWithPotentialDocuments pour la suppression des documents
+        entitiesWithPotentialDocuments.add({'id': appointmentId, 'type': 'appointment'});
+      }
+
+      // --- Étape 3: Collecter les ID et chemins de tous les documents uniques associés ---
+      Set<String> uniqueDocumentIds = {};
+      List<Map<String, String>> documentsToDelete =
+      []; // Contiendra {'id': docId, 'path': filePath}
+
+      for (final entityInfo in entitiesWithPotentialDocuments) {
+        final entityId = entityInfo['id']!;
+        final entityType = entityInfo['type']!;
+
+        final docLinks = await txn.query(
+          'entity_documents',
+          columns: ['documentId'],
+          where: 'entityId = ? AND entityType = ?',
+          whereArgs: [entityId, entityType],
+        );
+
+        for (final link in docLinks) {
+          final docId = link['documentId'] as String;
+          if (uniqueDocumentIds.add(docId)) {
+            final docDetailsList = await txn.query(
+              'documents',
+              columns: ['path'],
+              where: 'id = ?',
+              whereArgs: [docId],
+              limit: 1,
+            );
+            if (docDetailsList.isNotEmpty) {
+              final path = docDetailsList.first['path'] as String?;
+              if (path != null && path.isNotEmpty) {
+                documentsToDelete.add({'id': docId, 'path': path});
+              } else {
+                documentsToDelete.add({'id': docId, 'path': ''});
+              }
+            }
+          }
+        }
+      }
+
+      // --- Étape 4: Supprimer les fichiers physiques et les enregistrements de documents ---
+      final appDir = await getApplicationDocumentsDirectory();
+
+      for (final docInfo in documentsToDelete) {
+        final docId = docInfo['id']!;
+        final filePath = "${appDir.path}/${docInfo['path']!}";
+
+        await txn.delete(
+          'entity_documents',
+          where: 'documentId = ?',
+          whereArgs: [docId],
+        );
+        Log.d(
+          "DatabaseHelper: Liaisons entity_documents pour $docId supprimées.",
+        );
+
+        await txn.delete('documents', where: 'id = ?', whereArgs: [docId]);
+        Log.d(
+          "DatabaseHelper: Enregistrement document $docId supprimé de la DB.",
+        );
+
+        if (filePath.isNotEmpty) {
+          try {
+            final file = File(filePath);
+            if (await file.exists()) {
+              await file.delete();
+              Log.d(
+                "DatabaseHelper: Fichier physique $filePath supprimé pour document $docId.",
+              );
+            } else {
+              Log.d(
+                "DatabaseHelper: Fichier physique $filePath non trouvé pour document $docId.",
+              );
+            }
+          } catch (e) {
+            Log.e(
+              "DatabaseHelper: Erreur lors de la suppression du fichier physique $filePath pour $docId: $e.",
+            );
+          }
+        } else {
+          Log.d(
+            "DatabaseHelper: Pas de chemin de fichier pour document $docId.",
+          );
+        }
+      }
+
+      for (final appointmentId in appointmentIdsToDeleteExplicitly) {
+        Log.d("DatabaseHelper: Suppression explicite de l'appointment $appointmentId.");
+        await txn.delete('appointments', where: 'id = ?', whereArgs: [appointmentId]);
+      }
+
+      // --- Étape 5: Supprimer l'enregistrement du traitement principal ---
+      // Grâce aux contraintes ON DELETE CASCADE, cela devrait supprimer :
+      // - Tous les cycles liés au traitement (y compris celui donné, cycleIdToDelete).
+      // - Toutes les sessions liées à ces cycles.
+      // - Toutes les examinations liées à ces cycles.
+      // - Toutes les medication_intakes (et medication_intake_items par cascade) liées à ces cycles.
+      // - Toutes les cycle_appointments (et potentiellement appointments si ON DELETE CASCADE est sur appointments.id).
+      // - Toutes les cycle_measure (et potentiellement measures si ON DELETE CASCADE).
+      // - Toutes les tables de jonction liées au traitement (treatment_doctors, treatment_health_professionals, treatment_establishments).
+      //
+      // La suppression des side_effects se fera si sessions.id a ON DELETE CASCADE vers side_effects.entityId.
+      // La suppression des session_medications se fera si sessions.id a ON DELETE CASCADE vers session_medications.sessionId.
+
+      final deletedRows = await txn.delete(
+        'treatments',
+        where: 'id = ?',
+        whereArgs: [treatmentId],
+      );
+      Log.d(
+        "DatabaseHelper: Traitement $treatmentId et toutes ses dépendances (y compris le cycle $cycleIdToDelete) supprimés. Lignes affectées pour 'treatments': $deletedRows.",
+      );
+
+      if (deletedRows == 0) {
+        Log.w(
+          "DatabaseHelper: Aucun traitement trouvé avec l'ID $treatmentId pour suppression.",
+        );
+      }
+    })
+        .catchError((e, stackTrace) {
+      Log.e(
+        "DatabaseHelper: Erreur lors de la transaction de suppression du traitement basé sur le cycle $cycleIdToDelete: $e\nStackTrace: $stackTrace",
+      );
+      throw e;
+    });
+
+    Log.d(
+      "DatabaseHelper: Suppression du traitement basé sur le cycle $cycleIdToDelete (potentiellement) terminée.",
+    );
+  }
+
+
+  Future<void> deleteFullTreatmentAndDependencies(String treatmentId) async {
+    final db = await database;
+    Log.d(
+      "DatabaseHelper: Début de la suppression complète du traitement $treatmentId et de ses dépendances.",
+    );
+
+    await db
+        .transaction((txn) async {
+          // --- Étape 1: Collecter les IDs de toutes les entités dépendantes qui pourraient avoir des documents ---
+          // Cette liste contiendra des maps {'id': entityId, 'type': entityType}
+          List<Map<String, String>> entitiesWithPotentialDocuments = [
+            {'id': treatmentId, 'type': 'treatment'},
+          ];
+
+          // Cycles et leurs sous-dépendances
+          final cycles = await txn.query(
+            'cycles',
+            columns: ['id'],
+            where: 'treatmentId = ?',
+            whereArgs: [treatmentId],
+          );
+          for (final cycleMap in cycles) {
+            final cycleId = cycleMap['id'] as String;
+            entitiesWithPotentialDocuments.add({
+              'id': cycleId,
+              'type': 'cycle',
+            });
+
+            final sessions = await txn.query(
+              'sessions',
+              columns: ['id'],
+              where: 'cycleId = ?',
+              whereArgs: [cycleId],
+            );
+            for (final sessionMap in sessions) {
+              entitiesWithPotentialDocuments.add({
+                'id': sessionMap['id'] as String,
+                'type': 'session',
+              });
+            }
+
+            final examinations = await txn.query(
+              'examinations',
+              columns: ['id'],
+              where: 'cycleId = ?',
+              whereArgs: [cycleId],
+            );
+            for (final examMap in examinations) {
+              entitiesWithPotentialDocuments.add({
+                'id': examMap['id'] as String,
+                'type': 'examination',
+              });
+            }
+
+            // Rendez-vous liés aux cycles
+            final cycleAppointments = await txn.query(
+              'cycle_appointments',
+              columns: ['appointmentId'],
+              where: 'cycleId = ?',
+              whereArgs: [cycleId],
+            );
+            for (final caMap in cycleAppointments) {
+              // On considère que si un cycle est supprimé, les documents des RDV qui lui sont spécifiquement liés via ce cycle
+              // doivent aussi être considérés (même si le RDV lui-même peut persister s'il a d'autres liens).
+              // Cependant, la suppression de documents pour des RDV qui pourraient exister hors traitement est délicate.
+              // Pour une suppression stricte des dépendances *du traitement*, on inclut les documents des RDV liés au cycle.
+              entitiesWithPotentialDocuments.add({
+                'id': caMap['appointmentId'] as String,
+                'type': 'appointment',
+              });
+            }
+          }
+
+          // --- Étape 2: Collecter les ID et chemins de tous les documents uniques associés ---
+          Set<String> uniqueDocumentIds = {};
+          List<Map<String, String>> documentsToDelete =
+              []; // Contiendra {'id': docId, 'path': filePath}
+
+          for (final entityInfo in entitiesWithPotentialDocuments) {
+            final entityId = entityInfo['id']!;
+            final entityType = entityInfo['type']!;
+
+            final docLinks = await txn.query(
+              'entity_documents',
+              columns: ['documentId'],
+              where: 'entityId = ? AND entityType = ?',
+              whereArgs: [entityId, entityType],
+            );
+
+            for (final link in docLinks) {
+              final docId = link['documentId'] as String;
+              if (uniqueDocumentIds.add(docId)) {
+                // Ajoute seulement si pas déjà présent, et continue si c'est un nouveau docId
+                final docDetailsList = await txn.query(
+                  'documents',
+                  columns: ['path'],
+                  where: 'id = ?',
+                  whereArgs: [docId],
+                  limit: 1,
+                );
+                if (docDetailsList.isNotEmpty) {
+                  final path = docDetailsList.first['path'] as String?;
+                  if (path != null && path.isNotEmpty) {
+                    documentsToDelete.add({'id': docId, 'path': path});
+                  } else {
+                    // Document sans chemin, on le supprimera de la DB uniquement
+                    documentsToDelete.add({
+                      'id': docId,
+                      'path': '',
+                    }); // Marquer le chemin comme vide
+                  }
+                }
+              }
+            }
+          }
+
+          // --- Étape 3: Supprimer les fichiers physiques et les enregistrements de documents ---
+          for (final docInfo in documentsToDelete) {
+            final docId = docInfo['id']!;
+            final filePath = docInfo['path']!;
+
+            // Supprimer les liaisons dans entity_documents pour ce documentId
+            await txn.delete(
+              'entity_documents',
+              where: 'documentId = ?',
+              whereArgs: [docId],
+            );
+            Log.d(
+              "DatabaseHelper: Liaisons entity_documents pour $docId supprimées (transaction globale).",
+            );
+
+            // Supprimer l'enregistrement de la table documents
+            await txn.delete('documents', where: 'id = ?', whereArgs: [docId]);
+            Log.d(
+              "DatabaseHelper: Enregistrement document $docId supprimé de la DB (transaction globale).",
+            );
+
+            // Supprimer le fichier physique s'il a un chemin valide
+            if (filePath.isNotEmpty) {
+              try {
+                final file = File(filePath);
+                if (await file.exists()) {
+                  await file.delete();
+                  Log.d(
+                    "DatabaseHelper: Fichier physique $filePath supprimé pour document $docId.",
+                  );
+                } else {
+                  Log.d(
+                    "DatabaseHelper: Fichier physique $filePath non trouvé pour document $docId.",
+                  );
+                }
+              } catch (e) {
+                Log.e(
+                  "DatabaseHelper: Erreur lors de la suppression du fichier physique $filePath pour $docId: $e. L'enregistrement DB a été supprimé.",
+                );
+                // On continue même si la suppression du fichier échoue pour ne pas bloquer la suppression du reste.
+              }
+            } else {
+              Log.d(
+                "DatabaseHelper: Pas de chemin de fichier pour document $docId ou chemin vide, fichier non supprimé.",
+              );
+            }
+          }
+
+          // --- Étape 4: Supprimer l'enregistrement du traitement principal ---
+          // Grâce aux contraintes ON DELETE CASCADE, cela devrait supprimer les cycles, sessions, chirurgies,
+          // et toutes leurs sous-dépendances directes (comme session_medications, etc.).
+          final deletedRows = await txn.delete(
+            'treatments',
+            where: 'id = ?',
+            whereArgs: [treatmentId],
+          );
+          Log.d(
+            "DatabaseHelper: Traitement $treatmentId supprimé de la DB. Lignes affectées: $deletedRows.",
+          );
+
+          if (deletedRows == 0) {
+            Log.w(
+              "DatabaseHelper: Aucun traitement trouvé avec l'ID $treatmentId pour suppression lors de la transaction.",
+            );
+            // Vous pourriez vouloir gérer ce cas, par exemple en ne considérant pas cela comme une erreur si le but est de s'assurer qu'il n'existe plus.
+          }
+        })
+        .catchError((e, stackTrace) {
+          // Ajout de stackTrace pour un meilleur débogage
+          Log.e(
+            "DatabaseHelper: Erreur lors de la transaction de suppression complète du traitement $treatmentId: $e\nStackTrace: $stackTrace",
+          );
+          // Propager l'erreur pour que l'appelant sache que l'opération a échoué.
+          throw e;
+        });
+
+    Log.d(
+      "DatabaseHelper: Suppression complète du traitement $treatmentId (potentiellement) terminée.",
+    );
   }
 
   Future<List<Map<String, dynamic>>> getCyclesByTreatment(
@@ -1045,30 +1433,6 @@ class DatabaseHelper {
       return id;
     } catch (e) {
       Log.d('DatabaseHelper: Erreur lors de l\'insertion de la session: $e');
-      return -1;
-    }
-  }
-
-  // 2. Méthode pour insérer une session de radiothérapie
-  Future<int> insertRadiotherapySession(Map<String, dynamic> session) async {
-    final db = await database;
-    try {
-      Log.d(
-        "DatabaseHelper: Insertion d'une session de radiothérapie: ${session['id']}",
-      );
-      final id = await db.insert(
-        'radiotherapy_sessions',
-        session,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      Log.d(
-        "DatabaseHelper: Session de radiothérapie insérée avec succès, résultat: $id",
-      );
-      return id;
-    } catch (e) {
-      Log.d(
-        'DatabaseHelper: Erreur lors de l\'insertion de la session de radiothérapie: $e',
-      );
       return -1;
     }
   }
@@ -1124,23 +1488,6 @@ class DatabaseHelper {
     );
   }
 
-  // Fonction pour récupérer les médecins associés à un traitement
-  Future<List<Map<String, dynamic>>> getDoctorsByTreatment(
-    String treatmentId,
-  ) async {
-    final db = await database;
-    return await db.rawQuery(
-      '''
-    SELECT d.*
-    FROM doctors d
-    JOIN treatment_doctors td ON d.id = td.doctorId
-    WHERE td.treatmentId = ?
-    ORDER BY d.name
-  ''',
-      [treatmentId],
-    );
-  }
-
   // Fonction pour récupérer les effets secondaires par entité
   Future<List<Map<String, dynamic>>> getSideEffectsByEntity(
     String entityType,
@@ -1162,612 +1509,6 @@ class DatabaseHelper {
   }
 
   // Méthodes mises à jour pour la gestion des radiothérapies avec relations
-
-  // Récupérer les radiothérapies par traitement avec leurs relations
-  Future<List<Map<String, dynamic>>> getRadiotherapiesByTreatment(
-    String treatmentId,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Récupération des radiothérapies pour le traitement $treatmentId",
-    );
-    final db = await database;
-
-    // Récupérer les radiothérapies de base
-    final List<Map<String, dynamic>> radiotherapies = await db.query(
-      'radiotherapies',
-      where: 'treatmentId = ?',
-      whereArgs: [treatmentId],
-      orderBy: 'startDate',
-    );
-
-    Log.d("DatabaseHelper: ${radiotherapies.length} radiothérapies trouvées");
-    List<Map<String, dynamic>> result = [];
-
-    for (var radiotherapy in radiotherapies) {
-      // Créer une copie pour éviter de modifier l'original
-      final Map<String, dynamic> completeRadiotherapy = Map.from(radiotherapy);
-
-      // Ajouter l'établissement
-      final establishmentId = radiotherapy['establishmentId'];
-      final List<Map<String, dynamic>> establishment = await db.query(
-        'establishments',
-        where: 'id = ?',
-        whereArgs: [establishmentId],
-      );
-
-      if (establishment.isNotEmpty) {
-        completeRadiotherapy['establishment'] = establishment.first;
-      }
-
-      // Vérifier si la table radiotherapy_doctors existe
-      final tablesRadio = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-      );
-
-      if (tablesRadio.isNotEmpty) {
-        // Récupérer les médecins associés en utilisant rawQuery pour la jointure
-        final List<Map<String, dynamic>> doctors = await db.rawQuery(
-          '''
-        SELECT d.* 
-        FROM doctors d
-        INNER JOIN radiotherapy_doctors rd ON d.id = rd.doctorId
-        WHERE rd.radiotherapyId = ?
-      ''',
-          [radiotherapy['id']],
-        );
-
-        completeRadiotherapy['doctors'] = doctors;
-      } else {
-        // Si la table n'existe pas, renvoyer une liste vide
-        completeRadiotherapy['doctors'] = [];
-      }
-
-      // Vérifier si la table radiotherapy_sessions existe
-      final tablesSessions = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'",
-      );
-
-      if (tablesSessions.isNotEmpty) {
-        // Récupérer les sessions
-        final List<Map<String, dynamic>> sessions = await db.query(
-          'radiotherapy_sessions',
-          where: 'radiotherapyId = ?',
-          whereArgs: [radiotherapy['id']],
-          orderBy: 'dateTime',
-        );
-        completeRadiotherapy['sessions'] = sessions;
-      } else {
-        // Si la table n'existe pas, renvoyer une liste vide
-        completeRadiotherapy['sessions'] = [];
-      }
-
-      // Récupérer les documents en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> documents = await db.rawQuery(
-        '''
-      SELECT d.* 
-      FROM documents d
-      INNER JOIN entity_documents ed ON d.id = ed.documentId
-      WHERE ed.entityId = ? AND ed.entityType = ?
-    ''',
-        [radiotherapy['id'], 'radiotherapy'],
-      );
-
-      completeRadiotherapy['documents'] = documents;
-
-      result.add(completeRadiotherapy);
-    }
-
-    return result;
-  }
-
-  // Insérer une radiothérapie avec ses relations
-  Future<int> insertRadiotherapy(Map<String, dynamic> radiotherapy) async {
-    Log.d("DatabaseHelper: Insertion d'une radiothérapie");
-    final db = await database;
-
-    try {
-      return await db.transaction((txn) async {
-        // Insérer la radiothérapie de base
-        final radiotherapyData = {
-          'id': radiotherapy['id'],
-          'treatmentId': radiotherapy['treatmentId'],
-          'title': radiotherapy['title'],
-          'startDate': radiotherapy['startDate'],
-          'endDate': radiotherapy['endDate'],
-          'establishmentId': radiotherapy['establishmentId'],
-          'sessionCount': radiotherapy['sessionCount'],
-          'description': radiotherapy['notes'],
-          'isCompleted': radiotherapy['isCompleted'] ? 1 : 0,
-        };
-
-        await txn.insert('radiotherapies', radiotherapyData);
-        Log.d(
-          "DatabaseHelper: Radiothérapie de base insérée avec ID: ${radiotherapy['id']}",
-        );
-
-        // Vérifier si la table radiotherapy_doctors existe
-        final tablesRadio = await txn.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-        );
-
-        // Insérer les médecins associés
-        if (tablesRadio.isNotEmpty && radiotherapy['doctorIds'] != null) {
-          for (String doctorId in radiotherapy['doctorIds']) {
-            await txn.insert('radiotherapy_doctors', {
-              'radiotherapyId': radiotherapy['id'],
-              'doctorId': doctorId,
-            });
-          }
-          Log.d("DatabaseHelper: Relations médecins ajoutées");
-        }
-
-        // Vérifier si la table radiotherapy_sessions existe
-        final tablesSessions = await txn.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_sessions'",
-        );
-
-        // Insérer les sessions
-        if (tablesSessions.isNotEmpty && radiotherapy['sessions'] != null) {
-          for (var session in radiotherapy['sessions']) {
-            await txn.insert('radiotherapy_sessions', {
-              'id': session['id'],
-              'radiotherapyId': radiotherapy['id'],
-              'dateTime': session['dateTime'],
-              'area': session['area'],
-              'dose': session['dose'],
-              'notes': session['notes'],
-              'isCompleted': session['isCompleted'] ? 1 : 0,
-            });
-          }
-          Log.d("DatabaseHelper: Sessions de radiothérapie ajoutées");
-        }
-
-        return 1; // Succès
-      });
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de l'insertion de la radiothérapie: $e",
-      );
-      return -1;
-    }
-  }
-
-  // Mettre à jour une radiothérapie avec ses relations
-  Future<int> updateRadiotherapy(Map<String, dynamic> radiotherapy) async {
-    Log.d(
-      "DatabaseHelper: Mise à jour d'une radiothérapie avec ID: ${radiotherapy['id']}",
-    );
-    final db = await database;
-
-    try {
-      return await db.transaction((txn) async {
-        // Mettre à jour la radiothérapie de base
-        final radiotherapyData = {
-          'title': radiotherapy['title'],
-          'startDate': radiotherapy['startDate'],
-          'endDate': radiotherapy['endDate'],
-          'establishmentId': radiotherapy['establishmentId'],
-          'sessionCount': radiotherapy['sessionCount'],
-          'description': radiotherapy['notes'],
-          'isCompleted': radiotherapy['isCompleted'] ? 1 : 0,
-        };
-
-        await txn.update(
-          'radiotherapies',
-          radiotherapyData,
-          where: 'id = ?',
-          whereArgs: [radiotherapy['id']],
-        );
-
-        // Vérifier si la table radiotherapy_doctors existe
-        final tablesRadio = await txn.rawQuery(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-        );
-
-        // Mettre à jour les médecins associés
-        if (tablesRadio.isNotEmpty && radiotherapy['doctorIds'] != null) {
-          // Supprimer les associations existantes
-          await txn.delete(
-            'radiotherapy_doctors',
-            where: 'radiotherapyId = ?',
-            whereArgs: [radiotherapy['id']],
-          );
-
-          // Insérer les nouvelles associations
-          for (String doctorId in radiotherapy['doctorIds']) {
-            await txn.insert('radiotherapy_doctors', {
-              'radiotherapyId': radiotherapy['id'],
-              'doctorId': doctorId,
-            });
-          }
-        }
-
-        return 1; // Succès
-      });
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la mise à jour de la radiothérapie: $e",
-      );
-      return -1;
-    }
-  }
-
-  // Supprimer une radiothérapie (les relations seront supprimées en cascade)
-  Future<int> deleteRadiotherapy(String id) async {
-    Log.d("DatabaseHelper: Suppression de la radiothérapie avec ID: $id");
-    final db = await database;
-
-    try {
-      final result = await db.delete(
-        'radiotherapies',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      Log.d(
-        "DatabaseHelper: Radiothérapie supprimée avec succès, lignes affectées: $result",
-      );
-      return result;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la suppression de la radiothérapie: $e",
-      );
-      return -1;
-    }
-  }
-
-  // Méthodes mises à jour pour la gestion des chirurgies avec relations
-
-  Future<List<Map<String, dynamic>>> getSurgeries() async {
-    final db = await database;
-    return await db.query('surgeries');
-  }
-
-  // Récupérer les chirurgies par traitement avec leurs relations
-  Future<List<Map<String, dynamic>>> getSurgeriesByTreatment(
-    String treatmentId,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Récupération des chirurgies pour le traitement $treatmentId",
-    );
-    final db = await database;
-
-    // Récupérer les chirurgies de base
-    final List<Map<String, dynamic>> surgeries = await db.query(
-      'surgeries',
-      where: 'treatmentId = ?',
-      whereArgs: [treatmentId],
-      orderBy: 'date',
-    );
-
-    Log.d("DatabaseHelper: ${surgeries.length} chirurgies trouvées");
-    List<Map<String, dynamic>> result = [];
-
-    for (var surgery in surgeries) {
-      // Créer une copie pour éviter de modifier l'original
-      final Map<String, dynamic> completeSurgery = Map.from(surgery);
-
-      // Ajouter l'établissement
-      final establishmentId = surgery['establishmentId'];
-      final List<Map<String, dynamic>> establishment = await db.query(
-        'establishments',
-        where: 'id = ?',
-        whereArgs: [establishmentId],
-      );
-
-      if (establishment.isNotEmpty) {
-        completeSurgery['establishment'] = establishment.first;
-      }
-
-      // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
-      final tablesSurgery = await db.rawQuery(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-      );
-
-      if (tablesSurgery.isNotEmpty) {
-        // Vérifier si la colonne 'role' existe
-        bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
-          'role',
-        );
-
-        if (hasRoleColumn) {
-          // Récupérer les chirurgiens en utilisant rawQuery pour la jointure
-          final List<Map<String, dynamic>> surgeons = await db.rawQuery(
-            '''
-          SELECT d.* 
-          FROM doctors d
-          INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
-          WHERE sd.surgeryId = ? AND sd.role = ?
-        ''',
-            [surgery['id'], 'surgeon'],
-          );
-
-          completeSurgery['surgeons'] = surgeons;
-
-          // Récupérer les anesthésistes en utilisant rawQuery pour la jointure
-          final List<Map<String, dynamic>> anesthetists = await db.rawQuery(
-            '''
-          SELECT d.* 
-          FROM doctors d
-          INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
-          WHERE sd.surgeryId = ? AND sd.role = ?
-        ''',
-            [surgery['id'], 'anesthetist'],
-          );
-
-          completeSurgery['anesthetists'] = anesthetists;
-        } else {
-          // Si pas de colonne 'role', récupérer tous les médecins associés
-          final List<Map<String, dynamic>> doctors = await db.rawQuery(
-            '''
-          SELECT d.* 
-          FROM doctors d
-          INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
-          WHERE sd.surgeryId = ?
-        ''',
-            [surgery['id']],
-          );
-
-          completeSurgery['surgeons'] = doctors;
-          completeSurgery['anesthetists'] = [];
-        }
-      } else {
-        // Si la table n'existe pas, renvoyer des listes vides
-        completeSurgery['surgeons'] = [];
-        completeSurgery['anesthetists'] = [];
-      }
-
-      // Récupérer le rendez-vous pré-opératoire en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> appointments = await db.rawQuery(
-        '''
-      SELECT a.* 
-      FROM appointments a
-      INNER JOIN entity_documents ed ON a.id = ed.entityId
-      WHERE ed.entityType = ? AND ed.documentId = ?
-    ''',
-        ['appointment', surgery['id']],
-      );
-
-      if (appointments.isNotEmpty) {
-        completeSurgery['preOperationAppointment'] = appointments.first;
-      }
-
-      // Récupérer les documents en utilisant rawQuery pour la jointure
-      final List<Map<String, dynamic>> documents = await db.rawQuery(
-        '''
-      SELECT d.* 
-      FROM documents d
-      INNER JOIN entity_documents ed ON d.id = ed.documentId
-      WHERE ed.entityId = ? AND ed.entityType = ?
-    ''',
-        [surgery['id'], 'surgery'],
-      );
-
-      completeSurgery['documents'] = documents;
-
-      result.add(completeSurgery);
-    }
-
-    return result;
-  }
-
-  // Insérer une chirurgie avec ses relations
-  // Version corrigée pour insertSurgery - Les parties problématiques étaient les requêtes join
-  // Cette fonction ne nécessite pas de correction majeure car elle utilise des insertions directes
-  // sans jointures, mais je l'inclus pour référence
-
-  Future<int> insertSurgery(Map<String, dynamic> surgery) async {
-    Log.d("DatabaseHelper: Insertion d'une chirurgie");
-    final db = await database;
-
-    try {
-      return await db.transaction((txn) async {
-        // Insérer la chirurgie de base
-        final surgeryData = {
-          'id': surgery['id'],
-          'treatmentId': surgery['treatmentId'],
-          'title': surgery['title'],
-          'date': surgery['date'],
-          'establishmentId': surgery['establishmentId'],
-          'description': surgery['operationReport'],
-          'isCompleted': surgery['isCompleted'] ? 1 : 0,
-        };
-
-        await txn.insert('surgeries', surgeryData);
-        Log.d(
-          "DatabaseHelper: Chirurgie de base insérée avec ID: ${surgery['id']}",
-        );
-
-        // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
-        final tablesSurgery = await txn.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-        );
-
-        if (tablesSurgery.isNotEmpty) {
-          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
-            'role',
-          );
-
-          // Insérer les chirurgiens
-          if (hasRoleColumn && surgery['surgeonIds'] != null) {
-            for (String doctorId in surgery['surgeonIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-                'role': 'surgeon',
-              });
-            }
-            Log.d("DatabaseHelper: Relations chirurgiens ajoutées");
-          }
-
-          // Insérer les anesthésistes
-          if (hasRoleColumn && surgery['anesthetistIds'] != null) {
-            for (String doctorId in surgery['anesthetistIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-                'role': 'anesthetist',
-              });
-            }
-            Log.d("DatabaseHelper: Relations anesthésistes ajoutées");
-          }
-
-          // Si pas de colonne 'role' mais qu'il y a des médecins
-          if (!hasRoleColumn && surgery['surgeonIds'] != null) {
-            for (String doctorId in surgery['surgeonIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-              });
-            }
-            Log.d("DatabaseHelper: Relations médecins ajoutées (sans rôle)");
-          }
-        }
-
-        // Insérer le rendez-vous pré-opératoire s'il existe
-        if (surgery['preOperationAppointment'] != null) {
-          final appointment = surgery['preOperationAppointment'];
-          final appointmentId = appointment['id'] ?? Uuid().v4();
-
-          // Insérer le rendez-vous
-          await txn.insert('appointments', {
-            'id': appointmentId,
-            'title': appointment['title'],
-            'dateTime': appointment['dateTime'],
-            'duration': appointment['duration'],
-            'healthProfessionalId': appointment['healthProfessionalId'],
-            'establishmentId': appointment['establishmentId'],
-            'notes': appointment['notes'],
-            'isCompleted': appointment['isCompleted'],
-            'Type': appointment['Type'],
-          });
-
-          // Lier le rendez-vous à la chirurgie
-          await txn.insert('entity_documents', {
-            'documentId': appointmentId,
-            'entityType': 'appointment',
-            'entityId': surgery['id'],
-          });
-
-          Log.d("DatabaseHelper: Rendez-vous pré-opératoire ajouté");
-        }
-
-        return 1; // Succès
-      });
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'insertion de la chirurgie: $e");
-      return -1;
-    }
-  }
-
-  // Mettre à jour une chirurgie avec ses relations
-  Future<int> updateSurgery(Map<String, dynamic> surgery) async {
-    Log.d(
-      "DatabaseHelper: Mise à jour d'une chirurgie avec ID: ${surgery['id']}",
-    );
-    final db = await database;
-
-    try {
-      return await db.transaction((txn) async {
-        // Mettre à jour la chirurgie de base
-        final surgeryData = {
-          'title': surgery['title'],
-          'date': surgery['date'],
-          'establishmentId': surgery['establishmentId'],
-          'description': surgery['operationReport'],
-          'isCompleted': surgery['isCompleted'] ? 1 : 0,
-        };
-
-        await txn.update(
-          'surgeries',
-          surgeryData,
-          where: 'id = ?',
-          whereArgs: [surgery['id']],
-        );
-
-        // Vérifier si la table surgery_doctors existe et si elle a une colonne 'role'
-        final tablesSurgery = await txn.rawQuery(
-          "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-        );
-
-        if (tablesSurgery.isNotEmpty) {
-          bool hasRoleColumn = tablesSurgery.first['sql'].toString().contains(
-            'role',
-          );
-
-          // Supprimer toutes les associations existantes
-          await txn.delete(
-            'surgery_doctors',
-            where: 'surgeryId = ?',
-            whereArgs: [surgery['id']],
-          );
-
-          // Insérer les chirurgiens
-          if (hasRoleColumn && surgery['surgeonIds'] != null) {
-            for (String doctorId in surgery['surgeonIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-                'role': 'surgeon',
-              });
-            }
-          }
-
-          // Insérer les anesthésistes
-          if (hasRoleColumn && surgery['anesthetistIds'] != null) {
-            for (String doctorId in surgery['anesthetistIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-                'role': 'anesthetist',
-              });
-            }
-          }
-
-          // Si pas de colonne 'role' mais qu'il y a des médecins
-          if (!hasRoleColumn && surgery['surgeonIds'] != null) {
-            for (String doctorId in surgery['surgeonIds']) {
-              await txn.insert('surgery_doctors', {
-                'surgeryId': surgery['id'],
-                'doctorId': doctorId,
-              });
-            }
-          }
-        }
-
-        return 1; // Succès
-      });
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la mise à jour de la chirurgie: $e",
-      );
-      return -1;
-    }
-  }
-
-  // Supprimer une chirurgie (les relations seront supprimées en cascade)
-  Future<int> deleteSurgery(String id) async {
-    Log.d("DatabaseHelper: Suppression de la chirurgie avec ID: $id");
-    final db = await database;
-
-    try {
-      final result = await db.delete(
-        'surgeries',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      Log.d(
-        "DatabaseHelper: Chirurgie supprimée avec succès, lignes affectées: $result",
-      );
-      return result;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la suppression de la chirurgie: $e",
-      );
-      return -1;
-    }
-  }
 
   /// Récupère tous les médicaments disponibles
   Future<List<Map<String, dynamic>>> getMedications() async {
@@ -2216,249 +1957,7 @@ class DatabaseHelper {
     }
   }
 
-  // Fonctions additionnelles à ajouter à votre classe DatabaseHelper
-
-  // Ajouter un chirurgien à une chirurgie
-  Future<int> addSurgeonToSurgery(String surgeryId, String doctorId) async {
-    Log.d(
-      "DatabaseHelper: Ajout du chirurgien $doctorId à la chirurgie $surgeryId",
-    );
-    final db = await database;
-
-    try {
-      // Vérifier si la table surgery_doctors contient un champ 'role'
-      final tableInfo = await db.rawQuery(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-      );
-
-      if (tableInfo.isEmpty) {
-        // La table n'existe pas encore, la créer avec le champ 'role'
-        await db.execute('''
-        CREATE TABLE surgery_doctors(
-          surgeryId TEXT NOT NULL,
-          doctorId TEXT NOT NULL,
-          role TEXT NOT NULL,
-          PRIMARY KEY (surgeryId, doctorId, role),
-          FOREIGN KEY (surgeryId) REFERENCES surgeries (id) ON DELETE CASCADE,
-          FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-        )
-      ''');
-        Log.d("DatabaseHelper: Table surgery_doctors créée avec un champ role");
-      }
-
-      // Vérifier si le champ 'role' est présent
-      final hasRoleField =
-          tableInfo.isNotEmpty &&
-          tableInfo.first['sql'].toString().contains('role');
-
-      if (hasRoleField) {
-        final result = await db.insert('surgery_doctors', {
-          'surgeryId': surgeryId,
-          'doctorId': doctorId,
-          'role': 'surgeon',
-        });
-        Log.d("DatabaseHelper: Chirurgien ajouté avec succès avec rôle");
-        return result;
-      } else {
-        // Utiliser l'ancienne structure de table sans champ 'role'
-        final result = await db.insert('surgery_doctors', {
-          'surgeryId': surgeryId,
-          'doctorId': doctorId,
-        });
-        Log.d("DatabaseHelper: Chirurgien ajouté avec succès sans rôle");
-        return result;
-      }
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'ajout du chirurgien: $e");
-      return -1;
-    }
-  }
-
-  // Ajouter un anesthésiste à une chirurgie
-  Future<int> addAnesthetistToSurgery(String surgeryId, String doctorId) async {
-    Log.d(
-      "DatabaseHelper: Ajout de l'anesthésiste $doctorId à la chirurgie $surgeryId",
-    );
-    final db = await database;
-
-    try {
-      // Vérifier si la table surgery_doctors contient un champ 'role'
-      final tableInfo = await db.rawQuery(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-      );
-
-      // Vérifier si le champ 'role' est présent
-      final hasRoleField =
-          tableInfo.isNotEmpty &&
-          tableInfo.first['sql'].toString().contains('role');
-
-      if (hasRoleField) {
-        final result = await db.insert('surgery_doctors', {
-          'surgeryId': surgeryId,
-          'doctorId': doctorId,
-          'role': 'anesthetist',
-        });
-        Log.d("DatabaseHelper: Anesthésiste ajouté avec succès");
-        return result;
-      } else {
-        // Sans le champ 'role', nous ne pouvons pas distinguer les anesthésistes
-        Log.d(
-          "DatabaseHelper: La table surgery_doctors n'a pas de champ 'role', impossible d'ajouter un anesthésiste",
-        );
-        return 0;
-      }
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de l'ajout de l'anesthésiste: $e");
-      return -1;
-    }
-  }
-
-  // Ajouter un médecin à une radiothérapie
-  Future<int> addDoctorToRadiotherapy(
-    String radiotherapyId,
-    String doctorId,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Ajout du médecin $doctorId à la radiothérapie $radiotherapyId",
-    );
-    final db = await database;
-
-    try {
-      // Vérifier si la table radiotherapy_doctors existe
-      final tableExists = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-      );
-
-      if (tableExists.isEmpty) {
-        // La table n'existe pas encore, la créer
-        await db.execute('''
-        CREATE TABLE radiotherapy_doctors(
-          radiotherapyId TEXT NOT NULL,
-          doctorId TEXT NOT NULL,
-          PRIMARY KEY (radiotherapyId, doctorId),
-          FOREIGN KEY (radiotherapyId) REFERENCES radiotherapies (id) ON DELETE CASCADE,
-          FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-        )
-      ''');
-        Log.d("DatabaseHelper: Table radiotherapy_doctors créée");
-      }
-
-      final result = await db.insert('radiotherapy_doctors', {
-        'radiotherapyId': radiotherapyId,
-        'doctorId': doctorId,
-      });
-
-      Log.d("DatabaseHelper: Médecin ajouté à la radiothérapie avec succès");
-      return result;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de l'ajout du médecin à la radiothérapie: $e",
-      );
-      return -1;
-    }
-  }
-
-  // Récupérer les médecins d'une chirurgie par rôle
-  Future<List<Map<String, dynamic>>> getDoctorsBySurgeryAndRole(
-    String surgeryId,
-    String role,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Récupération des médecins de la chirurgie $surgeryId avec le rôle $role",
-    );
-    final db = await database;
-
-    try {
-      // Vérifier si la table surgery_doctors contient un champ 'role'
-      final tableInfo = await db.rawQuery(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-      );
-
-      // Vérifier si le champ 'role' est présent
-      final hasRoleField =
-          tableInfo.isNotEmpty &&
-          tableInfo.first['sql'].toString().contains('role');
-
-      if (hasRoleField) {
-        final results = await db.rawQuery(
-          '''
-        SELECT d.* 
-        FROM doctors d
-        INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
-        WHERE sd.surgeryId = ? AND sd.role = ?
-      ''',
-          [surgeryId, role],
-        );
-
-        Log.d(
-          "DatabaseHelper: ${results.length} médecins récupérés avec le rôle $role",
-        );
-        return results;
-      } else {
-        // Sans le champ 'role', on récupère tous les médecins (pour la rétrocompatibilité)
-        final results = await db.rawQuery(
-          '''
-        SELECT d.* 
-        FROM doctors d
-        INNER JOIN surgery_doctors sd ON d.id = sd.doctorId
-        WHERE sd.surgeryId = ?
-      ''',
-          [surgeryId],
-        );
-
-        Log.d(
-          "DatabaseHelper: ${results.length} médecins récupérés (sans distinction de rôle)",
-        );
-        return results;
-      }
-    } catch (e) {
-      Log.d("DatabaseHelper: Erreur lors de la récupération des médecins: $e");
-      return [];
-    }
-  }
-
   // Récupérer les médecins d'une radiothérapie
-  Future<List<Map<String, dynamic>>> getDoctorsByRadiotherapy(
-    String radiotherapyId,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Récupération des médecins de la radiothérapie $radiotherapyId",
-    );
-    final db = await database;
-
-    try {
-      // Vérifier si la table radiotherapy_doctors existe
-      final tableExists = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-      );
-
-      if (tableExists.isEmpty) {
-        Log.d("DatabaseHelper: La table radiotherapy_doctors n'existe pas");
-        return [];
-      }
-
-      final results = await db.rawQuery(
-        '''
-      SELECT d.* 
-      FROM doctors d
-      INNER JOIN radiotherapy_doctors rd ON d.id = rd.doctorId
-      WHERE rd.radiotherapyId = ?
-    ''',
-        [radiotherapyId],
-      );
-
-      Log.d(
-        "DatabaseHelper: ${results.length} médecins récupérés pour la radiothérapie",
-      );
-      return results;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la récupération des médecins de la radiothérapie: $e",
-      );
-      return [];
-    }
-  }
-
   // Mettre à jour les champs d'un cycle
   Future<int> updateCycleFields(Map<String, dynamic> cycleFields) async {
     Log.d(
@@ -2489,7 +1988,9 @@ class DatabaseHelper {
   /// Vérifie si tous les cycles d'un traitement sont terminés
   /// Retourne true si tous les cycles ont isCompleted = 1, false sinon
   Future<bool> isTreatmentCyclesCompleted(String treatmentId) async {
-    Log.d("DatabaseHelper: Vérification si tous les cycles du traitement $treatmentId sont terminés");
+    Log.d(
+      "DatabaseHelper: Vérification si tous les cycles du traitement $treatmentId sont terminés",
+    );
 
     try {
       final db = await database;
@@ -2501,12 +2002,21 @@ class DatabaseHelper {
         whereArgs: [treatmentId],
       );
 
-      Log.d("DatabaseHelper: ${cycles.length} cycles trouvés pour le traitement $treatmentId");
+      if (cycles.length == 0) {
+        Log.d('Pas de cycle trouvé pour le traitement');
+        return true;
+      }
+
+      Log.d(
+        "DatabaseHelper: ${cycles.length} cycles trouvés pour le traitement $treatmentId",
+      );
       Log.d("DatabaseHelper: ${cycles.length} cycles :[${cycles.toString()}]");
 
       // Si aucun cycle n'existe, considérer comme non terminé
       if (cycles.isEmpty) {
-        Log.d("DatabaseHelper: Aucun cycle trouvé, traitement considéré comme non terminé");
+        Log.d(
+          "DatabaseHelper: Aucun cycle trouvé, traitement considéré comme non terminé",
+        );
         return false;
       }
 
@@ -2514,44 +2024,23 @@ class DatabaseHelper {
       bool allCompleted = cycles.every((cycle) => cycle['isCompleted'] == 1);
 
       if (allCompleted) {
-        Log.d("DatabaseHelper: Tous les cycles du traitement $treatmentId sont terminés");
+        Log.d(
+          "DatabaseHelper: Tous les cycles du traitement $treatmentId sont terminés",
+        );
       } else {
-        final incompleteCycles = cycles.where((cycle) => cycle['isCompleted'] != 1).length;
-        Log.d("DatabaseHelper: $incompleteCycles cycles non terminés sur ${cycles.length} pour le traitement $treatmentId");
+        final incompleteCycles =
+            cycles.where((cycle) => cycle['isCompleted'] != 1).length;
+        Log.d(
+          "DatabaseHelper: $incompleteCycles cycles non terminés sur ${cycles.length} pour le traitement $treatmentId",
+        );
       }
 
       return allCompleted;
-
     } catch (e) {
-      Log.e("DatabaseHelper: Erreur lors de la vérification des cycles du traitement: $e");
+      Log.e(
+        "DatabaseHelper: Erreur lors de la vérification des cycles du traitement: $e",
+      );
       return false;
-    }
-  }
-
-  // Mettre à jour les champs d'une chirurgie
-  Future<int> updateSurgeryFields(Map<String, dynamic> surgeryFields) async {
-    Log.d(
-      "DatabaseHelper: Mise à jour des champs de la chirurgie ${surgeryFields['id']}",
-    );
-    final db = await database;
-
-    try {
-      final result = await db.update(
-        'surgeries',
-        surgeryFields,
-        where: 'id = ?',
-        whereArgs: [surgeryFields['id']],
-      );
-
-      Log.d(
-        "DatabaseHelper: Champs de la chirurgie mis à jour avec succès, lignes affectées: $result",
-      );
-      return result;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la mise à jour des champs de la chirurgie: $e",
-      );
-      return -1;
     }
   }
 
@@ -2584,182 +2073,6 @@ class DatabaseHelper {
     }
   }
 
-  // Créer des tables de relation si elles n'existent pas encore
-  Future<void> ensureRelationTablesExist() async {
-    Log.d("DatabaseHelper: Vérification de l'existence des tables de relation");
-    final db = await database;
-
-    try {
-      // Vérifier et créer la table radiotherapy_doctors si nécessaire
-      final radiotherapyDoctorsExists = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='radiotherapy_doctors'",
-      );
-
-      if (radiotherapyDoctorsExists.isEmpty) {
-        Log.d("DatabaseHelper: Création de la table radiotherapy_doctors");
-        await db.execute('''
-        CREATE TABLE radiotherapy_doctors(
-          radiotherapyId TEXT NOT NULL,
-          doctorId TEXT NOT NULL,
-          PRIMARY KEY (radiotherapyId, doctorId),
-          FOREIGN KEY (radiotherapyId) REFERENCES radiotherapies (id) ON DELETE CASCADE,
-          FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-        )
-      ''');
-      }
-
-      // Vérifier si la table surgery_doctors existe et si elle a un champ 'role'
-      final surgeryDoctorsInfo = await db.rawQuery(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='surgery_doctors'",
-      );
-
-      if (surgeryDoctorsInfo.isEmpty) {
-        Log.d(
-          "DatabaseHelper: Création de la table surgery_doctors avec champ 'role'",
-        );
-        await db.execute('''
-        CREATE TABLE surgery_doctors(
-          surgeryId TEXT NOT NULL,
-          doctorId TEXT NOT NULL,
-          role TEXT NOT NULL,
-          PRIMARY KEY (surgeryId, doctorId, role),
-          FOREIGN KEY (surgeryId) REFERENCES surgeries (id) ON DELETE CASCADE,
-          FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-        )
-      ''');
-      } else {
-        // Vérifier si le champ 'role' est présent
-        final hasRoleField = surgeryDoctorsInfo.first['sql']
-            .toString()
-            .contains('role');
-
-        if (!hasRoleField) {
-          Log.d(
-            "DatabaseHelper: Mise à jour de la table surgery_doctors pour ajouter le champ 'role'",
-          );
-
-          // Renommer l'ancienne table
-          await db.execute(
-            "ALTER TABLE surgery_doctors RENAME TO surgery_doctors_old",
-          );
-
-          // Créer la nouvelle table avec le champ 'role'
-          await db.execute('''
-          CREATE TABLE surgery_doctors(
-            surgeryId TEXT NOT NULL,
-            doctorId TEXT NOT NULL,
-            role TEXT NOT NULL,
-            PRIMARY KEY (surgeryId, doctorId, role),
-            FOREIGN KEY (surgeryId) REFERENCES surgeries (id) ON DELETE CASCADE,
-            FOREIGN KEY (doctorId) REFERENCES doctors (id) ON DELETE CASCADE
-          )
-        ''');
-
-          // Copier les données de l'ancienne table avec un rôle par défaut
-          await db.execute('''
-          INSERT INTO surgery_doctors (surgeryId, doctorId, role)
-          SELECT surgeryId, doctorId, 'surgeon' FROM surgery_doctors_old
-        ''');
-
-          // Supprimer l'ancienne table
-          await db.execute("DROP TABLE surgery_doctors_old");
-        }
-      }
-
-      // Vérifier et créer la table cycle_appointments si nécessaire
-      final cycleAppointmentsExists = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='cycle_appointments'",
-      );
-
-      if (cycleAppointmentsExists.isEmpty) {
-        Log.d("DatabaseHelper: Création de la table cycle_appointments");
-        await db.execute('''
-        CREATE TABLE cycle_appointments(
-          cycleId TEXT NOT NULL,
-          appointmentId TEXT NOT NULL,
-          PRIMARY KEY (cycleId, appointmentId),
-          FOREIGN KEY (cycleId) REFERENCES cycles (id) ON DELETE CASCADE,
-          FOREIGN KEY (appointmentId) REFERENCES appointments (id) ON DELETE CASCADE
-        )
-      ''');
-      }
-
-      Log.d("DatabaseHelper: Vérification des tables de relation terminée");
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la vérification/création des tables de relation: $e",
-      );
-    }
-  }
-
-  // Méthode pour récupérer les types principaux des traitements
-  Future<Map<String, String>> getMainTreatmentTypes() async {
-    Log.d("DatabaseHelper: Récupération des types principaux des traitements");
-    final db = await database;
-
-    // Récupérer tous les identifiants de traitement
-    final treatmentResults = await db.query('treatments', columns: ['id']);
-
-    Map<String, String> treatmentTypes = {};
-
-    for (var treatment in treatmentResults) {
-      final treatmentId = treatment['id'] as String;
-
-      // Vérifier les cycles
-      final cycleResults = await db.query(
-        'cycles',
-        where: 'treatmentId = ?',
-        whereArgs: [treatmentId],
-        limit: 1,
-      );
-
-      if (cycleResults.isNotEmpty) {
-        final cycleType = cycleResults.first['type'];
-        if (cycleType == 0) {
-          treatmentTypes[treatmentId] = "Chimiothérapie";
-        } else if (cycleType == 1) {
-          treatmentTypes[treatmentId] = "Immunothérapie";
-        } else if (cycleType == 2) {
-          treatmentTypes[treatmentId] = "Hormonothérapie";
-        } else if (cycleType == 3) {
-          treatmentTypes[treatmentId] = "Traitement combiné";
-        }
-        continue;
-      }
-
-      // Vérifier les chirurgies
-      final surgeryResults = await db.query(
-        'surgeries',
-        where: 'treatmentId = ?',
-        whereArgs: [treatmentId],
-        limit: 1,
-      );
-
-      if (surgeryResults.isNotEmpty) {
-        treatmentTypes[treatmentId] = "Chirurgie";
-        continue;
-      }
-
-      // Vérifier les radiothérapies
-      final radiotherapyResults = await db.query(
-        'radiotherapies',
-        where: 'treatmentId = ?',
-        whereArgs: [treatmentId],
-        limit: 1,
-      );
-
-      if (radiotherapyResults.isNotEmpty) {
-        treatmentTypes[treatmentId] = "Radiothérapie";
-        continue;
-      }
-
-      // Par défaut
-      treatmentTypes[treatmentId] = "Non spécifié";
-    }
-
-    return treatmentTypes;
-  }
-
   // Méthode pour récupérer un traitement complet avec ses détails
   Future<Map<String, dynamic>> getCompleteTreatment(String treatmentId) async {
     Log.d("DatabaseHelper: Récupération complète du traitement $treatmentId");
@@ -2781,17 +2094,8 @@ class DatabaseHelper {
     // Récupérer les établissements associés
     final establishmentResults = await getTreatmentEstablishments(treatmentId);
 
-    // Récupérer les médecins associés
-    final doctorResults = await getTreatmentDoctors(treatmentId);
-
     // Récupérer les cycles
     final cycleResults = await getCyclesByTreatment(treatmentId);
-
-    // Récupérer les chirurgies
-    final surgeryResults = await getSurgeriesByTreatment(treatmentId);
-
-    // Récupérer les radiothérapies
-    final radiotherapyResults = await getRadiotherapiesByTreatment(treatmentId);
 
     // Déterminer le type principal
     String mainType = "Non spécifié";
@@ -2806,11 +2110,11 @@ class DatabaseHelper {
         mainType = "Hormonothérapie";
       } else if (cycleType == 3) {
         mainType = "Traitement combiné";
+      } else if (cycleType == 4) {
+        mainType = "Chirurgie";
+      } else if (cycleType == 5) {
+        mainType = "Radiothérapie";
       }
-    } else if (surgeryResults.isNotEmpty) {
-      mainType = "Chirurgie";
-    } else if (radiotherapyResults.isNotEmpty) {
-      mainType = "Radiothérapie";
     }
 
     // Construire l'objet complet
@@ -2818,10 +2122,7 @@ class DatabaseHelper {
       ...treatmentMap,
       'mainType': mainType,
       'establishments': establishmentResults,
-      'doctors': doctorResults,
       'cycles': cycleResults,
-      'surgeries': surgeryResults,
-      'radiotherapies': radiotherapyResults,
     };
 
     return completeData;
@@ -2850,31 +2151,6 @@ class DatabaseHelper {
     }
 
     return cycleResults.first;
-  }
-
-  // Méthode pour récupérer directement la première chirurgie d'un traitement
-  Future<Map<String, dynamic>?> getFirstSurgeryForTreatment(
-    String treatmentId,
-  ) async {
-    Log.d(
-      "DatabaseHelper: Récupération de la première chirurgie pour le traitement $treatmentId",
-    );
-    final db = await database;
-
-    // Récupérer la première chirurgie du traitement
-    final surgeryResults = await db.query(
-      'surgeries',
-      where: 'treatmentId = ?',
-      whereArgs: [treatmentId],
-      orderBy: 'date',
-      limit: 1,
-    );
-
-    if (surgeryResults.isEmpty) {
-      return null;
-    }
-
-    return surgeryResults.first;
   }
 
   // Méthode pour récupérer directement la première radiothérapie d'un traitement
@@ -3690,74 +2966,6 @@ class DatabaseHelper {
       return true;
     } catch (e) {
       Log.d("DatabaseHelper: Erreur lors de la génération des sessions: $e");
-      return false;
-    }
-  }
-
-  // 4. Méthode pour générer les sessions de radiothérapie
-  Future<bool> generateRadiotherapySessions(String radiotherapyId) async {
-    Log.d(
-      "DatabaseHelper: Génération de sessions pour la radiothérapie $radiotherapyId",
-    );
-    final db = await database;
-
-    try {
-      // Récupérer les informations de la radiothérapie
-      final radiotherapyResults = await db.query(
-        'radiotherapies',
-        where: 'id = ?',
-        whereArgs: [radiotherapyId],
-      );
-
-      if (radiotherapyResults.isEmpty) {
-        Log.d("DatabaseHelper: Radiothérapie introuvable");
-        return false;
-      }
-
-      final radiotherapy = radiotherapyResults.first;
-      final sessionCount = radiotherapy['sessionCount'] as int;
-      final startDate = DateTime.parse(radiotherapy['startDate'] as String);
-      final endDate = DateTime.parse(radiotherapy['endDate'] as String);
-
-      // Calculer l'intervalle entre les séances
-      final totalDays = endDate.difference(startDate).inDays;
-      final intervalDays = totalDays / (sessionCount - 1);
-
-      // Supprimer les sessions existantes (si on regénère)
-      await db.delete(
-        'radiotherapy_sessions',
-        where: 'radiotherapyId = ?',
-        whereArgs: [radiotherapyId],
-      );
-
-      // Générer les nouvelles sessions
-      for (int i = 0; i < sessionCount; i++) {
-        final sessionId = Uuid().v4();
-        final sessionDate = startDate.add(
-          Duration(days: (i * intervalDays).round()),
-        );
-
-        final sessionData = {
-          'id': sessionId,
-          'radiotherapyId': radiotherapyId,
-          'dateTime': sessionDate.toIso8601String(),
-          'isCompleted': 0,
-        };
-
-        await db.insert('radiotherapy_sessions', sessionData);
-        Log.d(
-          "DatabaseHelper: Session de radiothérapie $i générée avec ID $sessionId",
-        );
-      }
-
-      Log.d(
-        "DatabaseHelper: Sessions générées avec succès pour la radiothérapie $radiotherapyId",
-      );
-      return true;
-    } catch (e) {
-      Log.d(
-        "DatabaseHelper: Erreur lors de la génération des sessions de radiothérapie: $e",
-      );
       return false;
     }
   }

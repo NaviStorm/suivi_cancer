@@ -1,8 +1,8 @@
 // lib/features/treatment/services/treatment_service.dart
 import 'package:flutter/material.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/select_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/select_establishment_screen.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 

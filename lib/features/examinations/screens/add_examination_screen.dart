@@ -10,7 +10,7 @@ import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/services/document_import_service.dart';

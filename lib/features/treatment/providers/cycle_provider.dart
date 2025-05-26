@@ -353,7 +353,7 @@ class CycleProvider extends ChangeNotifier {
   // Supprimer le cycle
   Future<void> deleteCycle() async {
     try {
-      await _dbHelper.deleteCycle(_cycle!.id);
+      await _dbHelper.deleteTreatmentAndAllItsDependenciesFromCycle(_cycle!.id);
     } catch (e) {
       Log.e("Erreur lors de la suppression du cycle: $e");
       rethrow;

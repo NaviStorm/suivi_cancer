@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/services/treatment_service.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/edit_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 
 class EstablishmentListWidget extends StatefulWidget {
@@ -149,7 +149,7 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => EditEstablishmentScreen(establishment: Establishment),
+            (context) => AddEstablishmentScreen(establishment: Establishment),
       ),
     );
 

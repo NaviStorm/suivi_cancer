@@ -1,7 +1,7 @@
 // lib/screens/health_professionals_screen.dart
 import 'package:flutter/material.dart';
-import 'package:suivi_cancer/features/treatment/screens/establishment/add_establishment_screen.dart';
-import 'package:suivi_cancer/features/treatment/widgets/establishment/establishment_list_widget.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/widgets/establishment_list_widget.dart';
 import 'package:suivi_cancer/features/ps/widgets/ps_list_widget.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
