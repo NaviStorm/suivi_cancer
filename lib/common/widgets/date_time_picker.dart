@@ -3,11 +3,6 @@ import 'package:flutter/material.dart';
 import 'custom_text_field.dart';
 import 'package:suivi_cancer/utils/fctDate.dart';
 
-import 'package:intl/intl.dart';
-import 'package:flutter/material.dart';
-import 'custom_text_field.dart';
-import 'package:suivi_cancer/utils/fctDate.dart';
-
 class DateTimePicker extends StatelessWidget {
   final String label;
   final DateTime? initialValue;

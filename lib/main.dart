@@ -6,7 +6,7 @@ import 'common/theme/app_theme.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/home_screen.dart'; // Assurez-vous que ce fichier existe
-import 'core/notifications/notification_service.dart';
+import 'package:suivi_cancer/core/notifications/notification_service.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:permission_handler/permission_handler.dart';

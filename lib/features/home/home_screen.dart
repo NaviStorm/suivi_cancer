@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:provider/provider.dart'; // Ajoutez cet import
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/treatment.dart';
@@ -11,6 +12,8 @@ import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/treatment/screens/health_professionals_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
+
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
