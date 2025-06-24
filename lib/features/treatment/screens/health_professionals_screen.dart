@@ -1,7 +1,15 @@
-import 'package:flutter/cupertino.dart';
+// lib/screens/health_professionals_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/widgets/establishment_list_widget.dart';
+import 'package:suivi_cancer/features/ps/widgets/ps_list_widget.dart';
+import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:uuid/uuid.dart';
+
+
+import 'package:suivi_cancer/features/ps/screens/detail_health_ps.dart';
 
 class HealthProfessionalsScreen extends StatefulWidget {
   const HealthProfessionalsScreen({super.key});
@@ -13,30 +21,23 @@ class HealthProfessionalsScreen extends StatefulWidget {
 class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
   List<Map<String, dynamic>> _healthProfessionals = [];
-  List<Map<String, dynamic>> _categories = [];
-  List<Map<String, dynamic>> _establishments = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadHealthProfessionals();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadHealthProfessionals() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
       final professionals = await _databaseHelper.getPS();
-      final categories = await _databaseHelper.getHealthProfessionalCategories();
-      final establishments = await _databaseHelper.getEstablishments();
-
       setState(() {
         _healthProfessionals = professionals;
-        _categories = categories;
-        _establishments = establishments;
         _isLoading = false;
       });
     } catch (e) {
@@ -61,7 +62,7 @@ class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
         ),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: () => _showAddHealthProfessionalForm(context),
+          onPressed: () => _navigateToAddPS(context),
           child: const Icon(
             CupertinoIcons.add,
             color: CupertinoColors.systemBlue,
@@ -135,7 +136,7 @@ class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
             ),
             const SizedBox(height: 24),
             CupertinoButton.filled(
-              onPressed: () => _showAddHealthProfessionalForm(context),
+              onPressed: () => _navigateToAddPS(context),
               child: const Text('Ajouter un professionnel'),
             ),
           ],
@@ -230,7 +231,7 @@ class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
                 ),
                 child: CupertinoButton(
                   padding: EdgeInsets.zero,
-                  onPressed: () => _showHealthProfessionalDetails(context, professional),
+                  onPressed: () => _navigateToHealthProfessionalDetail(context, professional['id']),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -353,520 +354,37 @@ class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
     }
   }
 
-  void _showHealthProfessionalDetails(BuildContext context, Map<String, dynamic> professional) {
-    // Construire la liste des contacts pour l'affichage
-    List<String> contactInfo = [];
+  // CORRECTION : Navigation vers AddPSScreen sans paramètre
+  void _navigateToAddPS(BuildContext context) async {
+    final result = await Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => const AddPSScreen(), // Pas de paramètre
+      ),
+    );
 
-    if (professional['contacts'] != null) {
-      for (var contact in professional['contacts']) {
-        if (contact['type'] == 0) { // Téléphone
-          contactInfo.add('📞 ${contact['value']}');
-        } else if (contact['type'] == 1) { // Email
-          contactInfo.add('✉️ ${contact['value']}');
-        }
-      }
+    // Recharger la liste si un professionnel a été ajouté
+    if (result == true) {
+      _loadHealthProfessionals();
     }
+  }
 
-    // Construire la liste des adresses
-    List<String> addressInfo = [];
-    if (professional['addresses'] != null) {
-      for (var address in professional['addresses']) {
-        String fullAddress = '';
-        if (address['street'] != null && address['street'].toString().isNotEmpty) {
-          fullAddress += address['street'];
-        }
-        if (address['city'] != null && address['city'].toString().isNotEmpty) {
-          if (fullAddress.isNotEmpty) fullAddress += ', ';
-          fullAddress += address['city'];
-        }
-        if (fullAddress.isNotEmpty) {
-          addressInfo.add('📍 $fullAddress');
-        }
-      }
-    }
-
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: Text('${professional['firstName'] ?? ''} ${professional['lastName'] ?? ''}'.trim()),
-        message: Column(
-          children: [
-            if (professional['category'] != null)
-              Text(professional['category']['name']),
-            if (professional['specialtyDetails'] != null && professional['specialtyDetails'].toString().isNotEmpty)
-              Text(professional['specialtyDetails']),
-            if (contactInfo.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ...contactInfo.map((info) => Text(info)),
-            ],
-            if (addressInfo.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ...addressInfo.map((info) => Text(info)),
-            ],
-          ],
-        ),
-        actions: [
-          if (contactInfo.any((info) => info.contains('📞')))
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                // Logique d'appel téléphonique
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.phone, size: 18),
-                  SizedBox(width: 8),
-                  Text('Appeler'),
-                ],
-              ),
-            ),
-          if (contactInfo.any((info) => info.contains('✉️')))
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                // Logique d'envoi d'email
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.mail, size: 18),
-                  SizedBox(width: 8),
-                  Text('Envoyer un email'),
-                ],
-              ),
-            ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-              _showEditHealthProfessionalForm(context, professional);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.pencil, size: 18),
-                SizedBox(width: 8),
-                Text('Modifier'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteHealthProfessional(context, professional);
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.delete, size: 18),
-                SizedBox(width: 8),
-                Text('Supprimer'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
+  // CORRECTION : Navigation vers HealthProfessionalDetailScreen avec professionalId
+  void _navigateToHealthProfessionalDetail(BuildContext context, String professionalId) async {
+    final result = await Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => HealthProfessionalDetailScreen(
+          professionalId: professionalId, // Paramètre correct
         ),
       ),
     );
-  }
 
-  void _showAddHealthProfessionalForm(BuildContext context) {
-    _showHealthProfessionalForm(context, null);
-  }
-
-  void _showEditHealthProfessionalForm(BuildContext context, Map<String, dynamic> professional) {
-    _showHealthProfessionalForm(context, professional);
-  }
-
-  void _showHealthProfessionalForm(BuildContext context, Map<String, dynamic>? existingProfessional) {
-    final TextEditingController firstNameController = TextEditingController(
-      text: existingProfessional?['firstName'] ?? '',
-    );
-    final TextEditingController lastNameController = TextEditingController(
-      text: existingProfessional?['lastName'] ?? '',
-    );
-    final TextEditingController specialtyController = TextEditingController(
-      text: existingProfessional?['specialtyDetails'] ?? '',
-    );
-    final TextEditingController notesController = TextEditingController(
-      text: existingProfessional?['notes'] ?? '',
-    );
-    final TextEditingController phoneController = TextEditingController();
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController addressController = TextEditingController();
-    final TextEditingController cityController = TextEditingController();
-
-    String? selectedCategoryId = existingProfessional?['categoryId'];
-
-    // Pré-remplir les contacts existants
-    if (existingProfessional != null && existingProfessional['contacts'] != null) {
-      for (var contact in existingProfessional['contacts']) {
-        if (contact['type'] == 0) { // Téléphone
-          phoneController.text = contact['value'];
-        } else if (contact['type'] == 1) { // Email
-          emailController.text = contact['value'];
-        }
-      }
+    // Recharger la liste si le professionnel a été modifié ou supprimé
+    if (result == true) {
+      _loadHealthProfessionals();
     }
-
-    // Pré-remplir les adresses existantes
-    if (existingProfessional != null && existingProfessional['addresses'] != null) {
-      for (var address in existingProfessional['addresses']) {
-        addressController.text = address['street'] ?? '';
-        cityController.text = address['city'] ?? '';
-        break; // Prendre la première adresse
-      }
-    }
-
-    showCupertinoModalPopup(
-      context: context,
-      builder: (BuildContext context) => StatefulBuilder(
-        builder: (context, setModalState) => CupertinoPageScaffold(
-          backgroundColor: CupertinoColors.systemGroupedBackground,
-          navigationBar: CupertinoNavigationBar(
-            backgroundColor: CupertinoColors.systemBackground,
-            middle: Text(existingProfessional == null ? 'Nouveau professionnel' : 'Modifier professionnel'),
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            trailing: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () async {
-                if (firstNameController.text.isNotEmpty &&
-                    lastNameController.text.isNotEmpty &&
-                    selectedCategoryId != null) {
-                  await _saveHealthProfessional(
-                    existingProfessional,
-                    firstNameController.text,
-                    lastNameController.text,
-                    selectedCategoryId!,
-                    specialtyController.text,
-                    notesController.text,
-                    phoneController.text,
-                    emailController.text,
-                    addressController.text,
-                    cityController.text,
-                  );
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text(existingProfessional == null ? 'Ajouter' : 'Sauvegarder'),
-            ),
-          ),
-          child: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildFormSection(
-                  title: 'Informations générales',
-                  children: [
-                    _buildTextField(
-                      controller: firstNameController,
-                      placeholder: 'Prénom',
-                      icon: CupertinoIcons.person,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: lastNameController,
-                      placeholder: 'Nom',
-                      icon: CupertinoIcons.person_fill,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildCategorySelector(
-                      selectedCategoryId: selectedCategoryId,
-                      onChanged: (value) => setModalState(() => selectedCategoryId = value),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: specialtyController,
-                      placeholder: 'Spécialité (optionnel)',
-                      icon: CupertinoIcons.star,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: notesController,
-                      placeholder: 'Notes (optionnel)',
-                      icon: CupertinoIcons.doc_text,
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildFormSection(
-                  title: 'Contact',
-                  children: [
-                    _buildTextField(
-                      controller: phoneController,
-                      placeholder: 'Téléphone',
-                      icon: CupertinoIcons.phone,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: emailController,
-                      placeholder: 'Email',
-                      icon: CupertinoIcons.mail,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildFormSection(
-                  title: 'Adresse',
-                  children: [
-                    _buildTextField(
-                      controller: addressController,
-                      placeholder: 'Adresse',
-                      icon: CupertinoIcons.location,
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: cityController,
-                      placeholder: 'Ville',
-                      icon: CupertinoIcons.location_solid,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormSection({required String title, required List<Widget> children}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: CupertinoColors.label,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemBackground,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(children: children),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String placeholder,
-    required IconData icon,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: CupertinoColors.systemGrey, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: CupertinoTextField(
-            controller: controller,
-            placeholder: placeholder,
-            maxLines: maxLines,
-            keyboardType: keyboardType,
-            decoration: const BoxDecoration(),
-            style: const TextStyle(color: CupertinoColors.label),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategorySelector({
-    required String? selectedCategoryId,
-    required Function(String?) onChanged,
-  }) {
-    String categoryName = 'Sélectionner une catégorie';
-    if (selectedCategoryId != null) {
-      final category = _categories.firstWhere(
-            (cat) => cat['id'] == selectedCategoryId,
-        orElse: () => {'name': 'Catégorie inconnue'},
-      );
-      categoryName = category['name'];
-    }
-
-    return Row(
-      children: [
-        const Icon(CupertinoIcons.tag, color: CupertinoColors.systemGrey, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => _showCategoryPicker(selectedCategoryId, onChanged),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  categoryName,
-                  style: TextStyle(
-                    color: selectedCategoryId == null
-                        ? CupertinoColors.placeholderText
-                        : CupertinoColors.label,
-                  ),
-                ),
-                const Icon(
-                  CupertinoIcons.chevron_down,
-                  color: CupertinoColors.systemGrey,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showCategoryPicker(String? selectedCategoryId, Function(String?) onChanged) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        title: const Text('Catégorie du professionnel'),
-        actions: _categories.map((category) => CupertinoActionSheetAction(
-          onPressed: () {
-            onChanged(category['id']);
-            Navigator.pop(context);
-          },
-          child: Text(category['name']),
-        )).toList(),
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveHealthProfessional(
-      Map<String, dynamic>? existingProfessional,
-      String firstName,
-      String lastName,
-      String categoryId,
-      String specialty,
-      String notes,
-      String phone,
-      String email,
-      String address,
-      String city,
-      ) async {
-    final professionalId = existingProfessional?['id'] ?? const Uuid().v4();
-
-    // Construire les contacts
-    List<Map<String, dynamic>> contacts = [];
-    if (phone.isNotEmpty) {
-      contacts.add({
-        'id': const Uuid().v4(),
-        'type': 0, // Téléphone
-        'value': phone,
-        'label': 'Principal',
-        'isPrimary': 1,
-      });
-    }
-    if (email.isNotEmpty) {
-      contacts.add({
-        'id': const Uuid().v4(),
-        'type': 1, // Email
-        'value': email,
-        'label': 'Principal',
-        'isPrimary': 1,
-      });
-    }
-
-    // Construire les adresses
-    List<Map<String, dynamic>> addresses = [];
-    if (address.isNotEmpty || city.isNotEmpty) {
-      addresses.add({
-        'id': const Uuid().v4(),
-        'street': address,
-        'city': city,
-        'postalCode': '',
-        'country': 'France',
-        'label': 'Principal',
-        'isPrimary': 1,
-      });
-    }
-
-    final professionalData = {
-      'id': professionalId,
-      'firstName': firstName,
-      'lastName': lastName,
-      'categoryId': categoryId,
-      'specialtyDetails': specialty.isNotEmpty ? specialty : null,
-      'notes': notes.isNotEmpty ? notes : null,
-      'contacts': contacts,
-      'addresses': addresses,
-      'establishments': existingProfessional?['establishments'] ?? [],
-    };
-
-    try {
-      bool success;
-      if (existingProfessional == null) {
-        success = await _databaseHelper.insertPS(professionalData);
-      } else {
-        success = await _databaseHelper.updatePS(professionalData);
-      }
-
-      if (success) {
-        await _loadData(); // Recharger la liste
-      }
-    } catch (e) {
-      // Gérer l'erreur si nécessaire
-    }
-  }
-
-  void _deleteHealthProfessional(BuildContext context, Map<String, dynamic> professional) {
-    showCupertinoDialog(
-      context: context,
-      builder: (BuildContext context) => CupertinoAlertDialog(
-        title: const Text('Supprimer le professionnel'),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer ${professional['firstName']} ${professional['lastName']} ?',
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () async {
-              Navigator.of(context).pop();
-
-              try {
-                await _databaseHelper.deleteHealthProfessional(professional['id']);
-                await _loadData(); // Recharger la liste
-              } catch (e) {
-                // Gérer l'erreur si nécessaire
-              }
-            },
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
-    );
   }
 }
+
+
+
+
