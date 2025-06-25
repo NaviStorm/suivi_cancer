@@ -1,472 +1,675 @@
-// lib/features/home/home_screen.dart
+// ===== $HOME/suivi_cancer/lib/features/home/home_screen.dart =====
+import 'dart:math';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:suivi_cancer/utils/logger.dart';
-import 'package:provider/provider.dart'; // Ajoutez cet import
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/features/treatment/models/ps.dart';
-import 'package:suivi_cancer/features/treatment/models/treatment.dart';
+import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
+import 'package:suivi_cancer/features/establishment/screens/list_establishment_screen.dart';
+import 'package:suivi_cancer/features/ps/screens/detail_health_ps.dart';
+import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
+import 'package:suivi_cancer/features/ps/screens/list_health_ps.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
-import 'package:suivi_cancer/features/treatment/screens/health_professionals_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
+import 'package:suivi_cancer/features/treatment/models/ps.dart';
+import 'package:suivi_cancer/features/treatment/models/treatment.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
-
-
+import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
+import 'package:suivi_cancer/utils/logger.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-  List<Treatment> _treatments = [];
-  bool _isLoading = false;
-  final Map<String, String> _treatmentTypes =
-      {}; // Pour stocker le type principal de chaque traitement
-  Map<String, bool> _completionStatus = {};
+  Map<String, dynamic> _dashboardData = {
+    'treatments': [],
+    'healthProfessionals': [],
+    'establishments': [],
+    'upcomingEvent': null,
+  };
+  bool _isLoading = true;
+
+  final Map<String, bool> _sectionExpandedState = {
+    'Traitements en cours': true,
+    'Professionnels': true,
+    'Établissements': true,
+  };
+
+  final Map<String, bool> _treatmentCardExpandedState = {};
 
   @override
   void initState() {
     super.initState();
-    _loadTreatments();
+    _loadDashboardData();
   }
 
-  Future _loadTreatments() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final dbHelper = DatabaseHelper();
-      final treatmentMaps = await dbHelper.getTreatments();
-      Log.d('Nb treatmentMaps:[${treatmentMaps.length}]');
-      List<Treatment> loadedTreatments = [];
-      Map<String, bool> completionStatus = {}; // Cache temporaire
-
-      for (var map in treatmentMaps) {
-        final treatmentId = map['id'];
-        Log.d('treatmentId:[${map['id']}] Type traitement:[${map['label']}]');
-
-        // Charger les établissements et professionnels...
-        final establishmentMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
-        final establishments = establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
-
-        final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
-        final healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
-
-        // Récupérer le statut de completion des cycles
-        final isCompleted = await dbHelper.isTreatmentCyclesCompleted(treatmentId);
-        if (isCompleted) {
-          continue;
-        }
-        completionStatus[treatmentId] = isCompleted;
-
-        final treatment = Treatment(
-          id: treatmentId,
-          label: map['label'],
-          startDate: DateTime.parse(map['startDate']),
-          healthProfessionals: healthProfessionals,
-          establishments: establishments,
-        );
-
-        loadedTreatments.add(treatment);
-        await _determineTreatmentType(treatmentId);
-      }
-
-      setState(() {
-        _treatments = loadedTreatments;
-        _completionStatus = completionStatus; // Mettre à jour le cache
-        _isLoading = false;
-      });
-    } catch (e) {
-      Log.e('Erreur lors du chargement des traitements: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-
-  // Méthode pour déterminer le type principal de traitement
-  Future<void> _determineTreatmentType(String treatmentId) async {
+  Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     final dbHelper = DatabaseHelper();
 
-    // Vérifier si un cycle existe
-    final cycleData = await dbHelper.getCyclesByTreatment(treatmentId);
-    Log.d('cycleData:[${cycleData.first['type']}');
-    if (cycleData.isNotEmpty) {
-      final cycleType = cycleData.first['type'];
-      if (cycleType == 0) {
-        _treatmentTypes[treatmentId] = "Chimiothérapie";
-      } else if (cycleType == 1) {
-        _treatmentTypes[treatmentId] = "Immunothérapie";
-      } else if (cycleType == 2) {
-        _treatmentTypes[treatmentId] = "Hormonothérapie";
-      } else if (cycleType == 3) {
-        _treatmentTypes[treatmentId] = "Traitement combiné";
-      } else if (cycleType == 4) {
-        _treatmentTypes[treatmentId] = "Chirurgie";
-      } else if (cycleType == 5) {
-        _treatmentTypes[treatmentId] = "Radiothérapie";
-      }
-      return;
-    }
+    final results = await Future.wait([
+      _loadTreatments(dbHelper),
+      _loadHealthProfessionals(dbHelper),
+      _loadEstablishments(dbHelper),
+      _loadUpcomingEvent(dbHelper),
+    ]);
 
-    // Par défaut
-    _treatmentTypes[treatmentId] = "Non spécifié";
+    if (mounted) {
+      setState(() {
+        _dashboardData = {
+          'treatments': results[0],
+          'healthProfessionals': results[1],
+          'establishments': results[2],
+          'upcomingEvent': results[3],
+        };
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> _loadUpcomingEvent(DatabaseHelper dbHelper) async {
+    final events = await dbHelper.getUpcomingEvents(1);
+    if (events.isNotEmpty) {
+      final event = events.first;
+      final treatmentName = await dbHelper.getTreatmentNameForEvent(event['type'], event['id']);
+      event['treatmentName'] = treatmentName;
+      return event;
+    }
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadTreatments(DatabaseHelper dbHelper) async {
+    final treatmentMaps = await dbHelper.getTreatments();
+    List<Map<String, dynamic>> loadedData = [];
+    for (var treatmentMap in treatmentMaps) {
+      final treatmentId = treatmentMap['id'] as String;
+      final isCompleted = await dbHelper.isTreatmentCyclesCompleted(treatmentId);
+      if (isCompleted) continue;
+
+      final psMaps = await dbHelper.getTreatmentHealthProfessionals(treatmentId);
+      final establishmentsMaps = await dbHelper.getTreatmentEstablishments(treatmentId);
+
+      final treatment = Treatment(
+        id: treatmentId,
+        label: treatmentMap['label'],
+        startDate: DateTime.parse(treatmentMap['startDate']),
+        healthProfessionals: psMaps.map((map) => PS.fromMap(map)).toList(),
+        establishments: establishmentsMaps.map((map) => Establishment.fromMap(map)).toList(),
+      );
+
+      final cycles = await dbHelper.getCyclesByTreatment(treatmentId);
+      if (cycles.isEmpty) continue;
+
+      final cycle = cycles.first;
+      final progress = await dbHelper.getSessionProgress(treatmentId);
+      final eventsNextMonth = await dbHelper.getUpcomingEventsForCycle(cycle['id'] as String, 100, 30);
+
+      loadedData.add({
+        'treatment': treatment,
+        'cycle': cycle,
+        'progress': progress,
+        'eventsNextMonth': eventsNextMonth,
+      });
+    }
+    loadedData.sort((a, b) => (b['treatment'] as Treatment).startDate.compareTo((a['treatment'] as Treatment).startDate));
+    return loadedData;
+  }
+
+  Future<List<PS>> _loadHealthProfessionals(DatabaseHelper dbHelper) async {
+    final psMaps = await dbHelper.getPS();
+    return psMaps.map((map) => PS.fromMap(map)).toList();
+  }
+
+  Future<List<Establishment>> _loadEstablishments(DatabaseHelper dbHelper) async {
+    final establishmentMaps = await dbHelper.getEstablishments();
+    return establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
+  }
+
+  // --- Fonctions de Navigation et Actions ---
+  void _navigateToAddTreatment() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddTreatmentScreen()));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToAddPS() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddPSScreen()));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToAddEstablishment() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddEstablishmentScreen()));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToHealthProfessionals() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const HealthProfessionalsListScreen()));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToEstablishmentList() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const EstablishmentListScreen()));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToCycleDetails(Map<String, dynamic> cycleMap, Treatment treatment) async {
+    final cycle = Cycle(
+      id: cycleMap['id'] as String,
+      type: CureType.values[cycleMap['type'] as int],
+      startDate: DateTime.parse(cycleMap['startDate'] as String),
+      endDate: DateTime.parse(cycleMap['endDate'] as String),
+      establishment: treatment.establishments.isNotEmpty ? treatment.establishments.first : Establishment(id: "default", name: "Non spécifié"),
+      sessionCount: cycleMap['sessionCount'] as int,
+      sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
+    );
+
+    await Navigator.push(context, MaterialPageRoute(builder: (context) => CycleDetailsScreen(cycle: cycle)));
+    _loadDashboardData();
+  }
+
+  void _navigateToPSDetails(String psId) async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _navigateToEstablishmentDetails(Establishment establishment) async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)));
+    if (result == true) _loadDashboardData();
+  }
+
+  void _makePhoneCall(String? phoneNumber) async {
+    if (phoneNumber == null || phoneNumber.isEmpty) return;
+    final Uri uri = Uri.parse('tel:$phoneNumber');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  void _sendEmail(String? email) async {
+    if (email == null || email.isEmpty) return;
+    final Uri uri = Uri.parse('mailto:$email');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  void _showPSActions(BuildContext context, PS ps) {
+    showCupertinoModalPopup(
+        context: context,
+        builder: (BuildContext context) => CupertinoActionSheet(
+          title: Text(ps.fullName),
+          actions: <CupertinoActionSheetAction>[
+            CupertinoActionSheetAction(
+              child: const Text('Modifier'),
+              onPressed: () async {
+                Navigator.pop(context);
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddPSScreen(ps: ps.toMap())));
+                if (result == true) _loadDashboardData();
+              },
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              child: const Text('Supprimer'),
+              onPressed: () async {
+                Navigator.pop(context);
+                final confirm = await _showDeleteConfirmation(context, "ce professionnel");
+                if (confirm) {
+                  await DatabaseHelper().deleteHealthProfessional(ps.id);
+                  _loadDashboardData();
+                }
+              },
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(context)),
+        ));
+  }
+
+  void _showEstablishmentActions(BuildContext context, Establishment establishment) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text(establishment.name),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            child: const Text('Modifier'),
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToEstablishmentDetails(establishment);
+            },
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            child: const Text('Supprimer'),
+            onPressed: () async {
+              Navigator.pop(context);
+              final confirm = await _showDeleteConfirmation(context, "cet établissement");
+              if (confirm) {
+                await DatabaseHelper().deleteEstablishment(establishment.id);
+                _loadDashboardData();
+              }
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(context)),
+      ),
+    );
+  }
+
+  Future<bool> _showDeleteConfirmation(BuildContext context, String itemName) async {
+    final result = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text('Confirmer la suppression'),
+        content: Text('Voulez-vous vraiment supprimer $itemName ? Cette action est irréversible.'),
+        actions: [
+          CupertinoDialogAction(child: Text('Annuler'), onPressed: () => Navigator.pop(context, false)),
+          CupertinoDialogAction(isDestructiveAction: true, child: Text('Supprimer'), onPressed: () => Navigator.pop(context, true)),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    Log.d('HomeScreen: build avec index $_selectedIndex');
+    final Map<String, dynamic>? upcomingEvent = _dashboardData['upcomingEvent'];
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Suivi Cancer'),
-        actions: [
-          IconButton(
-            icon: Icon(color: Colors.red, Icons.delete),
-            onPressed: _deleteDabase,
+      backgroundColor: CupertinoColors.systemGroupedBackground,
+      body: _isLoading
+          ? const Center(child: CupertinoActivityIndicator())
+          : CustomScrollView(
+        slivers: [
+          const CupertinoSliverNavigationBar(
+            largeTitle: Text('Parcours de Santé'),
           ),
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {
-              // Navigation vers les notifications
-            },
-          ),
-        ],
-      ),
-      body: _getSelectedScreen(),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
-            label: 'Traitements',
-            backgroundColor: Colors.blue,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Rendez-vous',
-            backgroundColor: Colors.blue,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Annuaire Santé',
-            backgroundColor: Colors.blue,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-            backgroundColor: Colors.blue,
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
-      floatingActionButton:
-          _selectedIndex == 0
-              ? FloatingActionButton(
-                onPressed: _navigateToAddTreatment,
-                tooltip: 'Ajouter un traitement',
-                child: Icon(Icons.add),
-              )
-              : null,
-    );
-  }
-
-  Widget _getSelectedScreen() {
-    switch (_selectedIndex) {
-      case 0:
-        return _buildTreatmentsTab();
-      case 1:
-        return Center(child: Text('Écran des rendez-vous'));
-      case 2:
-        return HealthProfessionalsScreen();
-      case 3:
-        return Center(child: Text('Écran du profil'));
-      default:
-        return _buildTreatmentsTab();
-    }
-  }
-
-  Widget _buildTreatmentsTab() {
-    if (_isLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-
-    if (_treatments.isEmpty) {
-      return _buildEmptyState();
-    }
-
-    return _buildTreatmentsList();
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'Aucun traitement enregistré',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Ajoutez votre premier traitement en cliquant sur le bouton +',
-            style: TextStyle(color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _navigateToAddTreatment,
-            icon: Icon(Icons.add),
-            label: Text('Ajouter un traitement'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTreatmentsList() {
-    return RefreshIndicator(
-      onRefresh: _loadTreatments,
-      child: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: _treatments.length,
-        itemBuilder: (context, index) {
-          final treatment = _treatments[index];
-          final treatmentType = _treatmentTypes[treatment.id] ?? "Non spécifié";
-
-          // Utiliser le cache au lieu de FutureBuilder pour un affichage immédiat
-          final bool isCompleted = _completionStatus[treatment.id] ?? false;
-
-          return Card(
-            margin: EdgeInsets.only(bottom: 16),
-            child: InkWell(
-              onTap: () => _navigateToTreatmentDetails(treatment, treatmentType),
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            treatment.label,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        _buildStatusChip(
-                          isCompleted ? 'Terminé' : 'En cours',
-                          isCompleted ? Colors.green : Colors.blue,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    // Afficher le type de traitement
-                    Text(
-                      'Type: $treatmentType',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    // Afficher la date de début
-                    Text(
-                      'Début: ${DateFormat('dd/MM/yyyy').format(treatment.startDate)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    // Afficher les établissements
-                    if (treatment.establishments.isNotEmpty) ...[
-                      SizedBox(height: 8),
-                      Text(
-                        'Établissement: ${treatment.establishments.first.name}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                    // Afficher les professionnels de santé
-                    if (treatment.healthProfessionals.isNotEmpty) ...[
-                      SizedBox(height: 8),
-                      Text(
-                        'Professionnel: ${treatment.healthProfessionals.first.firstName} ${treatment.healthProfessionals.first.lastName}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ],
+          CupertinoSliverRefreshControl(onRefresh: _loadDashboardData),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                if (upcomingEvent != null) _buildUpcomingEventCard(upcomingEvent),
+                _buildSection<Map<String, dynamic>>(
+                  title: "Traitements en cours",
+                  data: _dashboardData['treatments'],
+                  itemBuilder: (data) => _buildTreatmentCard(data as Map<String, dynamic>),
+                  onAdd: _navigateToAddTreatment,
                 ),
+                _buildSection<PS>(
+                  title: "Professionnels",
+                  data: _dashboardData['healthProfessionals'],
+                  itemBuilder: (ps) => _buildPSListItem(ps as PS),
+                  onSeeAll: _navigateToHealthProfessionals,
+                  onAdd: _navigateToAddPS,
+                ),
+                _buildSection<Establishment>(
+                  title: "Établissements",
+                  data: _dashboardData['establishments'],
+                  itemBuilder: (est) => _buildEstablishmentListItem(est as Establishment),
+                  onSeeAll: _navigateToEstablishmentList,
+                  onAdd: _navigateToAddEstablishment,
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Widgets de Construction ---
+  Widget _buildUpcomingEventCard(Map<String, dynamic> event) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          children: [
+            const Icon(CupertinoIcons.bell_fill, color: CupertinoColors.systemBlue, size: 36),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "PROCHAIN ÉVÉNEMENT",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: CupertinoColors.systemBlue),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(event['title'] as String, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  if (event['treatmentName'] != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Text(
+                        event['treatmentName'],
+                        style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat("'Le' dd/MM/yyyy 'à' HH:mm").format(event['date'] as DateTime),
+                    style: TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String label, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color, width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+          ],
         ),
       ),
     );
   }
 
-  void _navigateToAddTreatment() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AddTreatmentScreen()),
-    );
+  Widget _buildSection<T>({
+    required String title,
+    required List<T> data,
+    required Widget Function(T) itemBuilder,
+    VoidCallback? onSeeAll,
+    VoidCallback? onAdd,
+  }) {
+    final bool isExpanded = _sectionExpandedState[title] ?? true;
+    final itemsToShow = (title == "Traitements en cours") ? data : data.take(3).toList();
 
-    if (result == true) {
-      _loadTreatments();
-    }
-  }
-
-  void _navigateToTreatmentDetails(Treatment treatment, String treatmentType,) async {
-    Log.d('_navigateToTreatmentDetails');
-    Widget destinationScreen;
-
-    try {
-      final dbHelper = DatabaseHelper();
-
-      Log.d('treatmentType:[${treatmentType.toString()}]');
-        // Récupérer les cycles
-        final cycleData = await dbHelper.getCyclesByTreatment(treatment.id);
-        Log.d('cycleData:${cycleData.length}');
-
-          final cycleMap = cycleData.first;
-          Log.d('cycleMap:${cycleMap['id']}');
-
-          // Créer l'objet Cycle
-          final cycle = Cycle(
-            id: cycleMap['id'] as String,
-            type: _parseCycleType(cycleMap['type']),
-            startDate: DateTime.parse(cycleMap['startDate'] as String),
-            endDate: DateTime.parse(cycleMap['endDate'] as String),
-            establishment:
-                treatment.establishments.isNotEmpty
-                    ? treatment.establishments.first
-                    : Establishment(id: "default", name: "Non spécifié"),
-            sessionCount: cycleMap['sessionCount'] as int,
-            sessionInterval: Duration(
-              days: cycleMap['sessionInterval'] as int,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CupertinoButton(
+            onPressed: () => setState(() => _sectionExpandedState[title] = !isExpanded),
+            padding: EdgeInsets.zero,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Icon(isExpanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right, size: 18, color: CupertinoColors.secondaryLabel),
+                    const SizedBox(width: 8),
+                    Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: CupertinoColors.label)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (onSeeAll != null && data.length > 3)
+                      CupertinoButton(padding: EdgeInsets.zero, onPressed: onSeeAll, child: const Text("Voir tout")),
+                    if (onAdd != null)
+                      CupertinoButton(padding: const EdgeInsets.only(left: 8), onPressed: onAdd, child: const Icon(CupertinoIcons.add)),
+                  ],
+                )
+              ],
             ),
-            isCompleted: cycleMap['isCompleted'] == 1,
-            conclusion: cycleMap['conclusion'] as String?,
-          );
-
-          destinationScreen = CycleDetailsScreen(cycle: cycle);
-
-        // Naviguer vers l'écran approprié
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => destinationScreen),
-        );
-
-        // Si le traitement a été modifié ou supprimé, recharger la liste
-        if (result == true) {
-          Log.d('retour de _navigateToTreatmentDetails avec result=true');
-          _loadTreatments();
-        }
-    } catch (e) {
-      Log.e("Erreur lors de la navigation: $e");
-      // En cas d'erreur, utilisez l'écran de détails standard
-    }
-
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  // Méthode pour convertir l'entier du type de cycle en enum CureType
-  CureType _parseCycleType(dynamic type) {
-    int typeValue = type is int ? type : int.parse(type.toString());
-    switch (typeValue) {
-      case 0:
-        return CureType.Chemotherapy;
-      case 1:
-        return CureType.Immunotherapy;
-      case 2:
-        return CureType.Hormonotherapy;
-      case 3:
-        return CureType.Combined;
-      default:
-        return CureType.Chemotherapy;
-    }
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message, style: TextStyle(fontSize: 14))),
-    );
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(fontSize: 14)),
-        backgroundColor: Colors.red,
+          ),
+          const SizedBox(height: 12),
+          AnimatedCrossFade(
+            firstChild: Container(),
+            secondChild: data.isEmpty
+                ? Container(
+              padding: const EdgeInsets.all(24),
+              width: double.infinity,
+              decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
+              child: Center(child: Text("Aucun élément", style: TextStyle(color: CupertinoColors.secondaryLabel))),
+            )
+                : Column(children: itemsToShow.map(itemBuilder).toList()),
+            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 300),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _deleteDabase() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => ConfirmationDialog(
-            title: 'Supprimer la base de donnée',
-            content:
-                'Êtes-vous sûr de vouloir supprimer la base de donnée ? Cette action est irréversible.',
-            confirmText: 'Supprimer',
-            cancelText: 'Annuler',
-            isDestructive: true,
-          ),
-    );
+  Widget _buildTreatmentCard(Map<String, dynamic> data) {
+    final Treatment treatment = data['treatment'];
+    final Map<String, dynamic> cycle = data['cycle'];
+    final Map<String, int> progress = data['progress'];
+    final List<Map<String, dynamic>> events = data['eventsNextMonth'];
+    final int completed = progress['completed'] ?? 0;
+    final int total = progress['total'] ?? 1;
+    final double percentage = total > 0 ? (completed / total) * 100 : 0;
+    final bool isEventListExpanded = _treatmentCardExpandedState[treatment.id] ?? false;
 
-    if (confirmed == true) {
-      try {
-        await DatabaseHelper().resetDatabase();
-        _showMessage('Base de donnée supprimées');
-      } catch (e) {
-        Log.e("Erreur lors de la suppression de la base de donnée: $e");
-        _showErrorMessage("Impossible de supprimer le cycle");
-      }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: CupertinoColors.secondarySystemGroupedBackground,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => _navigateToCycleDetails(cycle, treatment),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        PieChart(
+                          PieChartData(
+                            sections: [
+                              PieChartSectionData(value: completed.toDouble(), color: CupertinoColors.systemBlue, radius: 10, showTitle: false),
+                              PieChartSectionData(value: max(0, total - completed).toDouble(), color: CupertinoColors.systemGrey4, radius: 10, showTitle: false),
+                            ],
+                            centerSpaceRadius: 20,
+                            sectionsSpace: 2,
+                            startDegreeOffset: -90,
+                          ),
+                        ),
+                        Text("${percentage.toStringAsFixed(0)}%", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(treatment.label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text("$completed / $total séances", style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (events.isNotEmpty) ...[
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            CupertinoButton(
+              onPressed: () => setState(() => _treatmentCardExpandedState[treatment.id] = !isEventListExpanded),
+              child: Row(
+                children: [
+                  Text("Événements à venir ce mois-ci", style: TextStyle(color: CupertinoColors.link, fontSize: 15)),
+                  const Spacer(),
+                  Icon(isEventListExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down, size: 18, color: CupertinoColors.secondaryLabel),
+                ],
+              ),
+            ),
+            AnimatedCrossFade(
+              firstChild: Container(),
+              secondChild: Column(children: events.map((event) => _buildEventTile(event)).toList()),
+              crossFadeState: isEventListExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 300),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventTile(Map<String, dynamic> event) {
+    final IconData icon;
+    switch (event['type'] as String) {
+      case 'session': icon = CupertinoIcons.heart_circle_fill; break;
+      case 'appointment': icon = CupertinoIcons.calendar_badge_plus; break;
+      case 'examination': icon = CupertinoIcons.lab_flask_solid; break;
+      default: icon = CupertinoIcons.question_circle;
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () { /* TODO: Naviguer vers détail de l'événement */ },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: CupertinoColors.secondaryLabel),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(event['title'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(
+                      DateFormat("EEEE d MMM 'à' HH:mm", 'fr_FR').format(event['date'] as DateTime),
+                      style: TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPSListItem(PS professional) {
+    final phoneContact = professional.contacts?.firstWhere((c) => c.type == 0, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
+    final emailContact = professional.contacts?.firstWhere((c) => c.type == 1, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
+
+    final hasPhone = phoneContact != null && phoneContact.value.isNotEmpty;
+    final hasEmail = emailContact != null && emailContact.value.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          // CORRECTION : Encapsuler la partie gauche dans un Expanded
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _navigateToPSDetails(professional.id),
+              // Utiliser un Container avec une couleur transparente pour une meilleure zone de clic
+              child: Container(
+                color: Colors.transparent,
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.person_crop_circle, color: CupertinoColors.systemGrey, size: 36),
+                    const SizedBox(width: 12),
+                    // Encapsuler la colonne de texte dans Expanded pour qu'elle gère l'overflow
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(professional.fullName, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                          Text(professional.category?['name'] ?? 'Non spécifié', style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Les boutons ne sont plus poussés par un Spacer mais occupent leur place naturelle.
+          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(phoneContact?.value)),
+          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(emailContact?.value)),
+          CupertinoButton(padding: const EdgeInsets.all(8), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showPSActions(context, professional)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEstablishmentListItem(Establishment establishment) {
+    final hasPhone = establishment.phone != null && establishment.phone!.isNotEmpty;
+    final hasEmail = establishment.email != null && establishment.email!.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          // CORRECTION : Encapsuler la partie gauche dans un Expanded
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _navigateToEstablishmentDetails(establishment),
+              child: Container(
+                color: Colors.transparent,
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.systemGrey, size: 36),
+                    const SizedBox(width: 12),
+                    // Encapsuler la colonne de texte dans Expanded pour qu'elle gère l'overflow
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(establishment.name, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                          if (establishment.city != null) Text(establishment.city!, style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Les boutons occupent leur place naturelle.
+          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(establishment.phone)),
+          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(establishment.email)),
+          CupertinoButton(padding: const EdgeInsets.all(8), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showEstablishmentActions(context, establishment)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 64.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(CupertinoIcons.square_stack_3d_up_slash, size: 80, color: CupertinoColors.systemGrey),
+            const SizedBox(height: 16),
+            const Text('Bienvenue !', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Commencez par ajouter votre premier traitement pour démarrer le suivi.', style: TextStyle(fontSize: 16, color: CupertinoColors.secondaryLabel), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+extension CureTypeName on CureType {
+  String get name {
+    switch (this) {
+      case CureType.Chemotherapy: return "Chimiothérapie";
+      case CureType.Immunotherapy: return "Immunothérapie";
+      case CureType.Hormonotherapy: return "Hormonothérapie";
+      case CureType.Combined: return "Traitement combiné";
+      case CureType.Surgery: return "Chirurgie";
+      case CureType.Radiotherapy: return "Radiothérapie";
     }
   }
 }

@@ -1,4 +1,5 @@
 // lib/core/storage/database_helper.dart
+import 'dart:async';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart';
@@ -12,21 +13,29 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   static Database? _database;
+  static Completer<Database>? _dbCompleter;
 
   Future<Database> get database async {
-    if (_database != null) {
-      // Vérifier si la base de données est fermée
-      try {
-        await _database!.rawQuery('SELECT 1');
-      } catch (e) {
-        Log.d("DatabaseHelper: La base de données était fermée, réouverture");
-        _database = null;
-      }
+    // Si la base est déjà ouverte, on la retourne immédiatement (chemin le plus rapide)
+    if (_database != null && _database!.isOpen) {
+      return _database!;
     }
-
-    // ??= ==> Si _database null
-    _database ??= await _initDatabase();
-
+    // Si l'initialisation n'a jamais été lancée, on la démarre
+    if (_dbCompleter == null) {
+      _dbCompleter = Completer<Database>();
+      // On lance l'initialisation SANS l'attendre ici
+      _initDatabase().then((db) {
+        // Une fois terminée, on complète le Future avec la base de données
+        _dbCompleter!.complete(db);
+      }).catchError((e, stackTrace) {
+        // En cas d'erreur, on la propage aux écouteurs et on réinitialise le completer
+        _dbCompleter!.completeError(e, stackTrace);
+        _dbCompleter = null; // Permet de retenter l'initialisation plus tard
+      });
+    }
+    // On retourne le Future du Completer. Tous les appels concurrents
+    // recevront le même Future et attendront sa résolution.
+    _database = await _dbCompleter!.future;
     return _database!;
   }
 
@@ -383,15 +392,6 @@ class DatabaseHelper {
         )
       ''');
     Log.d("DatabaseHelper: Table cycle_measure créée avec succès");
-  }
-
-  // Pour les futures mises à jour
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    Log.d(
-      "DatabaseHelper: Mise à jour de la base de données de la version $oldVersion vers $newVersion",
-    );
-
-    // Logique de migration ici
   }
 
   // Méthodes pour les établissements
@@ -833,6 +833,7 @@ class DatabaseHelper {
           Log.d("La base de données peut être ouverte en lecture/écriture");
           await db.close();
         } catch (e) {
+          Log.d("cacth : ${e.toString()}");
           if (!e.toString().contains("not an error")) {
             Log.d("Erreur lors de l'ouverture de la base de données : $e");
           } else {
@@ -3945,5 +3946,184 @@ class DatabaseHelper {
       );
       return -1;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getUpcomingEvents(int limit) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+
+    // Requête pour les prochaines séances
+    final sessionsQuery = '''
+      SELECT id, dateTime as date, 'Séance' as title, 'session' as type
+      FROM sessions
+      WHERE dateTime > ? AND isCompleted = 0
+    ''';
+
+    // Requête pour les prochains rendez-vous
+    final appointmentsQuery = '''
+      SELECT id, dateTime as date, title, 'appointment' as type
+      FROM appointments
+      WHERE dateTime > ? AND isCompleted = 0
+    ''';
+
+    // Requête pour les prochains examens
+    final examinationsQuery = '''
+      SELECT id, dateTime as date, title, 'examination' as type
+      FROM examinations
+      WHERE dateTime > ? AND isCompleted = 0
+    ''';
+
+    // Combinaison des requêtes
+    final String fullQuery = '''
+      SELECT * FROM (
+        $sessionsQuery
+        UNION ALL
+        $appointmentsQuery
+        UNION ALL
+        $examinationsQuery
+      )
+      ORDER BY date ASC
+      LIMIT ?
+    ''';
+
+    final results = await db.rawQuery(fullQuery, [now, now, now, limit]);
+
+    // Conversion de la date en DateTime
+    return results.map((map) {
+      final newMap = Map<String, dynamic>.from(map);
+      newMap['date'] = DateTime.parse(map['date'] as String);
+      return newMap;
+    }).toList();
+  }
+
+  /// Récupère la progression (séances complétées / total) pour tous les cycles d'un traitement.
+  Future<Map<String, int>> getSessionProgress(String treatmentId) async {
+    final db = await database;
+    int totalSessions = 0;
+    int completedSessions = 0;
+
+    // Récupérer tous les cycles pour le traitement donné
+    final cycles = await db.query(
+      'cycles',
+      where: 'treatmentId = ?',
+      whereArgs: [treatmentId],
+    );
+
+    if (cycles.isEmpty) {
+      return {'completed': 0, 'total': 0};
+    }
+
+    List<String> cycleIds = cycles.map((c) => c['id'] as String).toList();
+
+    // Construire la clause WHERE pour les IDs de cycle
+    final placeholders = cycleIds.map((_) => '?').join(',');
+
+    // Compter le nombre total de séances pour ces cycles
+    final totalResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM sessions WHERE cycleId IN ($placeholders)',
+      cycleIds,
+    );
+    if (totalResult.isNotEmpty) {
+      totalSessions = (totalResult.first['count'] as int?) ?? 0;
+    }
+
+    // Compter le nombre de séances complétées pour ces cycles
+    final completedResult = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM sessions WHERE cycleId IN ($placeholders) AND isCompleted = 1',
+      cycleIds,
+    );
+    if (completedResult.isNotEmpty) {
+      completedSessions = (completedResult.first['count'] as int?) ?? 0;
+    }
+
+    return {'completed': completedSessions, 'total': totalSessions};
+  }
+
+// ===== AJOUTER CETTE MÉTHODE DANS la classe DatabaseHelper =====
+
+  /// Récupère les prochains événements (séances, rdv, examens) à venir pour un cycle spécifique.
+  Future<List<Map<String, dynamic>>> getUpcomingEventsForCycle(String cycleId, int limit, [int? inNextDays]) async {
+    final db = await database;
+    final now = DateTime.now();
+    final nowStr = now.toIso8601String();
+
+    // NOUVEAU : Calculer la date limite si 'inNextDays' est fourni
+    String dateLimitStr = '';
+    if (inNextDays != null) {
+      final dateLimit = now.add(Duration(days: inNextDays));
+      dateLimitStr = "AND dateTime <= '${dateLimit.toIso8601String()}'";
+    }
+
+    // NOUVEAU : Intégration de la limite de date dans les requêtes
+    final sessionsQuery = '''
+      SELECT id, dateTime as date, 'Séance' as title, 'session' as type
+      FROM sessions
+      WHERE cycleId = ? AND dateTime > ? $dateLimitStr AND isCompleted = 0
+    ''';
+
+    final appointmentsQuery = '''
+      SELECT a.id, a.dateTime as date, a.title, 'appointment' as type
+      FROM appointments a
+      INNER JOIN cycle_appointments ca ON a.id = ca.appointmentId
+      WHERE ca.cycleId = ? AND a.dateTime > ? $dateLimitStr AND a.isCompleted = 0
+    ''';
+
+    final examinationsQuery = '''
+      SELECT id, dateTime as date, title, 'examination' as type
+      FROM examinations
+      WHERE cycleId = ? AND dateTime > ? $dateLimitStr AND isCompleted = 0
+    ''';
+
+    final String fullQuery = '''
+      SELECT * FROM (
+        $sessionsQuery
+        UNION ALL
+        $appointmentsQuery
+        UNION ALL
+        $examinationsQuery
+      )
+      ORDER BY date ASC
+      LIMIT ?
+    ''';
+
+    final results = await db.rawQuery(fullQuery, [cycleId, nowStr, cycleId, nowStr, cycleId, nowStr, limit]);
+
+    return results.map((map) {
+      final newMap = Map<String, dynamic>.from(map);
+      newMap['date'] = DateTime.parse(map['date'] as String);
+      return newMap;
+    }).toList();
+  }
+
+  // Récupère le nom du traitement associé à un événement (session, rdv, examen)
+  Future<String?> getTreatmentNameForEvent(String eventType, String eventId) async {
+    final db = await database;
+    String? treatmentId;
+
+    if (eventType == 'session' || eventType == 'examination' || eventType == 'appointment') {
+      // Pour une session, un examen ou un rdv, on remonte au cycle pour trouver le treatmentId
+      final cycleLink = await db.rawQuery('''
+        SELECT c.treatmentId FROM cycles c
+        INNER JOIN (
+          SELECT cycleId FROM sessions WHERE id = ?
+          UNION ALL
+          SELECT cycleId FROM examinations WHERE id = ?
+          UNION ALL
+          SELECT ca.cycleId FROM cycle_appointments ca WHERE ca.appointmentId = ?
+        ) AS event_link ON c.id = event_link.cycleId
+        LIMIT 1
+      ''', [eventId, eventId, eventId]);
+
+      if (cycleLink.isNotEmpty) {
+        treatmentId = cycleLink.first['treatmentId'] as String?;
+      }
+    }
+
+    if (treatmentId != null) {
+      final treatment = await getTreatment(treatmentId);
+      return treatment?['label'] as String?;
+    }
+
+    return null;
   }
 }
