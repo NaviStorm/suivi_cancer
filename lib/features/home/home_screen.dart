@@ -1,9 +1,9 @@
-// ===== $HOME/suivi_cancer/lib/features/home/home_screen.dart =====
-import 'dart:math';
+// --- START OF FULLY REFACTORED home_screen.dart ---
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:intl/intl.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/establishment/screens/list_establishment_screen.dart';
@@ -44,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final Map<String, bool> _treatmentCardExpandedState = {};
 
+  // --- Le reste de votre code de logique reste identique ---
   @override
   void initState() {
     super.initState();
@@ -135,27 +136,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- Fonctions de Navigation et Actions ---
   void _navigateToAddTreatment() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddTreatmentScreen()));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddTreatmentScreen()));
     if (result == true) _loadDashboardData();
   }
 
   void _navigateToAddPS() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddPSScreen()));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddPSScreen()));
     if (result == true) _loadDashboardData();
   }
 
   void _navigateToAddEstablishment() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddEstablishmentScreen()));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddEstablishmentScreen()));
     if (result == true) _loadDashboardData();
   }
 
   void _navigateToHealthProfessionals() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const HealthProfessionalsListScreen()));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const HealthProfessionalsListScreen()));
     if (result == true) _loadDashboardData();
   }
 
   void _navigateToEstablishmentList() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const EstablishmentListScreen()));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const EstablishmentListScreen()));
     if (result == true) _loadDashboardData();
   }
 
@@ -170,17 +171,17 @@ class _HomeScreenState extends State<HomeScreen> {
       sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
     );
 
-    await Navigator.push(context, MaterialPageRoute(builder: (context) => CycleDetailsScreen(cycle: cycle)));
+    await Navigator.push(context, CupertinoPageRoute(builder: (context) => CycleDetailsScreen(cycle: cycle)));
     _loadDashboardData();
   }
 
   void _navigateToPSDetails(String psId) async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)));
     if (result == true) _loadDashboardData();
   }
 
   void _navigateToEstablishmentDetails(Establishment establishment) async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)));
+    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)));
     if (result == true) _loadDashboardData();
   }
 
@@ -206,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Modifier'),
               onPressed: () async {
                 Navigator.pop(context);
-                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddPSScreen(ps: ps.toMap())));
+                final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddPSScreen(ps: ps.toMap())));
                 if (result == true) _loadDashboardData();
               },
             ),
@@ -277,9 +278,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final Map<String, dynamic>? upcomingEvent = _dashboardData['upcomingEvent'];
 
-    return Scaffold(
+    return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.systemGroupedBackground,
-      body: _isLoading
+      child: _isLoading
           ? const Center(child: CupertinoActivityIndicator())
           : CustomScrollView(
         slivers: [
@@ -327,36 +328,39 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          // LA CORRECTION : Un fond vert pâle statique pour cette carte uniquement.
+          color: Colors.green.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade200),
+          // On peut garder une bordure subtile si on le souhaite
+          // border: Border.all(color: CupertinoColors.systemGreen.withOpacity(0.5)),
         ),
         child: Row(
           children: [
-            const Icon(CupertinoIcons.bell_fill, color: CupertinoColors.systemBlue, size: 36),
+            const Icon(CupertinoIcons.bell_fill, color: CupertinoColors.systemGreen, size: 36),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     "PROCHAIN ÉVÉNEMENT",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: CupertinoColors.systemBlue),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: CupertinoColors.systemIndigo),
                   ),
                   const SizedBox(height: 4),
-                  Text(event['title'] as String, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  // Le texte utilisera des couleurs sombres ici, ce qui est parfait pour un fond clair.
+                  Text(event['title'] as String, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: CupertinoColors.black)),
                   if (event['treatmentName'] != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 2.0),
                       child: Text(
                         event['treatmentName'],
-                        style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel),
+                        style: const TextStyle(fontSize: 13, color: CupertinoColors.darkBackgroundGray),
                       ),
                     ),
                   const SizedBox(height: 4),
                   Text(
                     DateFormat("'Le' dd/MM/yyyy 'à' HH:mm").format(event['date'] as DateTime),
-                    style: TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
+                    style: const TextStyle(fontSize: 14, color: CupertinoColors.darkBackgroundGray),
                   ),
                 ],
               ),
@@ -391,17 +395,15 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(isExpanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right, size: 18, color: CupertinoColors.secondaryLabel),
+                    const Icon(CupertinoIcons.chevron_down, size: 18, color: CupertinoColors.systemGrey),
                     const SizedBox(width: 8),
-                    Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: CupertinoColors.label)),
+                    Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: CupertinoColors.systemGrey)),
                   ],
                 ),
                 Row(
                   children: [
-                    if (onSeeAll != null && data.length > 3)
-                      CupertinoButton(padding: EdgeInsets.zero, onPressed: onSeeAll, child: const Text("Voir tout")),
-                    if (onAdd != null)
-                      CupertinoButton(padding: const EdgeInsets.only(left: 8), onPressed: onAdd, child: const Icon(CupertinoIcons.add)),
+                    if (onSeeAll != null && data.length > 3) CupertinoButton(padding: EdgeInsets.zero, onPressed: onSeeAll, child: const Text("Voir tout")),
+                    if (onAdd != null) CupertinoButton(padding: const EdgeInsets.only(left: 8), onPressed: onAdd, child: const Icon(CupertinoIcons.add)),
                   ],
                 )
               ],
@@ -415,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(24),
               width: double.infinity,
               decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text("Aucun élément", style: TextStyle(color: CupertinoColors.secondaryLabel))),
+              child: const Center(child: Text("Aucun élément", style: TextStyle(color: CupertinoColors.secondaryLabel))),
             )
                 : Column(children: itemsToShow.map(itemBuilder).toList()),
             crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
@@ -436,17 +438,27 @@ class _HomeScreenState extends State<HomeScreen> {
     final double percentage = total > 0 ? (completed / total) * 100 : 0;
     final bool isEventListExpanded = _treatmentCardExpandedState[treatment.id] ?? false;
 
+    // *** LA SOLUTION DÉFINITIVE ***
+    // On résout explicitement la couleur dynamique en une couleur concrète pour le thème actuel.
+    final Color cardBackgroundColor = CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+    final Color cardLabelText = CupertinoColors.label.resolveFrom((context));
+    final Color cardsecondaryLabelText = CupertinoColors.secondaryLabel.resolveFrom((context));
+    final Color cardtertiaryLabel = CupertinoColors.tertiaryLabel.resolveFrom((context));
+
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
+        color: cardBackgroundColor, // On utilise notre couleur résolue
         borderRadius: BorderRadius.circular(12),
       ),
+      // Le reste du code est déjà correct et n'a pas besoin de changer.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
             onTap: () => _navigateToCycleDetails(cycle, treatment),
+            behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -469,7 +481,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             startDegreeOffset: -90,
                           ),
                         ),
-                        Text("${percentage.toStringAsFixed(0)}%", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold))
+                        Text(
+                          "${percentage.toStringAsFixed(0)}%",
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cardsecondaryLabelText),
+                        )
                       ],
                     ),
                   ),
@@ -478,25 +493,42 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(treatment.label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                        Text(
+                          treatment.label,
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: cardLabelText),
+                        ),
                         const SizedBox(height: 4),
-                        Text("$completed / $total séances", style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                        Text(
+                          "$completed / $total séances",
+                          style: TextStyle(fontSize: 13, color: cardsecondaryLabelText),
+                        ),
                       ],
                     ),
                   ),
+                  Icon(CupertinoIcons.chevron_forward, color: cardtertiaryLabel),
                 ],
               ),
             ),
           ),
           if (events.isNotEmpty) ...[
-            const Divider(height: 1, indent: 16, endIndent: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                height: 1.0 / MediaQuery.of(context).devicePixelRatio,
+                color: CupertinoColors.separator,
+              ),
+            ),
             CupertinoButton(
               onPressed: () => setState(() => _treatmentCardExpandedState[treatment.id] = !isEventListExpanded),
               child: Row(
                 children: [
-                  Text("Événements à venir ce mois-ci", style: TextStyle(color: CupertinoColors.link, fontSize: 15)),
+                  const Text("Événements à venir ce mois-ci", style: TextStyle(color: CupertinoColors.link, fontSize: 15)),
                   const Spacer(),
-                  Icon(isEventListExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down, size: 18, color: CupertinoColors.secondaryLabel),
+                  Icon(
+                    isEventListExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                    size: 18,
+                    color: cardtertiaryLabel,
+                  ),
                 ],
               ),
             ),
@@ -515,36 +547,43 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildEventTile(Map<String, dynamic> event) {
     final IconData icon;
     switch (event['type'] as String) {
-      case 'session': icon = CupertinoIcons.heart_circle_fill; break;
-      case 'appointment': icon = CupertinoIcons.calendar_badge_plus; break;
-      case 'examination': icon = CupertinoIcons.lab_flask_solid; break;
-      default: icon = CupertinoIcons.question_circle;
+      case 'session':
+        icon = CupertinoIcons.heart_circle_fill;
+        break;
+      case 'appointment':
+        icon = CupertinoIcons.calendar_badge_plus;
+        break;
+      case 'examination':
+        icon = CupertinoIcons.lab_flask_solid;
+        break;
+      default:
+        icon = CupertinoIcons.question_circle;
     }
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () { /* TODO: Naviguer vers détail de l'événement */ },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Row(
-            children: [
-              Icon(icon, size: 22, color: CupertinoColors.secondaryLabel),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(event['title'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat("EEEE d MMM 'à' HH:mm", 'fr_FR').format(event['date'] as DateTime),
-                      style: TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel),
-                    ),
-                  ],
-                ),
+    return GestureDetector(
+      onTap: () {
+        /* TODO: Naviguer vers détail de l'événement */
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: CupertinoColors.secondaryLabel),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event['title'] as String, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: CupertinoColors.secondaryLabel)),
+                  const SizedBox(height: 2),
+                  Text(
+                    DateFormat("EEEE d MMM 'à' HH:mm", 'fr_FR').format(event['date'] as DateTime),
+                    style: const TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -557,42 +596,47 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasPhone = phoneContact != null && phoneContact.value.isNotEmpty;
     final hasEmail = emailContact != null && emailContact.value.isNotEmpty;
 
+    final Color cardBackgroundColor = CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+    final Color cardLabelText = CupertinoColors.label.resolveFrom((context));
+    final Color cardsecondaryLabelText = CupertinoColors.secondaryLabel.resolveFrom((context));
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.only(left: 16),
+      decoration: BoxDecoration(
+          color: cardBackgroundColor,
+          borderRadius: BorderRadius.circular(12)
+      ),
       child: Row(
         children: [
-          // CORRECTION : Encapsuler la partie gauche dans un Expanded
           Expanded(
             child: GestureDetector(
               onTap: () => _navigateToPSDetails(professional.id),
-              // Utiliser un Container avec une couleur transparente pour une meilleure zone de clic
-              child: Container(
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    const Icon(CupertinoIcons.person_crop_circle, color: CupertinoColors.systemGrey, size: 36),
-                    const SizedBox(width: 12),
-                    // Encapsuler la colonne de texte dans Expanded pour qu'elle gère l'overflow
-                    Expanded(
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.person_crop_circle, color: CupertinoColors.systemGrey, size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(professional.fullName, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                          Text(professional.category?['name'] ?? 'Non spécifié', style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                          // OK : Texte principal noir/blanc
+                          Text(professional.fullName, style: TextStyle(fontWeight: FontWeight.w500, color: cardLabelText), overflow: TextOverflow.ellipsis),
+                          Text(professional.category?['name'] ?? 'Non spécifié', style: TextStyle(fontSize: 13, color: cardsecondaryLabelText)),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-          // Les boutons ne sont plus poussés par un Spacer mais occupent leur place naturelle.
-          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(phoneContact?.value)),
-          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(emailContact?.value)),
-          CupertinoButton(padding: const EdgeInsets.all(8), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showPSActions(context, professional)),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: hasPhone ? () => _makePhoneCall(phoneContact?.value) : null),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: hasEmail ? () => _sendEmail(emailContact?.value) : null),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showPSActions(context, professional)),
         ],
       ),
     );
@@ -602,41 +646,48 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasPhone = establishment.phone != null && establishment.phone!.isNotEmpty;
     final hasEmail = establishment.email != null && establishment.email!.isNotEmpty;
 
+    final Color cardBackgroundColor = CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+    final Color cardLabelText = CupertinoColors.label.resolveFrom((context));
+    final Color cardsecondaryLabelText = CupertinoColors.secondaryLabel.resolveFrom((context));
+
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(color: CupertinoColors.secondarySystemGroupedBackground, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.only(left: 16),
+      decoration: BoxDecoration(
+          color: cardBackgroundColor,
+          borderRadius: BorderRadius.circular(12)
+      ),
       child: Row(
         children: [
-          // CORRECTION : Encapsuler la partie gauche dans un Expanded
           Expanded(
             child: GestureDetector(
               onTap: () => _navigateToEstablishmentDetails(establishment),
-              child: Container(
-                color: Colors.transparent,
-                child: Row(
-                  children: [
-                    const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.systemGrey, size: 36),
-                    const SizedBox(width: 12),
-                    // Encapsuler la colonne de texte dans Expanded pour qu'elle gère l'overflow
-                    Expanded(
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.systemGrey, size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(establishment.name, style: const TextStyle(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                          if (establishment.city != null) Text(establishment.city!, style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
+                          // OK : Texte principal noir/blanc
+                          Text(establishment.name, style: TextStyle(fontWeight: FontWeight.w500, color: cardLabelText), overflow: TextOverflow.ellipsis),
+                          if (establishment.city != null && establishment.city!.isNotEmpty) Text(establishment.city!, style: TextStyle(fontSize: 13, color: cardsecondaryLabelText)),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-          // Les boutons occupent leur place naturelle.
-          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(establishment.phone)),
-          CupertinoButton(padding: const EdgeInsets.all(8), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(establishment.email)),
-          CupertinoButton(padding: const EdgeInsets.all(8), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showEstablishmentActions(context, establishment)),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: Icon(CupertinoIcons.phone_fill, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: hasPhone ? () => _makePhoneCall(establishment.phone) : null),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: Icon(CupertinoIcons.envelope_fill, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: hasEmail ? () => _sendEmail(establishment.email) : null),
+          CupertinoButton(padding: const EdgeInsets.all(12), child: const Icon(CupertinoIcons.ellipsis, color: CupertinoColors.systemGrey), onPressed: () => _showEstablishmentActions(context, establishment)),
         ],
       ),
     );
@@ -664,12 +715,18 @@ class _HomeScreenState extends State<HomeScreen> {
 extension CureTypeName on CureType {
   String get name {
     switch (this) {
-      case CureType.Chemotherapy: return "Chimiothérapie";
-      case CureType.Immunotherapy: return "Immunothérapie";
-      case CureType.Hormonotherapy: return "Hormonothérapie";
-      case CureType.Combined: return "Traitement combiné";
-      case CureType.Surgery: return "Chirurgie";
-      case CureType.Radiotherapy: return "Radiothérapie";
+      case CureType.Chemotherapy:
+        return "Chimiothérapie";
+      case CureType.Immunotherapy:
+        return "Immunothérapie";
+      case CureType.Hormonotherapy:
+        return "Hormonothérapie";
+      case CureType.Combined:
+        return "Traitement combiné";
+      case CureType.Surgery:
+        return "Chirurgie";
+      case CureType.Radiotherapy:
+        return "Radiothérapie";
     }
   }
 }

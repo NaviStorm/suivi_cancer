@@ -1,5 +1,6 @@
 // ===== $HOME/suivi_cancer/lib/main.dart =====
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'common/theme/app_theme.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -42,7 +43,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return CupertinoApp(
+      title: 'Suivi Cancer',
+      theme: CupertinoThemeData(
+        primaryColor: CupertinoColors.systemTeal,
+        scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
+      ),
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -53,8 +59,6 @@ class MyApp extends StatelessWidget {
         const Locale('en', 'US'), // Anglais
       ],
       locale: const Locale('fr', 'FR'), // Forcer le français pour le formatage
-      title: 'Suivi Cancer',
-      theme: AppTheme.lightTheme,
       home: HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
