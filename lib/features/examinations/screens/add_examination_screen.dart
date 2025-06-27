@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
@@ -1651,15 +1652,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    UniversalSnackBar.show(context, title: message);
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    UniversalSnackBar.show(context, title: message);
   }
 
   @override

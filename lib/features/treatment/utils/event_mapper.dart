@@ -1,5 +1,7 @@
 // lib/features/treatment/utils/event_mapper.dart
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
@@ -40,11 +42,21 @@ class EventMapper {
   }
 
   static Map<String, dynamic> mapExaminationToEvent(Examination examination) {
-    Color backgroundColor = Colors.transparent;
+    Color backgroundColor = Colors.lime.shade50;
     BorderSide border = BorderSide(color: Colors.grey[200]!, width: 1);
 
+    Log.d('Couleur examination:[${examination.type}]');
     if (examination.type == ExaminationType.PriseDeSang) {
       backgroundColor = Color(0xFFFFF9C4);
+      border = BorderSide(color: Colors.amber[300]!, width: 1);
+    } else if (examination.type == ExaminationType.Consult) {
+      backgroundColor = Color.fromRGBO(251, 213, 162, 1.0);
+      border = BorderSide(color: Colors.amber[300]!, width: 1);
+    } else if (examination.type == ExaminationType.Autre) {
+      backgroundColor = Colors.lime.shade50;
+      border = BorderSide(color: Colors.amber[300]!, width: 1);
+    } else if (examination.type == ExaminationType.EFR) {
+      backgroundColor = CupertinoColors.systemGroupedBackground;
       border = BorderSide(color: Colors.amber[300]!, width: 1);
     } else if (examination.type == ExaminationType.Soin) {
       backgroundColor = Colors.lightGreen.shade50;
@@ -59,7 +71,7 @@ class EventMapper {
       backgroundColor = Colors.amber.withAlpha(13);
       border = BorderSide(color: Colors.amber[300]!, width: 1);
     } else {
-      backgroundColor = Colors.white;
+      backgroundColor = Colors.lime.shade50;
       border = BorderSide(color: Colors.red[200]!, width: 1);
     }
 

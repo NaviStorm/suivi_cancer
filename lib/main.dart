@@ -46,6 +46,7 @@ class MyApp extends StatelessWidget {
     return CupertinoApp(
       title: 'Suivi Cancer',
       theme: CupertinoThemeData(
+        brightness: Brightness.light,
         primaryColor: CupertinoColors.systemTeal,
         scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
       ),

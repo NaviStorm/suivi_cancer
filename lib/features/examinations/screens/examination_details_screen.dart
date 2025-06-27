@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
@@ -782,14 +783,10 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    UniversalSnackBar.show(context, title: message);
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    UniversalSnackBar.show(context, title: 'Erreur', message: message);
   }
 }

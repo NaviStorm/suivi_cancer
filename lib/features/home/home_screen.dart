@@ -15,7 +15,7 @@ import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/treatment.dart';
 import 'package:suivi_cancer/features/treatment/screens/cycle_details_screen.dart';
-import 'package:suivi_cancer/features/treatment/screens/traitement/add_treatment_screen.dart';
+import 'package:suivi_cancer/features/treatment/screens/add_treatment_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'upcomingEvent': null,
   };
   bool _isLoading = true;
+  bool _isNavigating = false;
 
   final Map<String, bool> _sectionExpandedState = {
     'Traitements en cours': true,
@@ -73,6 +74,39 @@ class _HomeScreenState extends State<HomeScreen> {
         };
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _safeNavigate(Future<void> Function() navigationAction) async {
+    // 1. La protection contre le double-clic est toujours active.
+    if (_isNavigating) {
+      Log.d("Navigation déjà en cours, clic ignoré.");
+      return;
+    }
+
+    // 2. LA CORRECTION : On diffère l'exécution de tout le reste.
+    //    Cela garantit qu'on attend la fin de TOUT cycle de build en cours
+    //    avant même de tenter de naviguer.
+    await Future.delayed(Duration.zero);
+
+    // 3. Après le délai, il est crucial de re-vérifier si le widget est
+    //    toujours présent dans l'arbre visuel.
+    if (!mounted) {
+      Log.d("Widget démonté pendant le délai de navigation, annulation.");
+      return;
+    }
+
+    // 4. Maintenant que nous sommes sûrs d'être en dehors d'un build,
+    //    on peut activer notre verrou et naviguer en toute sécurité.
+    _isNavigating = true;
+    Log.d("Navigation autorisée, verrouillage activé.");
+
+    await navigationAction();
+
+    // 5. Au retour, on déverrouille comme avant.
+    if (mounted) {
+      _isNavigating = false;
+      Log.d("Navigation terminée, verrouillage désactivé.");
     }
   }
 
@@ -136,31 +170,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- Fonctions de Navigation et Actions ---
   void _navigateToAddTreatment() async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddTreatmentScreen()));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async { // On passe une fonction anonyme async
+      if (mounted) {
+        final result = await Navigator.push(context,
+            CupertinoPageRoute(
+                builder: (context) => const AddTreatmentScreen()));
+        if (result == true) _loadDashboardData();
+      }
+    }
+    );
   }
 
   void _navigateToAddPS() async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddPSScreen()));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async { // On passe une fonction anonyme async
+      if (mounted) {
+        final result = await Navigator.push(context,
+            CupertinoPageRoute(builder: (context) => const AddPSScreen()));
+        if (result == true) _loadDashboardData();
+      }
+    }
+    );
   }
 
   void _navigateToAddEstablishment() async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const AddEstablishmentScreen()));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async { // On passe une fonction anonyme async
+      if (mounted) {
+        final result = await Navigator.push(context, CupertinoPageRoute(
+            builder: (context) => const AddEstablishmentScreen()));
+        if (result == true) _loadDashboardData();
+      }
+    }
+    );
   }
 
   void _navigateToHealthProfessionals() async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const HealthProfessionalsListScreen()));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async { // On passe une fonction anonyme async
+      if (mounted) {
+        final result = await Navigator.push(context, CupertinoPageRoute(
+            builder: (context) => const HealthProfessionalsListScreen()));
+        if (result == true) _loadDashboardData();
+      }
+    });
   }
 
   void _navigateToEstablishmentList() async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => const EstablishmentListScreen()));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async { // On passe une fonction anonyme async
+      if (mounted) {
+        final result = await Navigator.push(context, CupertinoPageRoute(
+            builder: (context) => const EstablishmentListScreen()));
+        if (result == true) _loadDashboardData();
+      }
+    });
   }
 
-  void _navigateToCycleDetails(Map<String, dynamic> cycleMap, Treatment treatment) async {
+
+void _navigateToCycleDetails(Map<String, dynamic> cycleMap, Treatment treatment) {
+  // On appelle notre wrapper de navigation sécurisé
+  _safeNavigate(() async {
+    // On crée l'objet Cycle normalement
     final cycle = Cycle(
       id: cycleMap['id'] as String,
       type: CureType.values[cycleMap['type'] as int],
@@ -171,18 +238,44 @@ class _HomeScreenState extends State<HomeScreen> {
       sessionInterval: Duration(days: cycleMap['sessionInterval'] as int),
     );
 
-    await Navigator.push(context, CupertinoPageRoute(builder: (context) => CycleDetailsScreen(cycle: cycle)));
+    // La vérification `if (mounted)` avant la navigation n'est plus
+    // strictement nécessaire ici car _safeNavigate le fait déjà implicitement,
+    // mais la garder ne pose aucun problème.
+    if (!mounted) return;
+
+    // On navigue
+    await Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (context) => CycleDetailsScreen(cycle: cycle)),
+    );
+
+    // Au retour de l'écran, on rafraîchit les données.
+    // Cette vérification est toujours importante.
+    if (!mounted) return;
     _loadDashboardData();
-  }
+  });
+}
 
   void _navigateToPSDetails(String psId) async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async {
+      if (mounted) {
+        final result = await Navigator.push(context, CupertinoPageRoute(
+            builder: (context) =>
+                HealthProfessionalDetailScreen(professionalId: psId)));
+        if (result == true) _loadDashboardData();
+      }
+    });
   }
 
   void _navigateToEstablishmentDetails(Establishment establishment) async {
-    final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)));
-    if (result == true) _loadDashboardData();
+    _safeNavigate(() async {
+      if (mounted) {
+        final result = await Navigator.push(context, CupertinoPageRoute(
+            builder: (context) =>
+                AddEstablishmentScreen(establishment: establishment)));
+        if (result == true) _loadDashboardData();
+      }
+    });
   }
 
   void _makePhoneCall(String? phoneNumber) async {

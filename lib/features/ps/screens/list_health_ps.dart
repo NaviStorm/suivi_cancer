@@ -110,11 +110,14 @@ class _HealthProfessionalsListScreenState
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (didPop) {
-          Navigator.pop(context, _hasMadeChanges);
-        }
+      // 1. On DÉSACTIVE le pop automatique pour prendre le contrôle.
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        // 3. `didPop` sera `false` car on a bloqué le pop.
+        if (didPop) return;
+
+        // 4. On exécute le pop MANUELLEMENT, avec notre valeur de retour.
+        Navigator.pop(context, _hasMadeChanges);
       },
       child: CupertinoPageScaffold(
         backgroundColor: CupertinoColors.systemGroupedBackground,

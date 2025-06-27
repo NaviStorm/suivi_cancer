@@ -97,12 +97,20 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (didPop) {
-          Navigator.pop(context, _hasMadeChanges);
-        }
+      // 1. On DÉSACTIVE le pop automatique pour prendre le contrôle.
+      canPop: false,
+
+      // 2. On utilise `onPopInvokedWithResult` pour satisfaire le linter de votre version de Flutter.
+      //    Le paramètre `result` ne sera pas utilisé dans notre cas, mais il doit être présent.
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        // 3. `didPop` sera `false` car on a bloqué le pop automatique.
+        //    Cette vérification est une sécurité.
+        if (didPop) return;
+
+        // 4. On effectue le pop MANUELLEMENT, en passant notre valeur de retour.
+        Navigator.pop(context, _hasMadeChanges);
       },
+
       child: CupertinoPageScaffold(
         backgroundColor: CupertinoColors.systemGroupedBackground,
         child: CustomScrollView(

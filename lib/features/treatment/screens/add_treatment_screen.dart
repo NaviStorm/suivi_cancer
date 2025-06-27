@@ -1,5 +1,7 @@
 // lib/features/treatment/screens/add_treatment_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/utils/logger.dart';
@@ -26,7 +28,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   final TextEditingController _labelController = TextEditingController();
 
   bool _excludeSaturday = true; // Exclure spécifiquement le samedi
-  bool _excludeSunday = true;   // Exclure spécifiquement le dimanche
+  bool _excludeSunday = true; // Exclure spécifiquement le dimanche
 
   DateTime _startDate = DateTime.now();
   TreatmentType _selectedType = TreatmentType.Cycle;
@@ -103,18 +105,39 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des données')),
-      );
+      UniversalSnackBar.show(context,
+          title: 'Erreur', message: 'Erreur lors du chargement des données');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Nouveau traitement')),
-      body:
-      _isLoading
+      appBar: AppBar(
+        title: Text('Nouveau traitement'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            // Affiche le spinner ou le bouton en fonction de l'état _isSaving
+            child: _isSaving
+                ? Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  strokeWidth: 3,
+                ),
+              ),
+            )
+                : TextButton(
+              onPressed: _saveTreatment, // L'appel à la fonction est ici
+              child: Text('Enregistrer', style: TextStyle(fontSize: 16)),
+            ),
+          ),
+        ],
+      ),
+      body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Form(
         key: _formKey,
@@ -163,16 +186,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               SizedBox(height: 16),
               _buildHealthProfessionalSection(),
               SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isSaving ? null : _saveTreatment,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-                child:
-                _isSaving
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Enregistrer'),
-              ),
+              // L'ANCIEN BOUTON A ÉTÉ SUPPRIMÉ D'ICI
             ],
           ),
         ),
@@ -274,7 +288,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
             SizedBox(height: 16),
 
             DateTimePicker(
-              label: isSurgery ? 'Date de l\'opération' : 'Date de la première séance',
+              label: isSurgery
+                  ? 'Date de l\'opération'
+                  : 'Date de la première séance',
               initialValue: _firstSessionDate,
               showTime: true,
               selectableDayPredicate: _isDateSelectable,
@@ -304,7 +320,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                     SizedBox(height: 8),
                     CheckboxListTile(
                       title: Text('Exclure les samedis'),
-                      subtitle: Text('Les séances ne peuvent pas avoir lieu le samedi'),
+                      subtitle:
+                      Text('Les séances ne peuvent pas avoir lieu le samedi'),
                       value: _excludeSaturday,
                       onChanged: (bool? value) {
                         setState(() {
@@ -315,7 +332,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                     ),
                     CheckboxListTile(
                       title: Text('Exclure les dimanches'),
-                      subtitle: Text('Les séances ne peuvent pas avoir lieu le dimanche'),
+                      subtitle: Text(
+                          'Les séances ne peuvent pas avoir lieu le dimanche'),
                       value: _excludeSunday,
                       onChanged: (bool? value) {
                         setState(() {
@@ -353,8 +371,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       value: _selectedCycleType,
-      items:
-      CureType.values.map((type) {
+      items: CureType.values.map((type) {
         return DropdownMenuItem<CureType>(
           value: type,
           child: Text(EventFormatter.getCycleTypeLabel(type)),
@@ -555,8 +572,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             value: _selectedEstablishment,
-            items:
-            _establishments.map((establishment) {
+            items: _establishments.map((establishment) {
               return DropdownMenuItem<Establishment>(
                 value: establishment,
                 child: Text(establishment.name),
@@ -597,13 +613,16 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
           ],
         ),
         SizedBox(height: 8),
-        _buildHealthProfessionalMultiSelect(_selectedHealthProfessionals, (
-            healthProfessionals,
-            ) {
-          setState(() {
-            _selectedHealthProfessionals = healthProfessionals;
-          });
-        }),
+        _buildHealthProfessionalMultiSelect(
+          _selectedHealthProfessionals,
+              (
+              healthProfessionals,
+              ) {
+            setState(() {
+              _selectedHealthProfessionals = healthProfessionals;
+            });
+          },
+        ),
       ],
     );
   }
@@ -621,13 +640,11 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
             // Affichage des professionnels de santé sélectionnés
             if (selectedHealthProfessionals.isNotEmpty)
               Column(
-                children:
-                selectedHealthProfessionals
+                children: selectedHealthProfessionals
                     .map(
                       (ps) => ListTile(
                     title: Text(ps.fullName),
-                    subtitle:
-                    ps.category != null
+                    subtitle: ps.category != null
                         ? Text(ps.category!['name'])
                         : null,
                     trailing: IconButton(
@@ -652,11 +669,9 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               DropdownButton<PS>(
                 isExpanded: true,
                 hint: Text('Ajouter un professionnel de santé'),
-                items:
-                _healthProfessionals
+                items: _healthProfessionals
                     .where(
-                      (ps) =>
-                  !selectedHealthProfessionals.any(
+                      (ps) => !selectedHealthProfessionals.any(
                         (p) => p.id == ps.id,
                   ),
                 )
@@ -665,8 +680,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                     value: ps,
                     child: Text(ps.fullName),
                   );
-                })
-                    .toList(),
+                }).toList(),
                 onChanged: (PS? value) {
                   if (value != null) {
                     onChanged([...selectedHealthProfessionals, value]);
@@ -724,11 +738,13 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   }
 
   Future<void> _saveTreatment() async {
+    // Si on est déjà en train de sauvegarder, ne rien faire.
+    if (_isSaving) return;
+
     if (_formKey.currentState!.validate()) {
       if (_selectedEstablishment == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Veuillez sélectionner un établissement')),
-        );
+        UniversalSnackBar.show(context,
+            title: 'Erreur', message: 'Veuillez sélectionner un établissement');
         return;
       }
 
@@ -765,16 +781,17 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
         Log.d('_selectedType:[${_selectedType.toString()}]');
         await _createCycle(treatmentId);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Traitement ajouté avec succès')),
-        );
+        UniversalSnackBar.show(context,
+            title: 'Succès', message: 'Traitement ajouté avec succès');
 
-        Navigator.pop(context, true);
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
       } catch (e) {
         Log.d('Erreur lors de l\'enregistrement: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
-        );
+        UniversalSnackBar.show(context,
+            title: 'Erreur',
+            message: 'Erreur lors de l\'enregistrement: $e');
         setState(() {
           _isSaving = false;
         });
@@ -788,8 +805,10 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
     // Pour la chirurgie, forcer les valeurs
     bool isSurgery = _selectedCycleType == CureType.Surgery;
-    final sessionCount = isSurgery ? 1 : int.parse(_sessionCountController.text);
-    final intervalDays = isSurgery ? 0 : int.parse(_intervalDaysController.text);
+    final sessionCount =
+    isSurgery ? 1 : int.parse(_sessionCountController.text);
+    final intervalDays =
+    isSurgery ? 0 : int.parse(_intervalDaysController.text);
 
     // Calculer la date de fin en tenant compte des exclusions
     DateTime cycleEndDate = _firstSessionDate;
@@ -821,7 +840,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
       final sessionId = Uuid().v4();
 
       if (i > 0 && !isSurgery) {
-        currentSessionDate = _getNextSessionDate(currentSessionDate, intervalDays);
+        currentSessionDate =
+            _getNextSessionDate(currentSessionDate, intervalDays);
       }
 
       final sessionData = {

@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:suivi_cancer/utils/logger.dart';
@@ -17,17 +16,14 @@ import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/treatment/providers/cycle_provider.dart';
 import 'package:suivi_cancer/features/treatment/widgets/cycle_info_card.dart';
 import 'package:suivi_cancer/features/treatment/widgets/event_card.dart';
-import 'package:suivi_cancer/features/treatment/widgets/add_event_bottom_sheet.dart';
 
 import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:suivi_cancer/common/widgets/confirmation_dialog_new.dart';
 import 'package:suivi_cancer/features/medication_intake/widgets/add_medication_intake_dialog.dart';
 import 'package:suivi_cancer/features/examinations/screens/add_examination_screen.dart';
 import 'package:suivi_cancer/features/sessions/screens/add_session_screen.dart';
 import 'package:suivi_cancer/features/sessions/screens/session_details_screen.dart';
 import 'package:suivi_cancer/features/examinations/screens/examination_details_screen.dart';
-
 import 'package:suivi_cancer/features/appointments/screens/add_appointment_screen.dart';
 
 class CycleDetailsScreen extends StatefulWidget {
@@ -40,16 +36,15 @@ class CycleDetailsScreen extends StatefulWidget {
 }
 
 class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
+
   @override
   void initState() {
     super.initState();
-    // Initialiser les données de localisation pour le français
     initializeDateFormatting('fr_FR', null);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Création du provider séparée de sa consommation
     return ChangeNotifierProvider(
       create: (_) {
         final provider = CycleProvider();
@@ -63,900 +58,492 @@ class _CycleDetailsScreenState extends State<CycleDetailsScreen> {
 
 // Widget séparé pour consommer le provider
 class _CycleDetailsContent extends StatelessWidget {
-  final currentLocale =
-      ui.PlatformDispatcher.instance.locale.toString() ??
-      Intl.getCurrentLocale();
+  final String currentLocale = ui.PlatformDispatcher.instance.locale.languageCode;
 
+  // Le constructeur reste simple
   _CycleDetailsContent();
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Détails du cycle', style: TextStyle(fontSize: 16)),
-        actions: [
-          // Toggle pour masquer/afficher les événements passés
-          IconButton(
-            icon: Icon(
-              provider.hideCompletedEvents
-                  ? Icons.visibility_off
-                  : Icons.visibility,
-            ),
-            tooltip:
-                provider.hideCompletedEvents
-                    ? "Afficher les événements passés"
-                    : "Masquer les événements passés",
-            onPressed: () => provider.toggleHideCompletedEvents(),
-          ),
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () => _navigateToEditCycle(context),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () => _confirmDeleteCycle(context),
-          ),
-        ],
-      ),
-      body:
-          provider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
-                onRefresh: () => provider.refreshCycleData(),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CycleInfoCard(cycle: provider.cycle!),
-                      SizedBox(height: 16),
-                      _buildTimelineTitle(context),
-                      _buildChronologicalTimeline(context),
-                      SizedBox(height: 24),
-                      if (!provider.cycle!.isCompleted)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: _buildCompleteCycleButton(context),
-                        ),
-                      SizedBox(height: 24),
-                    ],
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemGroupedBackground,
+      child: provider.isLoading
+          ? const Center(child: CupertinoActivityIndicator())
+          : CustomScrollView(
+        slivers: [
+          CupertinoSliverNavigationBar(
+            largeTitle: const Text('Détails du Cycle'),
+            previousPageTitle: "Retour",
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: Icon(
+                    provider.hideCompletedEvents
+                        ? CupertinoIcons.eye_slash_fill
+                        : CupertinoIcons.eye_fill,
                   ),
+                  onPressed: () => provider.toggleHideCompletedEvents(),
                 ),
-              ),
-      floatingActionButton:
-          provider.cycle!.isCompleted
-              ? null
-              : FloatingActionButton(
-                tooltip: 'Ajouter un événement',
-                onPressed: () => _showAddEventDialog(context),
-                child: Icon(Icons.add),
-              ),
-    );
-  }
-
-  Widget _buildTimelineTitle(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Calendrier des événements',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          OutlinedButton.icon(
-            icon: Icon(Icons.filter_list, size: 16),
-            label: Text('Filtrer', style: TextStyle(fontSize: 12)),
-            style: OutlinedButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: Size(0, 0),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.pencil),
+                  onPressed: () => _navigateToEditCycle(context),
+                ),
+                if (!provider.cycle!.isCompleted)
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Icon(CupertinoIcons.add),
+                    onPressed: () => _showAddEventActionSheet(context),
+                  ),
+              ],
             ),
-            onPressed: () => _showFilterDialog(context),
+          ),
+          CupertinoSliverRefreshControl(
+            onRefresh: () => provider.refreshCycleData(),
+          ),
+          SliverToBoxAdapter(child: CycleInfoCard(cycle: provider.cycle!)),
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 32.0, left: 20.0, right: 20.0, bottom: 8.0),
+            sliver: SliverToBoxAdapter(
+              child: Text(
+                'Calendrier des événements',
+                style: CupertinoTheme.of(context).textTheme.navTitleTextStyle,
+              ),
+            ),
+          ),
+          ..._buildTimelineSlivers(context),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                if (!provider.cycle!.isCompleted)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildCompleteCycleButton(context),
+                  ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildChronologicalTimeline(BuildContext context) {
-    final provider = Provider.of<CycleProvider>(context);
-    final eventsByMonth = provider.getEventsByMonth(currentLocale);
+  Widget _buildEmptyTimelineMessage(BuildContext context) {
+    final Color cardBackgroundColor = CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context);
+    final Color cardLabelText = CupertinoColors.label.resolveFrom(context);
+    final Color cardsecondaryLabelText = CupertinoColors.secondaryLabel.resolveFrom(context);
 
-    if (eventsByMonth.isEmpty) {
-      return _buildEmptyTimelineMessage();
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      itemCount: eventsByMonth.length,
-      itemBuilder: (context, index) {
-        final monthKey = eventsByMonth.keys.toList()[index];
-        final monthEvents = eventsByMonth[monthKey]!;
-        final monthDate = DateTime.parse('$monthKey-01');
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // En-tête du mois
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 4.0,
-              ),
-              child: Text(
-                DateFormat('MMMM yyyy', currentLocale).format(monthDate),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-            ),
-            // Événements du mois
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: monthEvents.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 2),
-              itemBuilder: (context, eventIndex) {
-                return EventCard(
-                  event: monthEvents[eventIndex],
-                  onToggleCompleted:
-                      (event) => _toggleEventCompleted(context, event),
-                  onTap: (event) => _navigateToEventDetails(context, event),
-                  onLongPress:
-                      (event) => _navigateToEventLongPress(context, event),
-                  locale: currentLocale,
-                );
-              },
-            ),
-            // Espacement entre les mois
-            SizedBox(height: 8),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildEmptyTimelineMessage() {
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_busy, size: 48, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Aucun événement programmé',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Utilisez le bouton + pour ajouter des séances ou des examens à ce cycle',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(CupertinoIcons.exclamationmark_bubble, size: 48, color: cardsecondaryLabelText),
+          const SizedBox(height: 16),
+          Text(
+            'Aucun événement à afficher',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cardLabelText),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Utilisez le bouton + pour ajouter des événements ou modifiez les filtres pour afficher les événements masqués.',
+            style: TextStyle(color: cardsecondaryLabelText, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCompleteCycleButton(BuildContext context) {
-    final provider = Provider.of<CycleProvider>(context);
-    return ElevatedButton(
-      onPressed:
-          provider.isCompletingCycle
-              ? null
-              : () => _confirmCompleteCycle(context),
-      style: ElevatedButton.styleFrom(
-        minimumSize: Size(double.infinity, 45),
-        backgroundColor: Colors.green,
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    return SizedBox(
+      width: double.infinity,
+      child: CupertinoButton.filled(
+        onPressed: provider.isCompletingCycle ? null : () => _confirmCompleteCycle(context),
+        child: provider.isCompletingCycle
+            ? const CupertinoActivityIndicator()
+            : const Text('Marquer le cycle comme terminé'),
       ),
-      child:
-          provider.isCompletingCycle
-              ? CircularProgressIndicator(color: Colors.white)
-              : Text(
-                'Marquer le cycle comme terminé',
-                style: TextStyle(fontSize: 14),
-              ),
     );
   }
 
-  void _showFilterDialog(BuildContext context) {
+  List<Widget> _buildTimelineSlivers(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context, listen: false);
+    final eventsByMonth = provider.getEventsByMonth(currentLocale);
 
-    showCupertinoDialog(
-      context: context,
-      builder:
-          (context) => CupertinoAlertDialog(
-            title: Text('Masquer les événements : '),
-            content: CupertinoTheme(
-              data: CupertinoThemeData(),
+    if (eventsByMonth.values.every((list) => list.isEmpty)) {
+      return [SliverToBoxAdapter(child: _buildEmptyTimelineMessage(context))];
+    }
+
+    final List<Widget> slivers = [];
+    eventsByMonth.forEach((monthKey, monthEvents) {
+      if (monthEvents.isNotEmpty) {
+        final monthDate = DateTime.parse('$monthKey-01');
+        slivers.add(SliverPersistentHeader(
+          pinned: true,
+          delegate: _SliverMonthHeaderDelegate(
+            title: DateFormat.yMMMM(currentLocale).format(monthDate).toUpperCase(),
+          ),
+        ));
+        slivers.add(
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+            sliver: SliverToBoxAdapter(
               child: Container(
-                margin: EdgeInsets.only(top: 16.0),
+                clipBehavior: Clip.hardEdge,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.secondarySystemGroupedBackground.resolveFrom(context),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildCupertinoSwitchRow(
-                      'Prises de Médicaments',
-                      provider.hideCompletedEvents,
-                      (value) {
-                        provider.toggleHideCompletedEvents();
-                        Navigator.pop(context);
-                      },
-                    ),
-                    _buildCupertinoSwitchRow(
-                      'Examens',
-                      provider.hideCompletedEvents,
-                      (value) {
-                        provider.toggleHideCompletedEvents();
-                        Navigator.pop(context);
-                      },
-                    ),
-                    _buildCupertinoSwitchRow(
-                      'Evénements terminés',
-                      provider.hideCompletedEvents,
-                      (value) {
-                        provider.toggleHideCompletedEvents();
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
+                  children: List.generate(monthEvents.length * 2 - 1, (index) {
+                    if (index.isOdd) {
+                      return Container(
+                        height: 1.0 / MediaQuery.of(context).devicePixelRatio,
+                        margin: const EdgeInsets.only(left: 16.0),
+                        color: CupertinoColors.separator.resolveFrom(context),
+                      );
+                    }
+                    final eventIndex = index ~/ 2;
+                    return EventCard(
+                      event: monthEvents[eventIndex],
+                      onToggleCompleted: (event) => _toggleEventCompleted(context, event),
+                      onTap: (event) => _navigateToEventDetails(context, event),
+                      onLongPress: (event) => _showEventOptions(context, event),
+                      locale: currentLocale,
+                    );
+                  }),
                 ),
               ),
             ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Fermer'),
-              ),
-            ],
           ),
-    );
+        );
+      }
+    });
+    return slivers;
   }
 
-  Widget _buildCupertinoSwitchRow(
-    String title,
-    bool value,
-    Function(bool) onChanged, [
-    TextStyle? style,
-  ]) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(title, style: style)),
-          CupertinoSwitch(value: value, onChanged: onChanged),
+  // --- ACTIONS & DIALOGS ---
+
+  void _showAddEventActionSheet(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (modalContext) => CupertinoActionSheet(
+        title: const Text('Ajouter un événement'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(child: const Text('Séance de traitement'), onPressed: () { Navigator.pop(modalContext); _navigateToAddSession(context); }),
+          CupertinoActionSheetAction(child: const Text('Examen médical'), onPressed: () { Navigator.pop(modalContext); _navigateToAddExamination(context); }),
+          CupertinoActionSheetAction(child: const Text('Rendez-vous'), onPressed: () { Navigator.pop(modalContext); _navigateToAddAppointment(context); }),
+          CupertinoActionSheetAction(child: const Text('Prise de médicament'), onPressed: () { Navigator.pop(modalContext); _navigateToAddMedicationIntake(context); }),
+          CupertinoActionSheetAction(child: const Text('Document'), onPressed: () { Navigator.pop(modalContext); _navigateToAddDocument(context); }),
         ],
+        cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(modalContext)),
       ),
     );
   }
 
-  void _showAddEventDialog(BuildContext context) {
-    final originalContext = context;
-    final provider = Provider.of<CycleProvider>(originalContext, listen: false);
-
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => AddEventBottomSheet(
-            onAddSession: () => _navigateToAddSession(originalContext),
-            onAddExamination: () => _navigateToAddExamination(originalContext),
-            onAddDocument: () => _navigateToAddDocument(originalContext),
-            onAddMedicationIntake:
-                () => _navigateToAddMedicationIntake(originalContext),
-            onAddAppointment: () => _navigateToAddAppointment(originalContext),
-          ),
-    );
-  }
-
-  void _toggleEventCompleted(BuildContext context, dynamic event) async {
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    try {
-      if (event is Session) {
-        final newState = await provider.toggleSessionCompleted(event);
-        _showMessage(
-          context,
-          newState
-              ? 'Séance marquée comme terminée'
-              : 'Séance marquée comme non terminée',
-        );
-      } else if (event is Examination) {
-        final newState = await provider.toggleExaminationCompleted(event);
-        _showMessage(
-          context,
-          newState
-              ? 'Examen marqué comme terminé'
-              : 'Examen marqué comme non terminé',
-        );
-      } else if (event is MedicationIntake) {
-        final newState = await provider.toggleMedicationIntakeCompleted(event);
-        _showMessage(
-          context,
-          newState
-              ? 'Médicament marqué comme pris'
-              : 'Médicament marqué comme non pris',
-        );
-      }
-    } catch (e) {
-      _showErrorMessage(
-        context,
-        "Une erreur est survenue lors de la mise à jour",
-      );
+  void _showEventOptions(BuildContext context, Map<String, dynamic> event) {
+    final type = event['type'] as String;
+    if (type == 'medication_intake') {
+      _showMedicationIntakeOptions(context, event['object'] as MedicationIntake);
     }
   }
 
-  void _duplicateMedicationIntake(
-    BuildContext context,
-    MedicationIntake medications,
-  ) async {
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    final dbHelper = DatabaseHelper();
+  void _showMedicationIntakeOptions(BuildContext context, MedicationIntake intake) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (modalContext) => CupertinoActionSheet(
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(child: const Text('Modifier'), onPressed: () { Navigator.pop(modalContext); _editMedicationIntake(context, intake); }),
+          CupertinoActionSheetAction(child: const Text('Dupliquer pour aujourd\'hui'), onPressed: () { Navigator.pop(modalContext); _duplicateMedicationIntake(context, intake); }),
+          CupertinoActionSheetAction(isDestructiveAction: true, child: const Text('Supprimer'), onPressed: () { Navigator.pop(modalContext); _confirmDeleteEvent(context, intake); }),
+        ],
+        cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(modalContext)),
+      ),
+    );
+  }
 
-    // Créer une copie de la prise avec un nouvel ID
+  Future<void> _confirmDeleteEvent(BuildContext context, dynamic event) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final confirmed = await _showConfirmationDialog(context, title: 'Supprimer l\'événement', content: 'Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.');
+
+    if (confirmed) {
+      try {
+        if (event is MedicationIntake) {
+          await provider.deleteMedicationIntake(event.id);
+          _showInfoDialog(context, 'Prise de médicament supprimée.');
+        } else if (event is Session) {
+          // await provider.deleteSession(event.id); // Logique à implémenter
+          _showInfoDialog(context, 'Séance supprimée.');
+        }
+      } catch (e) {
+        _showInfoDialog(context, "Erreur", "Impossible de supprimer l'événement.");
+      }
+    }
+  }
+
+  Future<void> _toggleEventCompleted(BuildContext context, dynamic event) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    try {
+      if (event is Session) await provider.toggleSessionCompleted(event);
+      else if (event is Examination) await provider.toggleExaminationCompleted(event);
+      else if (event is MedicationIntake) await provider.toggleMedicationIntakeCompleted(event);
+    } catch (e) {
+      _showInfoDialog(context, "Erreur", "Une erreur est survenue lors de la mise à jour.");
+    }
+  }
+
+  void _duplicateMedicationIntake(BuildContext context, MedicationIntake intake) {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
     final newIntake = MedicationIntake(
       id: Uuid().v4(),
       dateTime: DateTime.now(),
       cycleId: provider.cycle!.id,
-      medications: medications.medications,
+      medications: intake.medications,
       isCompleted: false,
-      notes: medications.notes,
+      notes: intake.notes,
     );
-
-    // Utiliser showDialog au lieu de Navigator.push
-    final result = await showDialog<MedicationIntake>(
-      context: context,
-      builder:
-          (context) => AddMedicationIntakeDialog(
-            cycleId: provider.cycle!.id,
-            medicationIntake: newIntake,
-          ),
-    );
-
-    if (result != null) {
-      await dbHelper.insertMedicationIntake(result.toMap());
-      provider.refreshCycleData();
-    }
+    _editMedicationIntake(context, newIntake, isDuplicating: true);
   }
 
-  void _editMedicationIntake(
-    BuildContext context,
-    MedicationIntake intake,
-  ) async {
+  void _editMedicationIntake(BuildContext context, MedicationIntake intake, {bool isDuplicating = false}) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    final dbHelper = DatabaseHelper();
-
-    final result = await showDialog<MedicationIntake>(
-      context: context,
-      builder:
-          (context) => AddMedicationIntakeDialog(
-            cycleId: provider.cycle!.id,
-            medicationIntake: intake,
-          ),
-    );
-
-    if (result != null) {
-      // Mettre à jour la prise de médicament dans la base de données
-      await dbHelper.updateMedicationIntake(result.toMap());
-      provider.refreshCycleData();
-    }
-  }
-
-  void _confirmDeleteMedicationIntake(
-    BuildContext context,
-    MedicationIntake intake,
-  ) {
-    Log.d('_confirmDeleteMedicationIntake');
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    final dbHelper = DatabaseHelper();
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Supprimer la prise'),
-            content: Text(
-              'Êtes-vous sûr de vouloir supprimer cette prise de médicament ?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Annuler'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await dbHelper.deleteMedicationIntake(intake.id);
-                  provider.refreshCycleData();
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: Text('Supprimer'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _showMedicationIntakeOptions(
-    BuildContext context,
-    MedicationIntake intake,
-  ) {
-    final originalContext = context;
-
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Modifier'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _editMedicationIntake(originalContext, intake);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.copy),
-                title: Text('Dupliquer'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _duplicateMedicationIntake(originalContext, intake);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Supprimer'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteMedicationIntake(originalContext, intake);
-                },
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _navigateToEventLongPress(
-    BuildContext context,
-    Map<String, dynamic> event,
-  ) async {
-    final originalContext = context;
-    final provider = Provider.of<CycleProvider>(originalContext, listen: false);
-    final String type = event['type'] as String;
-
-    if (type == 'medication_intake') {
-      _showMedicationIntakeOptions(
-        originalContext,
-        event['object'] as MedicationIntake,
+    // Note: Utilisation de `safeNavigate` même pour un dialogue modal pour la cohérence,
+    // bien que le risque de double clic soit moindre ici.
+    provider.safeNavigate(() async {
+      final result = await showCupertinoDialog<MedicationIntake>(
+        context: context,
+        builder: (context) => AddMedicationIntakeDialog(cycleId: provider.cycle!.id, medicationIntake: intake),
       );
-    }
-  }
 
-  void _navigateToEventDetails(
-    BuildContext context,
-    Map<String, dynamic> event,
-  ) async {
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    final String type = event['type'] as String;
-    bool refresh = false;
-
-    Log.d('context:[${context.toString()}]');
-    Log.d('event:[${event.toString()}]');
-
-    if (type == 'session') {
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => SessionDetailsScreen(
-                session: event['object'] as Session,
-                cycle: provider.cycle!,
-              ),
-        ),
-      );
-      refresh = result == true;
-    } else if (type == 'examination') {
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ExaminationDetailsScreen(
-                examination: event['object'] as Examination,
-                cycleId: provider.cycle!.id,
-                sessions: provider.sessions,
-              ),
-        ),
-      );
-      refresh = result == true;
-    } else if (type == 'document') {
-      _openDocument(context, event['object'] as Document);
-    } else if (type == 'medication_intake') {
-      Log.d('Appel _showMedicationIntakeDetails');
-      _showMedicationIntakeDetails(
-        context,
-        event['object'] as MedicationIntake,
-      );
-      Log.d('Retour appel _showMedicationIntakeDetails');
-    }
-
-    if (refresh) {
-      provider.refreshCycleData();
-    }
-  }
-
-  void _navigateToEditCycle(BuildContext context) {
-    _showMessage(
-      context,
-      "La fonctionnalité d'édition du cycle sera disponible prochainement",
-    );
-  }
-
-  Future<void> _confirmDeleteCycle(BuildContext context) async {
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    final confirmed = await showDialog(
-      context: context,
-      builder:
-          (context) => ConfirmationDialog(
-            title: 'Supprimer le cycle',
-            content:
-                'Êtes-vous sûr de vouloir supprimer ce cycle et toutes ses séances ? Cette action est irréversible.',
-            confirmText: 'Supprimer',
-            cancelText: 'Annuler',
-            isDestructive: true,
-          ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await provider.deleteCycle();
-        _showMessage(context, 'Cycle supprimé avec succès');
-        Navigator.pop(context, true);
-      } catch (e) {
-        _showErrorMessage(context, "Impossible de supprimer le cycle");
+      if (result != null) {
+        if (isDuplicating) {
+          await provider.addMedicationIntake(result);
+          _showInfoDialog(context, 'Prise dupliquée et ajoutée');
+        } else {
+          await provider.updateMedicationIntake(result);
+          _showInfoDialog(context, 'Prise mise à jour');
+        }
       }
-    }
+    });
   }
 
-  Future<void> _confirmCompleteCycle(BuildContext context) async {
+  void _navigateToEventDetails(BuildContext context, Map<String, dynamic> event) {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    final confirmed = await showDialog(
-      context: context,
-      builder:
-          (context) => ConfirmationDialog(
-            title: 'Terminer le cycle',
-            content:
-                'Êtes-vous sûr de vouloir marquer ce cycle comme terminé ?',
-            confirmText: 'Confirmer',
-            cancelText: 'Annuler',
-            isDestructive: false,
-          ),
-    );
+    provider.safeNavigate(() async {
+      final String type = event['type'] as String;
+      bool refresh = false;
 
-    if (confirmed == true) {
-      try {
-        await provider.completeCycle();
-        _showMessage(context, 'Cycle marqué comme terminé');
-      } catch (e) {
-        _showErrorMessage(context, "Impossible de terminer le cycle");
+      if (type == 'session') {
+        final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => SessionDetailsScreen(session: event['object'] as Session, cycle: provider.cycle!)));
+        refresh = result == true;
+      } else if (type == 'examination') {
+        final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => ExaminationDetailsScreen(examination: event['object'] as Examination, cycleId: provider.cycle!.id, sessions: provider.sessions)));
+        refresh = result == true;
+      } else if (type == 'document') {
+        _openDocument(context, event['object'] as Document);
+      } else if (type == 'medication_intake') {
+        _showMedicationIntakeDetails(context, event['object'] as MedicationIntake);
       }
-    }
+
+      if (refresh) {
+        provider.refreshCycleData();
+      }
+    });
   }
 
-  void _navigateToAddSession(BuildContext context) async {
+  void _navigateToAddSession(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddSessionScreen(cycle: provider.cycle!),
-      ),
-    );
-
-    if (result == true) {
-      provider.refreshCycleData();
-    }
+    provider.safeNavigate(() async {
+      final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddSessionScreen(cycle: provider.cycle!)));
+      if (result == true) {
+        provider.refreshCycleData();
+      }
+    });
   }
 
   void _navigateToAddExamination(BuildContext context) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
 
-    // Afficher une boîte de dialogue pour choisir le type d'examen à ajouter
-    final examinationType = await showDialog<String>(
+    final examinationType = await showCupertinoModalPopup<String>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Ajouter un examen'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Quel type d\'examen voulez-vous ajouter ?',
-                style: TextStyle(fontSize: 14),
-              ),
-              SizedBox(height: 16),
-              ListTile(
-                leading: Icon(Icons.calendar_today, color: Colors.blue),
-                title: Text(
-                  'Pour le cycle entier',
-                  style: TextStyle(fontSize: 14),
-                ),
-                subtitle: Text(
-                  'Examen lié au traitement global',
-                  style: TextStyle(fontSize: 12),
-                ),
-                onTap: () => Navigator.pop(context, 'cycle'),
-                dense: true,
-              ),
-              Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.event_note, color: Colors.purple),
-                title: Text(
-                  'Pour une séance spécifique',
-                  style: TextStyle(fontSize: 14),
-                ),
-                subtitle: Text(
-                  'Prérequis pour une séance particulière',
-                  style: TextStyle(fontSize: 12),
-                ),
-                onTap: () => Navigator.pop(context, 'session'),
-                dense: true,
-              ),
-              Divider(height: 1),
-              ListTile(
-                leading: Icon(Icons.calendar_month, color: Colors.teal),
-                title: Text(
-                  'Pour toutes les séances',
-                  style: TextStyle(fontSize: 14),
-                ),
-                subtitle: Text(
-                  'Même examen pour chaque séance',
-                  style: TextStyle(fontSize: 12),
-                ),
-                onTap: () => Navigator.pop(context, 'all_sessions'),
-                dense: true,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler'),
-            ),
-          ],
-        );
-      },
+      builder: (modalContext) => CupertinoActionSheet(
+        title: const Text('Quel type d\'examen ajouter ?'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(child: const Text('Pour le cycle entier'), onPressed: () => Navigator.pop(modalContext, 'cycle')),
+          CupertinoActionSheetAction(child: const Text('Pour une séance spécifique'), onPressed: () => Navigator.pop(modalContext, 'session')),
+          CupertinoActionSheetAction(child: const Text('Pour toutes les séances'), onPressed: () => Navigator.pop(modalContext, 'all_sessions')),
+        ],
+        cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(modalContext)),
+      ),
     );
+    if (examinationType == null) return;
 
-    if (examinationType == null) {
-      return;
-    }
-
-    // Si l'utilisateur choisit une séance spécifique, on lui demande de sélectionner la séance
     String? selectedSessionId;
     if (examinationType == 'session' && provider.sessions.isNotEmpty) {
       selectedSessionId = await _showSessionSelectionDialog(context);
-      if (selectedSessionId == null) {
-        return;
+      if (selectedSessionId == null) return;
+    }
+
+    provider.safeNavigate(() async {
+      final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddExaminationScreen(cycleId: provider.cycle!.id, sessionId: selectedSessionId, forAllSessions: examinationType == 'all_sessions')));
+      if (result == true) {
+        provider.refreshCycleData();
       }
-    }
-
-    // Naviguer vers l'écran d'ajout d'examen avec les paramètres appropriés
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (context) => AddExaminationScreen(
-              cycleId: provider.cycle!.id,
-              sessionId: selectedSessionId,
-              forAllSessions: examinationType == 'all_sessions',
-            ),
-      ),
-    );
-
-    if (result == true) {
-      provider.refreshCycleData();
-    }
-  }
-
-  void _navigateToAddAppointment(BuildContext context) async {
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddAppointmentScreen(cycleId: provider.cycle!.id),
-      ),
-    );
-
-    if (result == true) {
-      provider.refreshCycleData();
-    }
+    });
   }
 
   Future<String?> _showSessionSelectionDialog(BuildContext context) async {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    return showDialog<String>(
+    return await showCupertinoModalPopup<String>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Sélectionner une séance'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: provider.sessions.length,
-              itemBuilder: (context, index) {
-                final session = provider.sessions[index];
-                final date = DateFormat(
-                  'dd/MM/yyyy',
-                  currentLocale,
-                ).format(session.dateTime);
-                final time = DateFormat(
-                  'HH:mm',
-                  currentLocale,
-                ).format(session.dateTime);
-                final isCompleted = session.isCompleted;
-
-                return ListTile(
-                  leading: Icon(
-                    Icons.event_note,
-                    color: isCompleted ? Colors.grey : Colors.blue,
-                  ),
-                  title: Text(
-                    'Séance ${index + 1}/${provider.cycle!.sessionCount}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isCompleted ? Colors.grey : null,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '$date à $time',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isCompleted ? Colors.grey : null,
-                    ),
-                  ),
-                  trailing:
-                      isCompleted
-                          ? Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 16,
-                          )
-                          : null,
-                  dense: true,
-                  onTap: () => Navigator.pop(context, session.id),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler'),
-            ),
-          ],
+      builder: (modalContext) {
+        return CupertinoActionSheet(
+          title: const Text('Sélectionner une séance'),
+          actions: provider.sessions.map((session) {
+            final date = DateFormat('dd/MM/yyyy', currentLocale).format(session.dateTime);
+            return CupertinoActionSheetAction(
+              child: Text('Séance du $date ${session.isCompleted ? "(Terminée)" : ""}'),
+              onPressed: () => Navigator.pop(modalContext, session.id),
+            );
+          }).toList(),
+          cancelButton: CupertinoActionSheetAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(modalContext)),
         );
       },
     );
   }
 
+  void _navigateToAddAppointment(BuildContext context) {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    provider.safeNavigate(() async {
+      final result = await Navigator.push(context, CupertinoPageRoute(builder: (context) => AddAppointmentScreen(cycleId: provider.cycle!.id)));
+      if (result == true) {
+        provider.refreshCycleData();
+      }
+    });
+  }
+
+  void _navigateToAddMedicationIntake(BuildContext context) {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    provider.safeNavigate(() async {
+      final result = await showCupertinoDialog<MedicationIntake>(context: context, builder: (context) => AddMedicationIntakeDialog(cycleId: provider.cycle!.id));
+      if (result != null) {
+        await provider.addMedicationIntake(result);
+        _showInfoDialog(context, 'Prise de médicament ajoutée');
+      }
+    });
+  }
+
   void _navigateToAddDocument(BuildContext context) {
-    _showMessage(
-      context,
-      "La fonctionnalité d'ajout de document sera disponible prochainement",
+    _showInfoDialog(context, 'Indisponible', "L'ajout de documents sera bientôt disponible.");
+  }
+
+  void _openDocument(BuildContext context, Document document) {
+    _showInfoDialog(context, 'Indisponible', "L'ouverture de documents sera bientôt disponible.");
+  }
+
+  void _showMedicationIntakeDetails(BuildContext context, MedicationIntake intake) {
+    _showInfoDialog(context, 'Détails de la prise',
+        'Date: ${DateFormat('dd/MM/yyyy à HH:mm', currentLocale).format(intake.dateTime)}\n'
+            'Médicaments: ${intake.medications.map((m) => m.medicationName).join(", ")}\n'
+            'Statut: ${intake.isCompleted ? "Prise effectuée" : "À prendre"}\n'
+            'Notes: ${intake.notes ?? "Aucune"}'
     );
   }
 
-  void _navigateToAddMedicationIntake(BuildContext context) async {
+  void _navigateToEditCycle(BuildContext context) {
     final provider = Provider.of<CycleProvider>(context, listen: false);
-    final result = await showDialog<MedicationIntake>(
-      context: context,
-      builder:
-          (context) => AddMedicationIntakeDialog(cycleId: provider.cycle!.id),
-    );
+    provider.safeNavigate(() async {
+      _showInfoDialog(context, 'Indisponible', "L'édition du cycle sera bientôt disponible.");
+    });
+  }
 
-    if (result != null) {
+  Future<void> _confirmCompleteCycle(BuildContext context) async {
+    final provider = Provider.of<CycleProvider>(context, listen: false);
+    final confirmed = await _showConfirmationDialog(context, title: 'Terminer le cycle', content: 'Voulez-vous vraiment marquer ce cycle comme terminé ?', isDestructive: false);
+    if (confirmed) {
       try {
-        await provider.addMedicationIntake(result);
-        _showMessage(context, "Prise de médicament ajoutée");
+        await provider.completeCycle();
+        _showInfoDialog(context, 'Cycle marqué comme terminé.');
       } catch (e) {
-        _showErrorMessage(
-          context,
-          "Erreur lors de l'ajout de la prise de médicament",
-        );
+        _showInfoDialog(context, "Erreur", "Impossible de terminer le cycle.");
       }
     }
   }
 
-  void _showMedicationIntakeDetails(
-    BuildContext context,
-    MedicationIntake intake,
-  ) {
-    Log.d('_showMedicationIntakeDetails');
-    final provider = Provider.of<CycleProvider>(context, listen: false);
-    showDialog(
+  Future<bool> _showConfirmationDialog(BuildContext context, {required String title, String? content, bool isDestructive = true}) async {
+    final result = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => ChangeNotifierProvider.value(
-            value: provider,
-            child: AlertDialog(
-              title: Text('Détails de la prise de médicament'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Date: ${DateFormat('dd/MM/yyyy à HH:mm', currentLocale).format(intake.dateTime)}',
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Médicaments:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    ...intake.medications.map(
-                      (med) => Padding(
-                        padding: EdgeInsets.only(left: 8, bottom: 4),
-                        child: Text('• ${med.quantity}x ${med.medicationName}'),
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'Statut: ${intake.isCompleted ? "Prise effectuée" : "À prendre"}',
-                    ),
-                    if (intake.notes != null && intake.notes!.isNotEmpty) ...[
-                      SizedBox(height: 12),
-                      Text(
-                        'Notes:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 4),
-                      Text(intake.notes!),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Fermer'),
-                ),
-              ],
-            ),
-          ),
-    );
-  }
-
-  void _openDocument(BuildContext context, Document document) {
-    _showMessage(
-      context,
-      "La fonctionnalité d'ouverture de document sera disponible prochainement",
-    );
-  }
-
-  void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message, style: TextStyle(fontSize: 14))),
-    );
-  }
-
-  void _showErrorMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(fontSize: 14)),
-        backgroundColor: Colors.red,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: content != null ? Text(content) : null,
+        actions: [
+          CupertinoDialogAction(child: const Text('Annuler'), onPressed: () => Navigator.pop(context, false)),
+          CupertinoDialogAction(isDestructiveAction: isDestructive, child: Text(isDestructive ? 'Supprimer' : 'Confirmer'), onPressed: () => Navigator.pop(context, true)),
+        ],
       ),
     );
+    return result ?? false;
+  }
+
+  void _showInfoDialog(BuildContext context, String title, [String? content]) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: content != null ? Text(content) : null,
+        actions: [
+          CupertinoDialogAction(isDefaultAction: true, child: const Text('OK'), onPressed: () => Navigator.pop(context)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SliverMonthHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final String title;
+
+  _SliverMonthHeaderDelegate({required this.title});
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final Color cardsecondaryLabelText = CupertinoColors.secondaryLabel.resolveFrom(context);
+
+    return Container(
+      color: CupertinoColors.systemGroupedBackground.resolveFrom(context),
+      padding: const EdgeInsets.only(left: 20.0, right: 16.0, top: 16, bottom: 8),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        title,
+        style:  TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: cardsecondaryLabelText,
+        ),
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => 45.0;
+
+  @override
+  double get minExtent => 45.0;
+
+  @override
+  bool shouldRebuild(covariant _SliverMonthHeaderDelegate oldDelegate) {
+    return title != oldDelegate.title;
   }
 }

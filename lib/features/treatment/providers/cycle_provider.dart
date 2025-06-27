@@ -38,6 +38,8 @@ class CycleProvider extends ChangeNotifier {
   bool get isCompletingCycle => _isCompletingCycle;
   bool get hideCompletedEvents => _hideCompletedEvents;
 
+  bool _isNavigating = false;
+
   // Initialiser avec un cycle
   void initialize(Cycle cycle) {
     _cycle = cycle;
@@ -480,5 +482,39 @@ class CycleProvider extends ChangeNotifier {
       Log.e("Erreur lors de l'ajout de la prise de médicament: $e");
       rethrow;
     }
+  }
+
+  /// Met à jour une prise de médicament existante dans la base de données.
+  Future<void> updateMedicationIntake(MedicationIntake intake) async {
+    // On met à jour l'enregistrement dans la base de données
+    await _dbHelper.updateMedicationIntake(intake.toMap());
+
+    // On rafraîchit les données pour que l'UI soit à jour
+    await refreshCycleData();
+  }
+
+  /// Supprime une prise de médicament de la base de données par son ID.
+  Future<void> deleteMedicationIntake(String intakeId) async {
+    // On supprime l'enregistrement de la base de données
+    await _dbHelper.deleteMedicationIntake(intakeId);
+
+    // On rafraîchit les données pour que l'UI soit à jour
+    await refreshCycleData();
+  }
+
+  Future<void> safeNavigate(Future<void> Function() navigationAction) async {
+    if (_isNavigating) {
+      return;
+    }
+
+    _isNavigating = true;
+
+    // Le notifyListeners() n'est généralement pas nécessaire ici,
+    // sauf si vous voulez qu'un widget réagisse à l'état de verrouillage.
+
+    await navigationAction();
+
+    // Au retour, on déverrouille.
+    _isNavigating = false;
   }
 }
