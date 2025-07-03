@@ -1,15 +1,14 @@
 // lib/features/treatment/screens/add_examination_screen.dart
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:collection/collection.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
-import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
+// import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart'; // Remplacé par CupertinoAlertDialog
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
-import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
@@ -62,7 +61,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   final DocumentImportService _documentService = DocumentImportService();
 
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+  DateTime _selectedTime = DateTime.now();
   ExaminationType _selectedType = ExaminationType.PriseDeSang;
 
   Establishment? _selectedEstablishment;
@@ -105,11 +104,12 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     // Si on est en mode édition
     if (widget.examination != null) {
-      Log.d('widget.examination n''est pas null : [${widget.examination?.toMap()}]');
+      Log.d(
+          'widget.examination n\'est pas null : [${widget.examination?.toMap()}]');
       _titleController.text = widget.examination!.title ?? '';
       _notesController.text = widget.examination!.notes ?? '';
       _selectedDate = widget.examination!.dateTime;
-      _selectedTime = TimeOfDay.fromDateTime(widget.examination!.dateTime);
+      _selectedTime = widget.examination!.dateTime;
       _selectedType = widget.examination!.type;
       _selectedSessionId = widget.examination!.prereqForSessionId;
       _examGroupId = widget.examination!.examGroupId;
@@ -165,7 +165,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       if (widget.examination != null) {
         Log.d('widget.examination non NULL');
         _selectedEstablishment = _establishments.firstWhereOrNull(
-          (e) => e.id == widget.examination!.establishment.id,
+              (e) => e.id == widget.examination!.establishment.id,
         );
 
         if (_selectedEstablishment == null && _establishments.isNotEmpty) {
@@ -175,16 +175,17 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         if (widget.examination!.prescripteur != null) {
           Log.d('_healthProfessionals:[${_healthProfessionals.toList()}]');
           _selectedPrescripteur = _healthProfessionals.firstWhereOrNull(
-            (d) => d.id == widget.examination!.prescripteur!.id,
+                (d) => d.id == widget.examination!.prescripteur!.id,
           );
         } else {
-          Log.d('widget.examination.prescripteur est NULL : [${widget.examination?.toMap()}]');
+          Log.d(
+              'widget.examination.prescripteur est NULL : [${widget.examination?.toMap()}]');
         }
 
         // Sélectionner l'autre médecin si présent
         if (widget.examination!.executant != null) {
           _selectedExecutant = _healthProfessionals.firstWhereOrNull(
-            (ps) => ps.id == widget.examination!.executant!.id,
+                (ps) => ps.id == widget.examination!.executant!.id,
           );
         }
       } else if (_establishments.isNotEmpty) {
@@ -215,113 +216,129 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       );
 
       setState(() {
-        _attachedDocuments =
-            documentMaps.map((map) {
-              return DocumentAttachment(
-                document: Document.fromMap(map),
-                isNew: false,
-              );
-            }).toList();
+        _attachedDocuments = documentMaps.map((map) {
+          return DocumentAttachment(
+            document: Document.fromMap(map),
+            isNew: false,
+          );
+        }).toList();
       });
     } catch (e) {
       Log.e("Erreur lors du chargement des documents: $e");
     }
   }
 
+  Widget _buildSaveButton() {
+    if (_isSaving) {
+      return const CupertinoActivityIndicator();
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: _saveExamination,
+      child: Text(
+        widget.examination != null ? 'Mettre à jour' : 'Enregistrer',
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(
           widget.examination != null
               ? 'Modifier l\'examen'
               : 'Ajouter un examen',
         ),
+        trailing: _buildSaveButton(),
       ),
-      body:
-          _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
+      child: SafeArea(
+        child: _isLoading
+            ? Center(child: CupertinoActivityIndicator())
+            : Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.all(16),
+            children: [
+              _buildExaminationTypeSelector(),
+              SizedBox(height: 16),
+              FormField<String>(
+                initialValue: _titleController.text,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Veuillez saisir un titre';
+                  }
+                  return null;
+                },
+                builder: (field) {
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildExaminationTypeSelector(),
-                      SizedBox(height: 16),
-
-                      CustomTextField(
-                        label: 'Titre',
+                      Text(
+                        'Titre',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 8),
+                      CupertinoTextField(
                         controller: _titleController,
                         placeholder: 'ex: Bilan sanguin',
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Veuillez saisir un titre';
-                          }
-                          return null;
-                        },
+                        onChanged: (value) => field.didChange(value),
                       ),
-                      SizedBox(height: 16),
-
-                      // Uniquement visible en mode édition ou si l'examen est lié au cycle
-                      if (_linkType == ExaminationLinkType.cycle ||
-                          widget.examination != null)
-                        _buildDateTimePicker(),
-
-                      // Configuration spécifique pour les examens liés aux séances
-                      if (_linkType != ExaminationLinkType.cycle &&
-                          widget.examination == null)
-                        _buildSessionTimingConfig(),
-
-                      SizedBox(height: 16),
-
-                      _buildLinkTypeSelector(),
-                      SizedBox(height: 16),
-
-                      // Si le type est Session unique, ajouter un sélecteur de séance
-                      if (_linkType == ExaminationLinkType.singleSession)
-                        _buildSessionSelector(),
-
-                      SizedBox(height: 16),
-
-                      _buildEstablishmentSelector(),
-                      SizedBox(height: 16),
-
-                      _buildPrescripteurSelector(),
-                      SizedBox(height: 16),
-                      _buildExecutantSelector(),
-                      SizedBox(height: 16),
-
-                      _buildDocumentsSection(),
-                      SizedBox(height: 16),
-
-                      CustomTextField(
-                        label: 'Notes (optionnel)',
-                        controller: _notesController,
-                        placeholder: 'ex: À jeun depuis la veille',
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 32),
-
-                      ElevatedButton(
-                        onPressed: _isSaving ? null : _saveExamination,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                        child:
-                            _isSaving
-                                ? CircularProgressIndicator(color: Colors.white)
-                                : Text(
-                                  widget.examination != null
-                                      ? 'Mettre à jour'
-                                      : 'Enregistrer',
-                                ),
-                      ),
+                      if (field.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5.0),
+                          child: Text(
+                            field.errorText!,
+                            style: TextStyle(
+                                color: CupertinoColors.destructiveRed,
+                                fontSize: 12),
+                          ),
+                        )
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
+              SizedBox(height: 16),
+              if (_linkType == ExaminationLinkType.cycle ||
+                  widget.examination != null)
+                _buildDateTimePicker(),
+              if (_linkType != ExaminationLinkType.cycle &&
+                  widget.examination == null)
+                _buildSessionTimingConfig(),
+              SizedBox(height: 16),
+              _buildLinkTypeSelector(),
+              if (_linkType == ExaminationLinkType.singleSession) ...[
+                SizedBox(height: 16),
+                _buildSessionSelector(),
+                SizedBox(height: 16),
+              ],
+              _buildEstablishmentSelector(),
+              SizedBox(height: 16),
+              _buildPrescripteurSelector(),
+              SizedBox(height: 16),
+              _buildExecutantSelector(),
+              SizedBox(height: 16),
+              _buildDocumentsSection(),
+              SizedBox(height: 16),
+              Text(
+                'Notes (optionnel)',
+                style:
+                TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 16),
+              CupertinoTextField(
+                controller: _notesController,
+                placeholder: 'ex: À jeun depuis la veille',
+                maxLines: 5,
+                minLines: 3,
+              ),
+              SizedBox(height: 32),
+              // Le bouton a été déplacé dans la barre de navigation
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -339,49 +356,26 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           runSpacing: 8,
           children: [
             _buildTypeChip(
-              ExaminationType.Consult,
-              'Consul',
-              Icons.medical_services,
-            ),
+                ExaminationType.Consult, 'Consul', CupertinoIcons.person_2),
+            _buildTypeChip(ExaminationType.PriseDeSang, 'Prise de sang',
+                CupertinoIcons.drop),
             _buildTypeChip(
-              ExaminationType.PriseDeSang,
-              'Prise de sang',
-              Icons.bloodtype,
-            ),
+                ExaminationType.Injection, 'Injection', CupertinoIcons.lab_flask),
             _buildTypeChip(
-              ExaminationType.Injection,
-              'Injection,',
-              Icons.vaccines,
-            ),
+                ExaminationType.Scanner, 'Scanner', CupertinoIcons.pano),
+            _buildTypeChip(ExaminationType.IRM, 'IRM', CupertinoIcons.doc_text),
             _buildTypeChip(
-              ExaminationType.Scanner,
-              'Scanner',
-              Icons.panorama_horizontal,
-            ),
+                ExaminationType.PETScan, 'PET-Scan', CupertinoIcons.dot_radiowaves_left_right),
+            _buildTypeChip(ExaminationType.Radio, 'Radio', CupertinoIcons.photo_camera),
             _buildTypeChip(
-              ExaminationType.IRM,
-              'IRM',
-              Icons.medical_information,
-            ),
-            _buildTypeChip(ExaminationType.PETScan, 'PET-Scan', Icons.biotech),
-            _buildTypeChip(ExaminationType.Radio, 'Radio', Icons.photo),
+                ExaminationType.Echographie, 'Échographie', CupertinoIcons.waveform),
+            _buildTypeChip(ExaminationType.EpreuveEffort, 'Épreuve d\'effort',
+                CupertinoIcons.heart_fill),
+            _buildTypeChip(ExaminationType.EFR, 'EFR', CupertinoIcons.wind),
             _buildTypeChip(
-              ExaminationType.Echographie,
-              'Échographie',
-              Icons.waves,
-            ),
+                ExaminationType.Soin, 'Soin', CupertinoIcons.heart_circle),
             _buildTypeChip(
-              ExaminationType.EpreuveEffort,
-              'Épreuve d\'effort',
-              Icons.directions_run,
-            ),
-            _buildTypeChip(ExaminationType.EFR, 'EFR', Icons.air),
-            _buildTypeChip(
-              ExaminationType.Soin,
-              'Soin',
-              Icons.health_and_safety,
-            ),
-            _buildTypeChip(ExaminationType.Autre, 'Autre', Icons.science),
+                ExaminationType.Autre, 'Autre', CupertinoIcons.question_circle),
           ],
         ),
       ],
@@ -390,30 +384,35 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   Widget _buildTypeChip(ExaminationType type, String label, IconData icon) {
     final isSelected = _selectedType == type;
-    final color = Colors.blue;
 
-    return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: isSelected ? Colors.white : color),
-          SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12)),
-        ],
-      ),
-      selected: isSelected,
-      onSelected: (_) {
+    return CupertinoButton(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: isSelected
+          ? CupertinoColors.activeBlue
+          : CupertinoColors.tertiarySystemFill,
+      onPressed: () {
         setState(() {
           _selectedType = type;
         });
       },
-      backgroundColor: Colors.blue.withAlpha(20),
-      selectedColor: color,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : color,
-        fontSize: 12,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon,
+              size: 16,
+              color: isSelected
+                  ? CupertinoColors.white
+                  : CupertinoColors.activeBlue),
+          SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
+            ),
+          ),
+        ],
       ),
-      showCheckmark: false,
     );
   }
 
@@ -430,20 +429,29 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Expanded(
               flex: 3,
-              child: InkWell(
-                onTap: _selectDate,
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    suffixIcon: Icon(Icons.calendar_today, size: 18),
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _selectDate,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context)),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedDate),
-                    style: TextStyle(fontSize: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('dd/MM/yyyy').format(_selectedDate),
+                        style: TextStyle(
+                            fontSize: 14, color: CupertinoColors.label),
+                      ),
+                      Icon(CupertinoIcons.calendar,
+                          size: 18,
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context)),
+                    ],
                   ),
                 ),
               ),
@@ -451,20 +459,29 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             SizedBox(width: 8),
             Expanded(
               flex: 2,
-              child: InkWell(
-                onTap: _selectTime,
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    suffixIcon: Icon(Icons.access_time, size: 18),
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _selectTime,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context)),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    _selectedTime.format(context),
-                    style: TextStyle(fontSize: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat.Hm().format(_selectedTime),
+                        style: TextStyle(
+                            fontSize: 14, color: CupertinoColors.label),
+                      ),
+                      Icon(CupertinoIcons.clock,
+                          size: 18,
+                          color: CupertinoColors.secondaryLabel
+                              .resolveFrom(context)),
+                    ],
                   ),
                 ),
               ),
@@ -488,36 +505,32 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           children: [
             Expanded(
               flex: 2,
-              child: DropdownButtonFormField<SessionTimeRelation>(
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
+              child: FormField<SessionTimeRelation>(
+                initialValue: _timeRelation,
+                builder: (field) => _buildPickerButton<SessionTimeRelation>(
+                  value: _timeRelation,
+                  items: SessionTimeRelation.values,
+                  itemTextBuilder: (val) {
+                    switch (val) {
+                      case SessionTimeRelation.before:
+                        return 'Avant';
+                      case SessionTimeRelation.same:
+                        return 'Le jour même';
+                      case SessionTimeRelation.after:
+                        return 'Après';
+                      default:
+                        return '';
+                    }
+                  },
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _timeRelation = value;
+                      });
+                      field.didChange(value);
+                    }
+                  },
                 ),
-                value: _timeRelation,
-                onChanged: (SessionTimeRelation? value) {
-                  if (value != null) {
-                    setState(() {
-                      _timeRelation = value;
-                    });
-                  }
-                },
-                items: [
-                  DropdownMenuItem(
-                    value: SessionTimeRelation.before,
-                    child: Text('Avant', style: TextStyle(fontSize: 14)),
-                  ),
-                  DropdownMenuItem(
-                    value: SessionTimeRelation.same,
-                    child: Text('Le jour même', style: TextStyle(fontSize: 14)),
-                  ),
-                  DropdownMenuItem(
-                    value: SessionTimeRelation.after,
-                    child: Text('Après', style: TextStyle(fontSize: 14)),
-                  ),
-                ],
               ),
             ),
             SizedBox(width: 8),
@@ -527,38 +540,50 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 children: [
                   if (_timeRelation != SessionTimeRelation.same)
                     Expanded(
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                          labelText: 'Heures',
-                        ),
-                        keyboardType: TextInputType.number,
+                      child: FormField<String>(
                         initialValue: _timeOffset.toString(),
-                        validator:
-                            _timeRelation != SessionTimeRelation.same
-                                ? (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Obligatoire';
-                                  }
-                                  final number = int.tryParse(value);
-                                  if (number == null || number < 0) {
-                                    return 'Invalide';
-                                  }
-                                  return null;
-                                }
-                                : null,
-                        onChanged: (value) {
-                          final parsed = int.tryParse(value);
-                          if (parsed != null) {
-                            setState(() {
-                              _timeOffset = parsed;
-                            });
+                        validator: _timeRelation != SessionTimeRelation.same
+                            ? (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Obligatoire';
                           }
-                        },
+                          final number = int.tryParse(value);
+                          if (number == null || number < 0) {
+                            return 'Invalide';
+                          }
+                          return null;
+                        }
+                            : null,
+                        builder: (field) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CupertinoTextField(
+                              placeholder: 'Heures',
+                              controller:
+                              TextEditingController(text: field.value),
+                              keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                final parsed = int.tryParse(value);
+                                if (parsed != null) {
+                                  setState(() {
+                                    _timeOffset = parsed;
+                                  });
+                                }
+                                field.didChange(value);
+                              },
+                            ),
+                            if (field.hasError)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  field.errorText!,
+                                  style: TextStyle(
+                                      color: CupertinoColors.destructiveRed,
+                                      fontSize: 12),
+                                ),
+                              )
+                          ],
+                        ),
                       ),
                     ),
                   if (_timeRelation == SessionTimeRelation.same)
@@ -580,7 +605,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           style: TextStyle(
             fontSize: 12,
             fontStyle: FontStyle.italic,
-            color: Colors.grey[600],
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
           ),
         ),
       ],
@@ -599,11 +624,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Widget _buildLinkTypeSelector() {
-    // En mode édition, on ne peut pas changer le type de lien
     if (widget.examination != null) {
       return SizedBox.shrink();
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -612,60 +635,37 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: RadioListTile<ExaminationLinkType>(
-                title: Text('Cycle', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.cycle,
-                groupValue: _linkType,
-                dense: true,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _linkType = value;
-                      _selectedSessionId = null;
-                    });
+        SizedBox(
+          width: double.infinity,
+          child: CupertinoSegmentedControl<ExaminationLinkType>(
+            groupValue: _linkType,
+            children: const <ExaminationLinkType, Widget>{
+              ExaminationLinkType.cycle: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('Cycle')),
+              ExaminationLinkType.singleSession: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('Une séance')),
+              ExaminationLinkType.allSessions: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('Toutes')),
+            },
+            onValueChanged: (value) {
+              setState(() {
+                _linkType = value;
+                if (value == ExaminationLinkType.singleSession) {
+                  if (_sessions.isNotEmpty) {
+                    _selectedSessionId = _sessions.first.id;
                   }
-                },
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<ExaminationLinkType>(
-                title: Text('Une séance', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.singleSession,
-                groupValue: _linkType,
-                dense: true,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _linkType = value;
-                      if (_sessions.isNotEmpty) {
-                        _selectedSessionId = _sessions.first.id;
-                      }
-                    });
-                  }
-                },
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<ExaminationLinkType>(
-                title: Text('Toutes', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.allSessions,
-                groupValue: _linkType,
-                dense: true,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _linkType = value;
-                      _selectedSessionId = null;
-                      _examGroupId ??= Uuid().v4();
-                    });
-                  }
-                },
-              ),
-            ),
-          ],
+                } else {
+                  _selectedSessionId = null;
+                }
+                if (value == ExaminationLinkType.allSessions) {
+                  _examGroupId ??= Uuid().v4();
+                }
+              });
+            },
+          ),
         ),
       ],
     );
@@ -675,213 +675,250 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     if (_sessions.isEmpty) {
       return Text(
         'Aucune séance disponible',
-        style: TextStyle(color: Colors.red),
+        style: TextStyle(color: CupertinoColors.destructiveRed),
       );
     }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Séance',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return FormField<String>(
+      initialValue: _selectedSessionId,
+      validator: (value) {
+        if (_linkType == ExaminationLinkType.singleSession && value == null) {
+          return 'Veuillez sélectionner une séance';
+        }
+        return null;
+      },
+      builder: (field) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Séance',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
-          value: _selectedSessionId,
-          hint: Text('Sélectionner une séance'),
-          onChanged: (String? value) {
-            setState(() {
-              _selectedSessionId = value;
-            });
-          },
-          items:
-              _sessions.map((session) {
-                // Trouver le numéro de la séance dans le cycle
-                final sessionNumber = _sessions.indexOf(session) + 1;
-                final sessionDate = DateFormat(
-                  'dd/MM/yyyy',
-                ).format(session.dateTime);
-                final sessionTime = DateFormat(
-                  'HH:mm',
-                ).format(session.dateTime);
-
-                return DropdownMenuItem<String>(
-                  value: session.id,
-                  child: Text(
-                    'Séance $sessionNumber - $sessionDate à $sessionTime',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                );
-              }).toList(),
-          validator: (value) {
-            if (_linkType == ExaminationLinkType.singleSession &&
-                value == null) {
-              return 'Veuillez sélectionner une séance';
-            }
-            return null;
-          },
-        ),
-      ],
+          SizedBox(height: 8),
+          _buildPickerButton<String?>(
+            value: _selectedSessionId,
+            items: _sessions.map((s) => s.id).toList(),
+            itemTextBuilder: (sessionId) {
+              if (sessionId == null) return 'Sélectionner une séance';
+              final session = _sessions.firstWhere((s) => s.id == sessionId);
+              final sessionNumber = _sessions.indexOf(session) + 1;
+              final sessionDate =
+              DateFormat('dd/MM/yyyy').format(session.dateTime);
+              final sessionTime =
+              DateFormat('HH:mm').format(session.dateTime);
+              return 'Séance $sessionNumber - $sessionDate à $sessionTime';
+            },
+            onChanged: (value) {
+              setState(() {
+                _selectedSessionId = value;
+              });
+              field.didChange(value);
+            },
+          ),
+          if (field.hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Text(
+                field.errorText!,
+                style: TextStyle(
+                    color: CupertinoColors.destructiveRed, fontSize: 12),
+              ),
+            )
+        ],
+      ),
     );
   }
 
   Widget _buildEstablishmentSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Établissement',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            TextButton.icon(
-              icon: Icon(Icons.add, size: 16),
-              label: Text('Nouveau', style: TextStyle(fontSize: 12)),
-              onPressed: _addNewEstablishment,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        DropdownButtonFormField<Establishment>(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          value: _selectedEstablishment,
-          hint: Text('Sélectionner un établissement'),
-          onChanged: (Establishment? value) {
-            setState(() {
-              _selectedEstablishment = value;
-            });
-          },
-          items:
-              _establishments
-                  .map(
-                    (establishment) => DropdownMenuItem(
-                      value: establishment,
-                      child: Text(
-                        establishment.name,
-                        style: TextStyle(fontSize: 14),
-                      ),
+    return FormField<Establishment>(
+        initialValue: _selectedEstablishment,
+        validator: (value) {
+          if (value == null) {
+            return 'Veuillez sélectionner un établissement';
+          }
+          return null;
+        },
+        builder: (field) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Établissement',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _addNewEstablishment,
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.add, size: 16),
+                        SizedBox(width: 4),
+                        Text('Nouveau', style: TextStyle(fontSize: 12)),
+                      ],
                     ),
-                  )
-                  .toList(),
-          validator: (value) {
-            if (value == null) {
-              return 'Veuillez sélectionner un établissement';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              _buildPickerButton<Establishment?>(
+                value: _selectedEstablishment,
+                items: _establishments,
+                itemTextBuilder: (est) => est?.name ?? 'Sélectionner...',
+                onChanged: (value) {
+                  setState(() => _selectedEstablishment = value);
+                  field.didChange(value);
+                },
+              ),
+              if (field.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    field.errorText!,
+                    style: TextStyle(
+                        color: CupertinoColors.destructiveRed, fontSize: 12),
+                  ),
+                )
+            ],
+          );
+        });
   }
 
   Widget _buildPrescripteurSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Professionnel de santé (obligatoire)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            TextButton.icon(
-              icon: Icon(Icons.add, size: 16),
-              label: Text('Nouveau', style: TextStyle(fontSize: 12)),
-              onPressed: _addNewPS,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        DropdownButtonFormField<PS>(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          value: _selectedPrescripteur,
-          hint: Text('Sélectionner un professionnel de santé'),
-          onChanged: (PS? value) {
-            setState(() {
-              _selectedPrescripteur = value;
-            });
-          },
-          items:
-              _healthProfessionals
-                  .map(
-                    (ps) => DropdownMenuItem<PS>(
-                      value: ps,
-                      child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
+    return FormField<PS>(
+        initialValue: _selectedPrescripteur,
+        validator: (value) {
+          if (value == null) {
+            return 'Veuillez sélectionner un professionnel de santé';
+          }
+          return null;
+        },
+        builder: (field) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Professionnel de santé (obligatoire)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _addNewPS,
+                    child: Row(
+                      children: [
+                        Icon(CupertinoIcons.add, size: 16),
+                        SizedBox(width: 4),
+                        Text('Nouveau', style: TextStyle(fontSize: 12)),
+                      ],
                     ),
-                  )
-                  .toList(),
-          validator: (value) {
-            if (value == null) {
-              return 'Veuillez sélectionner un professionnel de santé';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              _buildPickerButton<PS?>(
+                value: _selectedPrescripteur,
+                items: _healthProfessionals,
+                itemTextBuilder: (ps) => ps?.fullName ?? 'Sélectionner...',
+                onChanged: (value) {
+                  setState(() => _selectedPrescripteur = value);
+                  field.didChange(value);
+                },
+              ),
+              if (field.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    field.errorText!,
+                    style: TextStyle(
+                        color: CupertinoColors.destructiveRed, fontSize: 12),
+                  ),
+                )
+            ],
+          );
+        });
   }
 
-  // Ajouter un sélecteur pour le médecin qui fera l'examen
   Widget _buildExecutantSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Médecin réalisant l\'examen (optionnel)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ],
+        Text(
+          'Médecin réalisant l\'examen (optionnel)',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
-        DropdownButtonFormField<PS>(
-          decoration: InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
+        _buildPickerButton<PS?>(
           value: _selectedExecutant,
-          hint: Text('Sélectionner un médecin'),
-          onChanged: (PS? value) {
+          items: [null, ..._healthProfessionals], // Add null for "Aucun"
+          itemTextBuilder: (ps) => ps?.fullName ?? 'Aucun',
+          onChanged: (value) {
             setState(() {
               _selectedExecutant = value;
             });
           },
-          items: [
-            DropdownMenuItem<PS>(
-              value: null,
-              child: Text('Aucun', style: TextStyle(fontSize: 14)),
-            ),
-            ..._healthProfessionals.map(
-              (ps) => DropdownMenuItem<PS>(
-                value: ps,
-                child: Text(ps.fullName, style: TextStyle(fontSize: 14)),
-              ),
-            ),
-          ],
         ),
       ],
+    );
+  }
+
+  Widget _buildPickerButton<T>({
+    required T value,
+    required List<T> items,
+    required String Function(T) itemTextBuilder,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () {
+        showCupertinoModalPopup(
+          context: context,
+          builder: (context) => CupertinoActionSheet(
+            actions: items
+                .map((item) => CupertinoActionSheetAction(
+              child: Text(itemTextBuilder(item)),
+              onPressed: () {
+                onChanged(item);
+                Navigator.pop(context);
+              },
+            ))
+                .toList(),
+            cancelButton: CupertinoActionSheetAction(
+              child: const Text('Annuler'),
+              isDefaultAction: true,
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border:
+          Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              itemTextBuilder(value),
+              style: TextStyle(
+                  fontSize: 14,
+                  color: value == null
+                      ? CupertinoColors.placeholderText
+                      : CupertinoColors.label),
+            ),
+            Icon(CupertinoIcons.chevron_up_chevron_down,
+                size: 16,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -896,12 +933,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               'Documents (optionnel)',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
-            TextButton.icon(
-              icon: Icon(Icons.add, size: 16),
-              label: Text('Ajouter', style: TextStyle(fontSize: 12)),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: _showAddDocumentDialog,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  Icon(CupertinoIcons.add, size: 16),
+                  SizedBox(width: 4),
+                  Text('Ajouter', style: TextStyle(fontSize: 12)),
+                ],
               ),
             ),
           ],
@@ -911,13 +951,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                  color: CupertinoColors.separator.resolveFrom(context)),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
               child: Text(
                 'Aucun document attaché',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context)),
               ),
             ),
           )
@@ -933,32 +976,38 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               IconData documentIcon;
               switch (document.type) {
                 case DocumentType.PDF:
-                  documentIcon = Icons.picture_as_pdf;
+                  documentIcon = CupertinoIcons.doc_chart;
                   break;
                 case DocumentType.Image:
-                  documentIcon = Icons.image;
+                  documentIcon = CupertinoIcons.photo;
                   break;
                 case DocumentType.Text:
-                  documentIcon = Icons.description;
+                  documentIcon = CupertinoIcons.doc_text;
                   break;
                 case DocumentType.Word:
-                  documentIcon = Icons.article;
+                  documentIcon = CupertinoIcons.doc_richtext;
                   break;
                 case DocumentType.Other:
-                  documentIcon = Icons.insert_drive_file;
+                  documentIcon = CupertinoIcons.doc;
                   break;
               }
 
-              return Card(
+              return Container(
                 margin: EdgeInsets.only(bottom: 8),
-                child: ListTile(
+                decoration: BoxDecoration(
+                  color: CupertinoColors.tertiarySystemGroupedBackground
+                      .resolveFrom(context),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: CupertinoListTile(
                   leading: Container(
                     padding: EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withAlpha(20),
+                      color: CupertinoColors.activeBlue.withAlpha(40),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(documentIcon, size: 20, color: Colors.blue),
+                    child: Icon(documentIcon,
+                        size: 20, color: CupertinoColors.activeBlue),
                   ),
                   title: Text(
                     document.name,
@@ -977,15 +1026,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                     children: [
                       if (attachment.isNew &&
                           document.type == DocumentType.Image)
-                        IconButton(
-                          icon: Icon(Icons.visibility, size: 20),
+                        CupertinoButton(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(CupertinoIcons.eye, size: 20),
                           onPressed: () => _previewImageDocument(attachment),
-                          tooltip: 'Aperçu',
                         ),
-                      IconButton(
-                        icon: Icon(Icons.delete, size: 20, color: Colors.red),
+                      CupertinoButton(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(CupertinoIcons.delete,
+                            size: 20, color: CupertinoColors.destructiveRed),
                         onPressed: () => _removeDocument(index),
-                        tooltip: 'Supprimer',
                       ),
                     ],
                   ),
@@ -1008,7 +1058,40 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Future _showAddDocumentDialog() async {
-    final action = await _documentService.showAddDocumentDialog(context);
+    final action = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Ajouter un document'),
+        message: const Text('Choisir la source du document'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            child: const Text('Prendre une photo'),
+            onPressed: () {
+              Navigator.pop(context, 'camera');
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: const Text('Choisir une image'),
+            onPressed: () {
+              Navigator.pop(context, 'gallery');
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: const Text('Choisir un fichier'),
+            onPressed: () {
+              Navigator.pop(context, 'file');
+            },
+          )
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text('Annuler'),
+          isDefaultAction: true,
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
 
     if (!mounted) return;
     if (action == null) return;
@@ -1035,19 +1118,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Future<void> _addNewEstablishment() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddEstablishmentScreen()),
+      CupertinoPageRoute(builder: (context) => AddEstablishmentScreen()),
     );
 
     if (result == true) {
-      // Recharger les établissements
       final dbHelper = DatabaseHelper();
       final establishmentMaps = await dbHelper.getEstablishments();
 
       setState(() {
         _establishments =
             establishmentMaps.map((map) => Establishment.fromMap(map)).toList();
-
-        // Sélectionner automatiquement le nouvel établissement (dernier de la liste)
         if (_establishments.isNotEmpty) {
           _selectedEstablishment = _establishments.last;
         }
@@ -1056,10 +1136,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Future<void> _addNewPS() async {
-    // Naviguer vers l'écran d'ajout de PS
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPSScreen()),
+      CupertinoPageRoute(builder: (context) => AddPSScreen()),
     );
     if (result != null && result is PS) {
       setState(() {
@@ -1067,7 +1146,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         _selectedPrescripteur = result;
       });
     } else if (result == true) {
-      // Recharger les professionnels de santé
       final dbHelper = DatabaseHelper();
       final psMaps = await dbHelper.getPS();
       setState(() {
@@ -1080,42 +1158,98 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? pickedDate = await showDatePicker(
+    DateTime tempPickedDate = _selectedDate;
+    await showCupertinoModalPopup<void>(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(Duration(days: 365)),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      builder: (BuildContext context) => Container(
+        height: 250,
+        padding: const EdgeInsets.only(top: 6.0),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CupertinoButton(
+                  child: const Text('Annuler'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                CupertinoButton(
+                  child: const Text('Valider'),
+                  onPressed: () {
+                    setState(() {
+                      _selectedDate = tempPickedDate;
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.date,
+                initialDateTime: _selectedDate,
+                onDateTimeChanged: (DateTime newDate) {
+                  tempPickedDate = newDate;
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (pickedDate != null && pickedDate != _selectedDate) {
-      setState(() {
-        _selectedDate = pickedDate;
-      });
-    }
   }
 
   Future<void> _selectTime() async {
-    final TimeOfDay? pickedTime = await showTimePicker(
+    DateTime tempPickedTime = _selectedTime;
+    await showCupertinoModalPopup<void>(
       context: context,
-      initialTime: _selectedTime,
+      builder: (BuildContext context) => Container(
+        height: 250,
+        padding: const EdgeInsets.only(top: 6.0),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CupertinoButton(
+                  child: const Text('Annuler'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                CupertinoButton(
+                  child: const Text('Valider'),
+                  onPressed: () {
+                    setState(() {
+                      _selectedTime = tempPickedTime;
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.time,
+                use24hFormat: true,
+                initialDateTime: _selectedTime,
+                onDateTimeChanged: (DateTime newDate) {
+                  tempPickedTime = newDate;
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (pickedTime != null && pickedTime != _selectedTime) {
-      setState(() {
-        _selectedTime = pickedTime;
-      });
-    }
   }
 
   Future<void> _saveExamination() async {
-    if (_formKey.currentState!.validate() && _selectedEstablishment != null) {
-      // Vérifier que si le type est SingleSession, une séance est sélectionnée
-      if (_linkType == ExaminationLinkType.singleSession &&
-          _selectedSessionId == null) {
-        _showErrorMessage('Veuillez sélectionner une séance');
-        return;
-      }
-
+    if (_formKey.currentState!.validate()) {
       setState(() {
         _isSaving = true;
       });
@@ -1128,7 +1262,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
         if (_linkType == ExaminationLinkType.cycle ||
             widget.examination != null) {
-          // Si l'examen est pour le cycle entier ou en mode édition, utiliser la date sélectionnée
           dateTime = DateTime(
             _selectedDate.year,
             _selectedDate.month,
@@ -1137,7 +1270,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             _selectedTime.minute,
           );
         } else {
-          // Pour les examens liés aux séances, calculer la date en fonction de la séance
           dateTime = calculateDateTimeFromSession();
         }
 
@@ -1147,7 +1279,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           final document = attachment.document;
           Log.d("Insertion du nouveau document: ${document.name}");
 
-          // Ajouter le document à la base de données
           final docResult = await dbHelper.insertDocument(document.toMap());
           Log.d("Résultat de l'insertion du document: $docResult");
 
@@ -1161,34 +1292,26 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         String examinationId = "";
         bool updateResult = false;
 
-        // Cas spécial: détacher un examen de son groupe
         if (widget.examination != null && widget.detachFromGroup) {
-          // On va conserver l'ID de l'examen mais supprimer son groupId
           updateResult = await _createOrUpdateDetachedExamination(dateTime);
           examinationId = widget.examination!.id;
-        }
-        // En mode édition pour un examen qui fait partie d'un groupe
-        else if (widget.examination != null &&
+        } else if (widget.examination != null &&
             widget.examination!.examGroupId != null &&
             widget.forAllSessions) {
-          // Mettre à jour tous les examens du groupe
           updateResult = await _updateAllExaminationsInGroup(dateTime);
           examinationId = widget.examination!.id;
         } else if (_linkType == ExaminationLinkType.allSessions) {
-          // Créer un examen pour chaque séance
           updateResult = await _createExaminationsForAllSessions(
             dateTime,
             savedDocuments,
           );
         } else {
-          // Créer ou mettre à jour un seul examen (pour le cycle ou pour une séance)
           final result = await _createOrUpdateSingleExamination(dateTime);
           updateResult = result.success;
           examinationId = result.examinationId;
         }
 
         if (updateResult && examinationId.isNotEmpty) {
-          // Maintenant, lier tous les nouveaux documents à l'examen créé ou mis à jour
           for (var document in savedDocuments) {
             Log.d(
               "Liaison du document ${document.id} à l'examen $examinationId",
@@ -1206,24 +1329,22 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               );
             }
           }
-
-          // Vérifier les liaisons finales
           await dbHelper.verifyDocumentLinks('examination', examinationId);
         }
 
-        _showMessage(
-          widget.examination != null
-              ? 'Examen mis à jour avec succès'
-              : 'Examen ajouté avec succès',
-        );
+        // La sauvegarde est terminée, on retourne à l'écran précédent avec un succès.
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
 
-        Navigator.pop(context, true);
       } catch (e) {
         Log.e("Erreur lors de l'enregistrement de l'examen: $e");
-        _showErrorMessage('Erreur lors de l\'enregistrement');
-        setState(() {
-          _isSaving = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+          _showErrorMessage('Erreur lors de l\'enregistrement');
+        }
       }
     }
   }
@@ -1234,7 +1355,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     Log.d("Détachement de l'examen $examinationId de son groupe");
 
-    // Vérifier l'état des documents avant la mise à jour
     await dbHelper.verifyDocumentLinks('examination', examinationId);
 
     final examinationData = {
@@ -1242,30 +1362,26 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'cycleId': widget.cycleId,
       'title': _titleController.text.trim(),
       'type': _selectedType.index,
-      'otherType':
-          _selectedType == ExaminationType.Autre
-              ? _titleController.text.trim()
-              : null,
+      'otherType': _selectedType == ExaminationType.Autre
+          ? _titleController.text.trim()
+          : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
       'prescripteurId': _selectedPrescripteur?.id,
       'executantId': _selectedExecutant?.id,
-      'notes':
-          _notesController.text.trim().isNotEmpty
-              ? _notesController.text.trim()
-              : null,
+      'notes': _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
-      'prereqForSessionId':
-          _linkType == ExaminationLinkType.singleSession
-              ? _selectedSessionId
-              : widget.examination?.prereqForSessionId,
-      'examGroupId': null, // Important: mettre à null pour détacher du groupe
+      'prereqForSessionId': _linkType == ExaminationLinkType.singleSession
+          ? _selectedSessionId
+          : widget.examination?.prereqForSessionId,
+      'examGroupId': null,
     };
 
     Log.d("Mise à jour de l'examen avec les données: $examinationData");
 
     try {
-      // Mettre à jour l'examen dans la base de données
       int result = await dbHelper.updateExamination(examinationData);
       Log.d("Résultat de la mise à jour de l'examen: $result");
 
@@ -1274,16 +1390,13 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         return false;
       }
 
-      // Gérer les documents existants
-      final existingDocIds =
-          _attachedDocuments
-              .where((a) => !a.isNew)
-              .map((a) => a.document.id)
-              .toSet();
+      final existingDocIds = _attachedDocuments
+          .where((a) => !a.isNew)
+          .map((a) => a.document.id)
+          .toSet();
 
       Log.d("Documents existants à conserver: $existingDocIds");
 
-      // Récupérer tous les documents actuellement liés
       final linkedDocs = await dbHelper.getDocumentsByEntity(
         'examination',
         examinationId,
@@ -1294,7 +1407,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         final docId = docMap['id'] as String;
         Log.d("Vérification du document lié: $docId");
 
-        // Si le document n'est plus dans la liste, supprimer le lien
         if (!existingDocIds.contains(docId)) {
           Log.d("Suppression du lien pour le document: $docId");
           await dbHelper.unlinkDocumentFromEntity(
@@ -1319,7 +1431,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     final String groupId = widget.examination!.examGroupId!;
 
     try {
-      // Récupérer tous les examens du groupe
       final examinationMaps = await dbHelper.getExaminationsByGroup(groupId);
 
       Log.d(
@@ -1331,34 +1442,28 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         return false;
       }
 
-      // Préparer les données de base pour la mise à jour
       final baseExamData = {
         'type': _selectedType.index,
-        'otherType':
-            _selectedType == ExaminationType.Autre
-                ? _titleController.text.trim()
-                : null,
+        'otherType': _selectedType == ExaminationType.Autre
+            ? _titleController.text.trim()
+            : null,
         'title': _titleController.text.trim(),
         'establishmentId': _selectedEstablishment!.id,
         'prescripteurId': _selectedPrescripteur?.id,
         'executantId': _selectedExecutant?.id,
-        'notes':
-            _notesController.text.trim().isNotEmpty
-                ? _notesController.text.trim()
-                : null,
+        'notes': _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
       };
 
-      // Pour chaque examen du groupe, mettre à jour ses propriétés
       for (var examinationMap in examinationMaps) {
         final examinationId = examinationMap['id'] as String;
 
-        // Si l'examen fait partie d'un groupe, sa date est calculée par rapport à sa séance
         String? prereqSessionId =
-            examinationMap['prereqForSessionId'] as String?;
+        examinationMap['prereqForSessionId'] as String?;
         DateTime examDateTime = baseDateTime;
 
         if (prereqSessionId != null) {
-          // Trouver la séance correspondante
           final sessionResult = await dbHelper.getSessionById(prereqSessionId);
 
           if (sessionResult != null) {
@@ -1366,7 +1471,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               sessionResult['dateTime'] as String,
             );
 
-            // Calculer la nouvelle date en fonction de la relation temporelle
             switch (_timeRelation) {
               case SessionTimeRelation.before:
                 examDateTime = sessionDateTime.subtract(
@@ -1391,43 +1495,36 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           }
         }
 
-        // Créer la map complète pour cet examen
         final Map<String, dynamic> examinationData = {
           ...baseExamData,
           'id': examinationId,
           'cycleId': widget.cycleId,
           'dateTime': examDateTime.toIso8601String(),
-          'isCompleted':
-              examinationMap['isCompleted'], // Garder l'état de complétion d'origine
+          'isCompleted': examinationMap[
+          'isCompleted'],
           'prereqForSessionId': prereqSessionId,
-          'examGroupId': groupId, // Conserver le groupId
+          'examGroupId': groupId,
         };
 
-        // Mettre à jour cet examen
         Log.d("Mise à jour de l'examen $examinationId du groupe");
         int updateResult = await dbHelper.updateExamination(examinationData);
 
         if (updateResult <= 0) {
           Log.e("Échec de la mise à jour de l'examen $examinationId du groupe");
-          continue; // Continuer avec le prochain examen même en cas d'échec
+          continue;
         }
 
-        // Gérer les documents pour chaque examen
-        // Les documents existants (non-nouveaux) sont supposés être déjà liés aux examens
         Log.d("Gestion des documents existants pour l'examen $examinationId");
 
-        // Récupérer tous les documents actuellement liés
         final linkedDocs = await dbHelper.getDocumentsByEntity(
           'examination',
           examinationId,
         );
-        final existingDocIds =
-            _attachedDocuments
-                .where((a) => !a.isNew)
-                .map((a) => a.document.id)
-                .toSet();
+        final existingDocIds = _attachedDocuments
+            .where((a) => !a.isNew)
+            .map((a) => a.document.id)
+            .toSet();
 
-        // Supprimer les liens des documents qui ont été retirés
         for (var docMap in linkedDocs) {
           final docId = docMap['id'] as String;
 
@@ -1443,7 +1540,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           }
         }
 
-        // Ajouter des liens pour les documents existants qui ne sont pas encore liés
         for (var docId in existingDocIds) {
           bool isLinked = linkedDocs.any((docMap) => docMap['id'] == docId);
 
@@ -1469,21 +1565,18 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   DateTime calculateDateTimeFromSession() {
-    // Trouver la séance cible
     final Session targetSession =
-        _linkType == ExaminationLinkType.singleSession
-            ? _sessions.firstWhere((s) => s.id == _selectedSessionId)
-            : _sessions
-                .first; // Pour AllSessions, on se base sur la première séance pour l'exemple
+    _linkType == ExaminationLinkType.singleSession
+        ? _sessions.firstWhere((s) => s.id == _selectedSessionId)
+        : _sessions
+        .first;
 
     final DateTime sessionDateTime = targetSession.dateTime;
 
-    // Calculer la date en fonction de la relation temporelle
     switch (_timeRelation) {
       case SessionTimeRelation.before:
         return sessionDateTime.subtract(Duration(hours: _timeOffset));
       case SessionTimeRelation.same:
-        // Même jour que la séance, mais à l'heure spécifiée
         return DateTime(
           sessionDateTime.year,
           sessionDateTime.month,
@@ -1497,16 +1590,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Future<bool> _createExaminationsForAllSessions(
-    DateTime dateTime,
-    List<Document> savedDocuments,
-  ) async {
+      DateTime dateTime,
+      List<Document> savedDocuments,
+      ) async {
     final dbHelper = DatabaseHelper();
     int successCount = 0;
 
     for (var session in _sessions) {
       final examinationId = Uuid().v4();
 
-      // Calculer la date pour cette séance spécifique
       DateTime examDateTime;
       switch (_timeRelation) {
         case SessionTimeRelation.before:
@@ -1533,18 +1625,16 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         'cycleId': widget.cycleId,
         'title': _titleController.text.trim(),
         'type': _selectedType.index,
-        'otherType':
-            _selectedType == ExaminationType.Autre
-                ? _titleController.text.trim()
-                : null,
+        'otherType': _selectedType == ExaminationType.Autre
+            ? _titleController.text.trim()
+            : null,
         'dateTime': examDateTime.toIso8601String(),
         'establishmentId': _selectedEstablishment!.id,
         'prescripteurId': _selectedPrescripteur?.id,
         'executantId': _selectedExecutant?.id,
-        'notes':
-            _notesController.text.trim().isNotEmpty
-                ? _notesController.text.trim()
-                : null,
+        'notes': _notesController.text.trim().isNotEmpty
+            ? _notesController.text.trim()
+            : null,
         'isCompleted': 0,
         'prereqForSessionId': session.id,
         'examGroupId': _examGroupId,
@@ -1554,7 +1644,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       if (result > 0) {
         successCount++;
 
-        // Lier les documents existants à cet examen
         for (var doc in _attachedDocuments.where((a) => !a.isNew)) {
           await dbHelper.linkDocumentToEntity(
             'examination',
@@ -1563,7 +1652,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           );
         }
 
-        // Lier les nouveaux documents à cet examen
         for (var doc in savedDocuments) {
           await dbHelper.linkDocumentToEntity(
             'examination',
@@ -1583,8 +1671,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Future<SaveExaminationResult> _createOrUpdateSingleExamination(
-    DateTime dateTime,
-  ) async {
+      DateTime dateTime,
+      ) async {
     final dbHelper = DatabaseHelper();
     final examinationId = widget.examination?.id ?? Uuid().v4();
 
@@ -1593,23 +1681,20 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       'cycleId': widget.cycleId,
       'title': _titleController.text.trim(),
       'type': _selectedType.index,
-      'otherType':
-          _selectedType == ExaminationType.Autre
-              ? _titleController.text.trim()
-              : null,
+      'otherType': _selectedType == ExaminationType.Autre
+          ? _titleController.text.trim()
+          : null,
       'dateTime': dateTime.toIso8601String(),
       'establishmentId': _selectedEstablishment!.id,
       'prescripteurId': _selectedPrescripteur?.id,
       'executantId': _selectedExecutant?.id,
-      'notes':
-          _notesController.text.trim().isNotEmpty
-              ? _notesController.text.trim()
-              : null,
+      'notes': _notesController.text.trim().isNotEmpty
+          ? _notesController.text.trim()
+          : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
-      'prereqForSessionId':
-          _linkType == ExaminationLinkType.singleSession
-              ? _selectedSessionId
-              : null,
+      'prereqForSessionId': _linkType == ExaminationLinkType.singleSession
+          ? _selectedSessionId
+          : null,
       'examGroupId': null,
     };
 
@@ -1621,16 +1706,13 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     }
 
     if (result > 0) {
-      // Gérer les documents existants
-      final existingDocIds =
-          _attachedDocuments
-              .where((a) => !a.isNew)
-              .map((a) => a.document.id)
-              .toSet();
+      final existingDocIds = _attachedDocuments
+          .where((a) => !a.isNew)
+          .map((a) => a.document.id)
+          .toSet();
 
       Log.d("Documents existants à conserver: $existingDocIds");
 
-      // Récupérer tous les documents actuellement liés
       final linkedDocs = await dbHelper.getDocumentsByEntity(
         'examination',
         examinationId,
@@ -1641,7 +1723,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         final docId = docMap['id'] as String;
         Log.d("Vérification du document lié: $docId");
 
-        // Si le document n'est plus dans la liste, supprimer le lien
         if (!existingDocIds.contains(docId)) {
           Log.d("Suppression du lien pour le document: $docId");
           await dbHelper.unlinkDocumentFromEntity(
@@ -1658,12 +1739,27 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
     return SaveExaminationResult(result > 0, examinationId);
   }
 
-  void _showMessage(String message) {
-    UniversalSnackBar.show(context, title: message);
+  void _showCupertinoAlert(String title, {String? content}) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) => CupertinoAlertDialog(
+        title: Text(title),
+        content: content != null ? Text(content) : null,
+        actions: <CupertinoDialogAction>[
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            isDefaultAction: true,
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorMessage(String message) {
-    UniversalSnackBar.show(context, title: message);
+    _showCupertinoAlert('Erreur', content: message);
   }
 
   @override
@@ -1674,11 +1770,10 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 }
 
-// Classe utilitaire pour gérer les documents attachés
 class DocumentAttachment {
   final Document document;
   final bool
-  isNew; // Si le document est nouvellement créé (pas encore dans la base de données)
+  isNew;
 
   DocumentAttachment({required this.document, required this.isNew});
 }

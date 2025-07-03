@@ -4112,4 +4112,29 @@ class DatabaseHelper {
 
     return null;
   }
+
+// Dans la classe DatabaseHelper
+
+  Future<Map<String, dynamic>?> getRawDataById(String tableName, String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      tableName,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
+  Future<int> updateDocumentDescription(String documentId, String newDescription) async {
+    final db = await database;
+    return await db.update(
+      'documents',
+      {'description': newDescription},
+      where: 'id = ?',
+      whereArgs: [documentId],
+    );
+  }
 }

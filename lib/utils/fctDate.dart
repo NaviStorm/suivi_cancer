@@ -6,7 +6,7 @@ import 'package:suivi_cancer/utils/logger.dart';
 
 String getFmtDate() {
   final locale = ui.PlatformDispatcher.instance.locale.toString();
-  Log.d('locale:[$locale]');
+//  Log.d('locale:[$locale]');
 
   switch (locale) {
     case 'fr_FR':
@@ -27,7 +27,7 @@ String getFmtDate() {
 
 String getFmtDateTime() {
   final locale = ui.PlatformDispatcher.instance.locale.toString();
-  Log.d('locale:[$locale]');
+//  Log.d('locale:[$locale]');
 
   switch (locale) {
     case 'fr_FR':
@@ -47,7 +47,7 @@ String getFmtDateTime() {
 
 String getFmtTime() {
   final locale = ui.PlatformDispatcher.instance.locale.toString();
-  Log.d('locale:[$locale]');
+//  Log.d('locale:[$locale]');
 
   switch (locale) {
     case 'en_US':
