@@ -1,5 +1,3 @@
-// lib/features/treatment/widgets/add_medication_intake_dialog.dart
-
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
@@ -8,6 +6,7 @@ import 'package:suivi_cancer/features/treatment/models/medication_intake.dart';
 import 'package:suivi_cancer/features/medications/add_medications_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/utils/fctDate.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddMedicationIntakeDialog extends StatefulWidget {
   final String cycleId;
@@ -42,6 +41,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
   @override
   @override
   void initState() {
+    Log.d('Ecran AddMedicationIntakeDialog');
     super.initState();
 
     // Déterminer si on est en mode édition
@@ -191,9 +191,7 @@ class _AddMedicationIntakeDialogState extends State<AddMedicationIntakeDialog> {
       _formKey.currentState!.save();
 
       if (_selectedMedications.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Veuillez ajouter au moins un médicament')),
-        );
+        UniversalSnackBar.show(context, title: 'Veuillez ajouter au moins un médicament');
         return;
       }
 

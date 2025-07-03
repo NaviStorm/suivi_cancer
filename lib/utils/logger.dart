@@ -16,25 +16,24 @@ class Log {
   /// Journalise un message de debug avec détection automatique du contexte.
   static void d(String message) {
     if (!kReleaseMode) {
-      print(message);
+      _log('🔍 DEBUG', message);
     }
-    _log('🔍 DEBUG', message);
   }
 
   /// Journalise un message d'information avec détection automatique du contexte.
   static void i(String message) {
     if (!kReleaseMode) {
       print(message);
+      _log('📘 INFO', message);
     }
-    _log('📘 INFO', message);
   }
 
   /// Journalise un avertissement avec détection automatique du contexte.
   static void w(String message) {
     if (!kReleaseMode) {
       print(message);
+      _log('⚠️ WARN', message);
     }
-    _log('⚠️ WARN', message);
   }
 
   /// Journalise une erreur avec détection automatique du contexte.

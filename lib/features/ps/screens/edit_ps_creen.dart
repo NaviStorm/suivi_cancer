@@ -6,6 +6,7 @@ import 'package:suivi_cancer/features/establishment/widgets/list_establishment_s
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddPSScreen extends StatefulWidget {
   final Map<String, dynamic>? ps;
@@ -140,17 +141,13 @@ class _AddPSScreenState extends State<AddPSScreen> {
       if (result) {
         Navigator.pop(context, true); // Retourner avec succès
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'enregistrement')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de l\'enregistrement');
       }
     } catch (e) {
       setState(() {
         _isSaving = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      UniversalSnackBar.show(context, title: 'Erreur: $e');
     }
   }
 
@@ -928,18 +925,12 @@ class _AddPSScreenState extends State<AddPSScreen> {
               newCategoryId; // Sélectionner automatiquement la nouvelle catégorie
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Catégorie ajoutée avec succès')),
-        );
+        UniversalSnackBar.show(context, title: 'Catégorie ajoutée avec succès');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'ajout de la catégorie')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de l\'ajout de la catégorie');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      UniversalSnackBar.show(context, title: 'Erreur: $e');
     }
   }
 }

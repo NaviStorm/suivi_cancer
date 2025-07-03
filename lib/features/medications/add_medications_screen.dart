@@ -1,10 +1,9 @@
-// lib/features/treatment/screens/add_medications_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddMedicationsScreen extends StatefulWidget {
   final Medication?
@@ -32,6 +31,7 @@ class _AddMedicationsScreenState extends State<AddMedicationsScreen> {
 
   @override
   void initState() {
+    Log.d('Ecran AddMedicationsScreen');
     super.initState();
 
     _isEditing = widget.medication != null;
@@ -91,26 +91,18 @@ class _AddMedicationsScreenState extends State<AddMedicationsScreen> {
         if (_isEditing) {
           // Mettre à jour le médicament existant
           await _dbHelper.updateMedication(medication.toMap());
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Médicament mis à jour avec succès')),
-          );
+          UniversalSnackBar.show(context, title: 'Médicament mis à jour avec succès');
         } else {
           // Ajouter un nouveau médicament
           await _dbHelper.insertMedication(medication.toMap());
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Médicament ajouté avec succès')),
-          );
+          UniversalSnackBar.show(context, title: 'Médicament ajouté avec succès');
         }
 
         // Retourner le médicament créé/modifié
         Navigator.pop(context, medication);
       } catch (e) {
         Log.d("Erreur lors de l'enregistrement du médicament: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de l\'enregistrement du médicament'),
-          ),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de l\'enregistrement du médicament');
       }
     }
   }

@@ -1,4 +1,3 @@
-// lib/widgets/establishment_list_widget.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
@@ -6,6 +5,7 @@ import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/services/treatment_service.dart';
 import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class EstablishmentListWidget extends StatefulWidget {
   const EstablishmentListWidget({super.key}); // <-- ici on accepte une key
@@ -123,11 +123,7 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     try {
       await launchUrl(uri);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Impossible de passer un appel au $phoneNumber'),
-        ),
-      );
+      UniversalSnackBar.show(context, title: 'Impossible de passer un appel au $phoneNumber');
     }
   }
 
@@ -137,9 +133,7 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
     try {
       await launchUrl(uri);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible d\'envoyer un email à $email')),
-      );
+      UniversalSnackBar.show(context, title: 'Impossible d\'envoyer un email à $email');
     }
   }
 
@@ -197,13 +191,9 @@ class EstablishmentListWidgetState extends State<EstablishmentListWidget> {
       loadEstablishments();
 
       // Afficher un message de confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Établissement supprimé avec succès')),
-      );
+      UniversalSnackBar.show(context, title: 'Établissement supprimé avec succès');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la suppression: $e')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors de la suppression: $e');
     }
   }
 }

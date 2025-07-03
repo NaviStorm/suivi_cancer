@@ -36,7 +36,7 @@ class EventCard extends StatelessWidget {
     final Color backgroundColor = event['backgroundColor'] as Color;
     final String type = event['type'] as String;
 
-    Log.d('event:[${event.toString()}]');
+    // Log.d('event:[${event.toString()}]');
     // Cas spécial pour les prises de médicament
     if (type == 'medication_intake') {
       return MedicationIntakeCard(

@@ -1,4 +1,3 @@
-// lib/features/treatment/screens/add_first_session_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/utils/logger.dart';
@@ -7,6 +6,8 @@ import 'package:suivi_cancer/features/treatment/models/medication.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddFirstSessionScreen extends StatefulWidget {
   final Cycle cycle;
@@ -58,9 +59,7 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des données')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors du chargement des données');
     }
   }
 
@@ -335,22 +334,12 @@ class _AddFirstSessionScreenState extends State<AddFirstSessionScreen> {
           );
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${widget.cycle.sessionCount} séances générées avec succès',
-            ),
-          ),
-        );
+        UniversalSnackBar.show(context, title: '${widget.cycle.sessionCount} séances générées avec succès');
 
         Navigator.pop(context, true);
       } catch (e) {
         Log.d('Erreur lors de la génération des séances: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la génération des séances: $e'),
-          ),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de la génération des séances: $e');
         setState(() {
           _isSaving = false;
         });

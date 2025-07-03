@@ -1,9 +1,9 @@
-// lib/features/treatment/screens/add_side_effect_screen.dart
 import 'package:flutter/material.dart';
 import '../../common/widgets/custom_text_field.dart';
 import '../../common/widgets/date_time_picker.dart';
 import '../treatment/models/side_effect.dart';
 import '../../core/storage/database_helper.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddSideEffectScreen extends StatefulWidget {
   final String entityType;
@@ -250,16 +250,10 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
           );
 
           if (result > 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Effet secondaire mis à jour avec succès'),
-              ),
-            );
+            UniversalSnackBar.show(context, title: 'Effet secondaire mis à jour avec succès');
             Navigator.pop(context, true);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erreur lors de la mise à jour')),
-            );
+            UniversalSnackBar.show(context, title: 'Erreur lors de la mise à jour');
           }
         } else {
           // Mode création
@@ -276,22 +270,14 @@ class _AddSideEffectScreenState extends State<AddSideEffectScreen> {
           final result = await dbHelper.insertSideEffect(sideEffect.toMap());
 
           if (result != -1) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Effet secondaire enregistré avec succès'),
-              ),
-            );
+            UniversalSnackBar.show(context, title: 'Effet secondaire enregistré avec succès');
             Navigator.pop(context, true);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erreur lors de l\'enregistrement')),
-            );
+            UniversalSnackBar.show(context, title: 'Erreur lors de l\'enregistrement');
           }
         }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        UniversalSnackBar.show(context, title: 'Erreur: $e');
       } finally {
         setState(() {
           _isLoading = false;

@@ -42,7 +42,9 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
 
   @override
   void initState() {
+    Log.d('Ecran d\'examen détails initialisé');
     super.initState();
+    Log.d('widget.examination n est pas null : [${widget.examination?.toMap()}]');
     _examination = widget.examination;
     _loadData();
 
@@ -381,7 +383,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
           child: Icon(documentIcon, size: 24, color: iconColor),
         ),
         title: Text(
-          document.name,
+          (document.description != null && document.description!.trim().isNotEmpty ) ? document.description! : document.name,
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Column(
@@ -394,7 +396,7 @@ class _ExaminationDetailsScreenState extends State<ExaminationDetailsScreen> {
             if (document.description != null &&
                 document.description!.isNotEmpty)
               Text(
-                document.description!,
+                document.name,
                 style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

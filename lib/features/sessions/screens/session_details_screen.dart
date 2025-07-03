@@ -1,4 +1,3 @@
-// lib/features/treatment/screens/session_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:suivi_cancer/utils/logger.dart';
@@ -11,6 +10,7 @@ import 'package:suivi_cancer/features/sideeffect/add_side_effect_screen.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list_screen.dart';
 import 'package:suivi_cancer/features/sideeffect/side_effects_list.dart';
 import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -353,14 +353,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       try {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteSession(_session.id);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Séance supprimée avec succès')));
+        UniversalSnackBar.show(context, title: 'Séance supprimée avec succès');
         Navigator.pop(context, true);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la suppression: $e')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de la suppression: $e');
       }
     }
   }
@@ -452,16 +448,11 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         final dbHelper = DatabaseHelper();
         await dbHelper.deleteSideEffect(sideEffect.id);
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Effet secondaire supprimé')));
-
+        UniversalSnackBar.show(context, title: 'Effet secondaire supprimé');
         _loadSideEffects();
       } catch (e) {
         Log.d("Erreur lors de la suppression: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la suppression')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de la suppression');
       }
     }
   }

@@ -6,6 +6,7 @@ import 'package:suivi_cancer/features/treatment/models/appointment.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddAppointmentScreen extends StatefulWidget {
   final String cycleId;
@@ -84,9 +85,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
         _selectedType = widget.appointment!.type;
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des données: $e')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors du chargement des données: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -123,11 +122,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
 
     // Vérifier que le PS est sélectionné (obligatoire)
     if (_selectedHealthProfessionalId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner un professionnel de santé'),
-        ),
-      );
+      UniversalSnackBar.show(context, title: 'Veuillez sélectionner un professionnel de santé');
       return;
     }
 
@@ -167,9 +162,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
       if (!mounted) return; // Vérification après le premier await
       Navigator.of(context).pop(true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors de l\'enregistrement: $e');
     }
   }
 

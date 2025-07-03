@@ -920,32 +920,6 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteCycle(String id) async {
-    final db = await database;
-    final String fichier;
-
-    return 0;
-    // Recherche des examens
-    /*
-    fichier = await db.rawQuery(
-      '''
-      SELECT d.path
-      FROM documents d
-      WHERE c.treatmentId = ?
-      ORDER BY c.startDate
-    ''',
-      [id],
-    );
-
-
-    db.delete('treatment_establishments', where: 'treatmentId = ?', whereArgs: [id]);
-    db.delete('treatment_health_professionals', where: 'treatmentId = ?', whereArgs: [id]);
-    db.delete('treatments', where: 'treatmentId = ?', whereArgs: [id]);
-    db.delete('treatments', where: 'treatmentId = ?', whereArgs: [id]);
-    return await db.delete('cycles', where: 'id = ?', whereArgs: [id]);
- */
-  }
-
   Future<void> deleteTreatmentAndAllItsDependenciesFromCycle(String cycleIdToDelete,) async {
     final db = await database;
     Log.d("DatabaseHelper: Début de la suppression complète du traitement basé sur le cycle $cycleIdToDelete.",);
@@ -1206,7 +1180,6 @@ class DatabaseHelper {
       "DatabaseHelper: Suppression du traitement basé sur le cycle $cycleIdToDelete (potentiellement) terminée.",
     );
   }
-
 
   Future<void> deleteFullTreatmentAndDependencies(String treatmentId) async {
     final db = await database;
@@ -2003,7 +1976,7 @@ class DatabaseHelper {
         whereArgs: [treatmentId],
       );
 
-      if (cycles.length == 0) {
+      if (cycles.isEmpty) {
         Log.d('Pas de cycle trouvé pour le traitement');
         return true;
       }
@@ -2189,11 +2162,10 @@ class DatabaseHelper {
         '''
       SELECT e.*, est.id as establishmentId, est.name as establishmentName, 
              est.address as establishmentAddress, est.phone as establishmentPhone, 
-             d.id as doctorId, d.firstName as doctorFirstName, d.lastName as doctorLastName, 
-             d.specialty as doctorSpecialty, d.phone as doctorPhone, d.email as doctorEmail
+             d.id as healthProfessionalId, d.firstName as doctorFirstName, d.lastName as doctorLastName 
       FROM examinations e
       LEFT JOIN establishments est ON e.establishmentId = est.id
-      LEFT JOIN doctors d ON e.doctorId = d.id
+      LEFT JOIN health_professionals d ON e.prescripteurId = d.id
       WHERE e.id = ?
     ''',
         [examinationId],
@@ -2215,9 +2187,9 @@ class DatabaseHelper {
 
       // Construire l'objet médecin si présent
       Map<String, dynamic>? doctorMap;
-      if (examinationMap['doctorId'] != null) {
+      if (examinationMap['prescripteurId'] != null) {
         doctorMap = {
-          'id': examinationMap['doctorId'],
+          'id': examinationMap['prescripteurId'],
           'firstName': examinationMap['doctorFirstName'],
           'lastName': examinationMap['doctorLastName'],
           'specialty': examinationMap['doctorSpecialty'],
@@ -2312,6 +2284,7 @@ class DatabaseHelper {
       List<Map<String, dynamic>> result = [];
 
       for (var exam in examinations) {
+        Log.d('exam:[${exam.toString()}]');
         // Créer une nouvelle map pour l'examen enrichi
         Map<String, dynamic> enrichedExam = Map.from(exam);
 
@@ -2334,16 +2307,29 @@ class DatabaseHelper {
             };
           }
 
-          // Récupérer le médecin si présent
-          if (exam['doctorId'] != null) {
-            final doctors = await db.query(
-              'doctors',
+          // Récupérer le médecin prescripteur si présent
+          if (exam['prescripteurId'] != null) {
+            final prescripteur = await db.query(
+              'health_professionals',
               where: 'id = ?',
-              whereArgs: [exam['doctorId']],
+              whereArgs: [exam['prescripteurId']],
             );
 
-            if (doctors.isNotEmpty) {
-              enrichedExam['doctor'] = doctors.first;
+            if (prescripteur.isNotEmpty) {
+              enrichedExam['prescripteur'] = prescripteur.first;
+            }
+          }
+
+          // Récupérer le médecin prescripteur si présent
+          if (exam['executantId'] != null) {
+            final executant = await db.query(
+              'health_professionals',
+              where: 'id = ?',
+              whereArgs: [exam['executantId']],
+            );
+
+            if (executant.isNotEmpty) {
+              enrichedExam['executant'] = executant.first;
             }
           }
 
@@ -2480,7 +2466,7 @@ class DatabaseHelper {
     }
   }
 
-  Future<int> insertDocument_ForAddDocumentScreen(
+  Future<int> insertDocumentForAddDocumentScreen(
     Map<String, dynamic> document, [
     String? entityType,
     String? entityId,

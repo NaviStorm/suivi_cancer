@@ -7,6 +7,7 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/sessions/screens/add_session_screen.dart';
 import 'package:suivi_cancer/features/sessions/screens/session_details_screen.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class SessionListScreen extends StatefulWidget {
   final Cycle cycle;
@@ -66,9 +67,7 @@ class _SessionListScreenState extends State<SessionListScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des sessions')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors du chargement des sessions');
     }
   }
 

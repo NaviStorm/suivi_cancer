@@ -119,7 +119,6 @@ class DocumentItem extends StatelessWidget {
         iconColor = Colors.indigo;
         break;
       case DocumentType.Other:
-      default:
         iconData = Icons.insert_drive_file;
         iconColor = Colors.grey;
         break;
@@ -129,7 +128,7 @@ class DocumentItem extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.1),
+        color: iconColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(iconData, color: iconColor, size: 24),

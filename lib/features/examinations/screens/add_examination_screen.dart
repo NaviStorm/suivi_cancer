@@ -17,13 +17,13 @@ import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/services/document_import_service.dart';
 
 // Enum pour le type de lien
-enum ExaminationLinkType { Cycle, SingleSession, AllSessions }
+enum ExaminationLinkType { cycle, singleSession, allSessions }
 
 // Enum pour la relation temporelle avec la séance
 enum SessionTimeRelation {
-  Before, // Avant la séance
-  Same, // Le jour même
-  After, // Après la séance
+  before, // Avant la séance
+  same, // Le jour même
+  after, // Après la séance
 }
 
 class AddExaminationScreen extends StatefulWidget {
@@ -74,11 +74,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   // Variables pour les sessions et le type de lien
   String? _selectedSessionId;
   List<Session> _sessions = [];
-  ExaminationLinkType _linkType = ExaminationLinkType.Cycle;
+  ExaminationLinkType _linkType = ExaminationLinkType.cycle;
   String? _examGroupId; // ID commun pour les examens liés à toutes les séances
 
   // Variables pour la relation temporelle avec la séance
-  SessionTimeRelation _timeRelation = SessionTimeRelation.Before;
+  SessionTimeRelation _timeRelation = SessionTimeRelation.before;
   int _timeOffset = 0; // Offset en heures
 
   // Liste des documents joints
@@ -89,21 +89,23 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   @override
   void initState() {
+    Log.d('Ecran d\'ajout d\'un examen : [${widget.examination?.toMap()}]');
     super.initState();
 
     // Initialiser le type de lien en fonction des paramètres
     if (widget.sessionId != null) {
-      _linkType = ExaminationLinkType.SingleSession;
+      _linkType = ExaminationLinkType.singleSession;
       _selectedSessionId = widget.sessionId;
     } else if (widget.forAllSessions) {
-      _linkType = ExaminationLinkType.AllSessions;
+      _linkType = ExaminationLinkType.allSessions;
       _examGroupId = Uuid().v4(); // Générer un ID de groupe
     } else {
-      _linkType = ExaminationLinkType.Cycle;
+      _linkType = ExaminationLinkType.cycle;
     }
 
     // Si on est en mode édition
     if (widget.examination != null) {
+      Log.d('widget.examination n''est pas null : [${widget.examination?.toMap()}]');
       _titleController.text = widget.examination!.title ?? '';
       _notesController.text = widget.examination!.notes ?? '';
       _selectedDate = widget.examination!.dateTime;
@@ -113,9 +115,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       _examGroupId = widget.examination!.examGroupId;
 
       if (_selectedSessionId != null) {
-        _linkType = ExaminationLinkType.SingleSession;
+        _linkType = ExaminationLinkType.singleSession;
       } else if (_examGroupId != null) {
-        _linkType = ExaminationLinkType.AllSessions;
+        _linkType = ExaminationLinkType.allSessions;
       }
 
       // Charger les documents de l'examen
@@ -143,8 +145,8 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
 
       // Charger les séances du cycle
-      if (_linkType == ExaminationLinkType.SingleSession ||
-          _linkType == ExaminationLinkType.AllSessions) {
+      if (_linkType == ExaminationLinkType.singleSession ||
+          _linkType == ExaminationLinkType.allSessions) {
         final sessionMaps = await dbHelper.getSessionsByCycle(widget.cycleId);
         _sessions = sessionMaps.map((map) => Session.fromMap(map)).toList();
 
@@ -154,13 +156,14 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         // Sélectionner la première séance si aucune n'est sélectionnée
         if (_selectedSessionId == null &&
             _sessions.isNotEmpty &&
-            _linkType == ExaminationLinkType.SingleSession) {
+            _linkType == ExaminationLinkType.singleSession) {
           _selectedSessionId = _sessions.first.id;
         }
       }
 
       // Si on est en mode édition, sélectionner l'établissement et le médecin
       if (widget.examination != null) {
+        Log.d('widget.examination non NULL');
         _selectedEstablishment = _establishments.firstWhereOrNull(
           (e) => e.id == widget.examination!.establishment.id,
         );
@@ -170,10 +173,14 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         }
 
         if (widget.examination!.prescripteur != null) {
+          Log.d('_healthProfessionals:[${_healthProfessionals.toList()}]');
           _selectedPrescripteur = _healthProfessionals.firstWhereOrNull(
             (d) => d.id == widget.examination!.prescripteur!.id,
           );
+        } else {
+          Log.d('widget.examination.prescripteur est NULL : [${widget.examination?.toMap()}]');
         }
+
         // Sélectionner l'autre médecin si présent
         if (widget.examination!.executant != null) {
           _selectedExecutant = _healthProfessionals.firstWhereOrNull(
@@ -181,6 +188,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           );
         }
       } else if (_establishments.isNotEmpty) {
+        Log.d('widget.examination est NULL');
         _selectedEstablishment = _establishments.first;
       }
 
@@ -257,12 +265,12 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                       SizedBox(height: 16),
 
                       // Uniquement visible en mode édition ou si l'examen est lié au cycle
-                      if (_linkType == ExaminationLinkType.Cycle ||
+                      if (_linkType == ExaminationLinkType.cycle ||
                           widget.examination != null)
                         _buildDateTimePicker(),
 
                       // Configuration spécifique pour les examens liés aux séances
-                      if (_linkType != ExaminationLinkType.Cycle &&
+                      if (_linkType != ExaminationLinkType.cycle &&
                           widget.examination == null)
                         _buildSessionTimingConfig(),
 
@@ -272,7 +280,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                       SizedBox(height: 16),
 
                       // Si le type est Session unique, ajouter un sélecteur de séance
-                      if (_linkType == ExaminationLinkType.SingleSession)
+                      if (_linkType == ExaminationLinkType.singleSession)
                         _buildSessionSelector(),
 
                       SizedBox(height: 16),
@@ -498,15 +506,15 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 },
                 items: [
                   DropdownMenuItem(
-                    value: SessionTimeRelation.Before,
+                    value: SessionTimeRelation.before,
                     child: Text('Avant', style: TextStyle(fontSize: 14)),
                   ),
                   DropdownMenuItem(
-                    value: SessionTimeRelation.Same,
+                    value: SessionTimeRelation.same,
                     child: Text('Le jour même', style: TextStyle(fontSize: 14)),
                   ),
                   DropdownMenuItem(
-                    value: SessionTimeRelation.After,
+                    value: SessionTimeRelation.after,
                     child: Text('Après', style: TextStyle(fontSize: 14)),
                   ),
                 ],
@@ -517,7 +525,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               flex: 3,
               child: Row(
                 children: [
-                  if (_timeRelation != SessionTimeRelation.Same)
+                  if (_timeRelation != SessionTimeRelation.same)
                     Expanded(
                       child: TextFormField(
                         decoration: InputDecoration(
@@ -531,7 +539,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                         keyboardType: TextInputType.number,
                         initialValue: _timeOffset.toString(),
                         validator:
-                            _timeRelation != SessionTimeRelation.Same
+                            _timeRelation != SessionTimeRelation.same
                                 ? (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Obligatoire';
@@ -553,7 +561,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                         },
                       ),
                     ),
-                  if (_timeRelation == SessionTimeRelation.Same)
+                  if (_timeRelation == SessionTimeRelation.same)
                     Expanded(
                       child: Text(
                         'Planifier le jour de la séance',
@@ -581,11 +589,11 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   String _getTimingDescription() {
     switch (_timeRelation) {
-      case SessionTimeRelation.Before:
+      case SessionTimeRelation.before:
         return 'L\'examen sera planifié $_timeOffset heures avant chaque séance';
-      case SessionTimeRelation.Same:
+      case SessionTimeRelation.same:
         return 'L\'examen sera planifié le jour même de chaque séance';
-      case SessionTimeRelation.After:
+      case SessionTimeRelation.after:
         return 'L\'examen sera planifié $_timeOffset heures après chaque séance';
     }
   }
@@ -609,7 +617,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             Expanded(
               child: RadioListTile<ExaminationLinkType>(
                 title: Text('Cycle', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.Cycle,
+                value: ExaminationLinkType.cycle,
                 groupValue: _linkType,
                 dense: true,
                 onChanged: (value) {
@@ -625,7 +633,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             Expanded(
               child: RadioListTile<ExaminationLinkType>(
                 title: Text('Une séance', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.SingleSession,
+                value: ExaminationLinkType.singleSession,
                 groupValue: _linkType,
                 dense: true,
                 onChanged: (value) {
@@ -643,7 +651,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             Expanded(
               child: RadioListTile<ExaminationLinkType>(
                 title: Text('Toutes', style: TextStyle(fontSize: 13)),
-                value: ExaminationLinkType.AllSessions,
+                value: ExaminationLinkType.allSessions,
                 groupValue: _linkType,
                 dense: true,
                 onChanged: (value) {
@@ -711,7 +719,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 );
               }).toList(),
           validator: (value) {
-            if (_linkType == ExaminationLinkType.SingleSession &&
+            if (_linkType == ExaminationLinkType.singleSession &&
                 value == null) {
               return 'Veuillez sélectionner une séance';
             }
@@ -937,7 +945,6 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                   documentIcon = Icons.article;
                   break;
                 case DocumentType.Other:
-                default:
                   documentIcon = Icons.insert_drive_file;
                   break;
               }
@@ -1103,7 +1110,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Future<void> _saveExamination() async {
     if (_formKey.currentState!.validate() && _selectedEstablishment != null) {
       // Vérifier que si le type est SingleSession, une séance est sélectionnée
-      if (_linkType == ExaminationLinkType.SingleSession &&
+      if (_linkType == ExaminationLinkType.singleSession &&
           _selectedSessionId == null) {
         _showErrorMessage('Veuillez sélectionner une séance');
         return;
@@ -1119,7 +1126,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
         // Combiner date et heure pour la date de l'examen
         DateTime dateTime;
 
-        if (_linkType == ExaminationLinkType.Cycle ||
+        if (_linkType == ExaminationLinkType.cycle ||
             widget.examination != null) {
           // Si l'examen est pour le cycle entier ou en mode édition, utiliser la date sélectionnée
           dateTime = DateTime(
@@ -1167,7 +1174,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           // Mettre à jour tous les examens du groupe
           updateResult = await _updateAllExaminationsInGroup(dateTime);
           examinationId = widget.examination!.id;
-        } else if (_linkType == ExaminationLinkType.AllSessions) {
+        } else if (_linkType == ExaminationLinkType.allSessions) {
           // Créer un examen pour chaque séance
           updateResult = await _createExaminationsForAllSessions(
             dateTime,
@@ -1249,7 +1256,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
       'prereqForSessionId':
-          _linkType == ExaminationLinkType.SingleSession
+          _linkType == ExaminationLinkType.singleSession
               ? _selectedSessionId
               : widget.examination?.prereqForSessionId,
       'examGroupId': null, // Important: mettre à null pour détacher du groupe
@@ -1361,12 +1368,12 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
             // Calculer la nouvelle date en fonction de la relation temporelle
             switch (_timeRelation) {
-              case SessionTimeRelation.Before:
+              case SessionTimeRelation.before:
                 examDateTime = sessionDateTime.subtract(
                   Duration(hours: _timeOffset),
                 );
                 break;
-              case SessionTimeRelation.Same:
+              case SessionTimeRelation.same:
                 examDateTime = DateTime(
                   sessionDateTime.year,
                   sessionDateTime.month,
@@ -1375,7 +1382,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                   _selectedTime.minute,
                 );
                 break;
-              case SessionTimeRelation.After:
+              case SessionTimeRelation.after:
                 examDateTime = sessionDateTime.add(
                   Duration(hours: _timeOffset),
                 );
@@ -1464,7 +1471,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   DateTime calculateDateTimeFromSession() {
     // Trouver la séance cible
     final Session targetSession =
-        _linkType == ExaminationLinkType.SingleSession
+        _linkType == ExaminationLinkType.singleSession
             ? _sessions.firstWhere((s) => s.id == _selectedSessionId)
             : _sessions
                 .first; // Pour AllSessions, on se base sur la première séance pour l'exemple
@@ -1473,9 +1480,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
     // Calculer la date en fonction de la relation temporelle
     switch (_timeRelation) {
-      case SessionTimeRelation.Before:
+      case SessionTimeRelation.before:
         return sessionDateTime.subtract(Duration(hours: _timeOffset));
-      case SessionTimeRelation.Same:
+      case SessionTimeRelation.same:
         // Même jour que la séance, mais à l'heure spécifiée
         return DateTime(
           sessionDateTime.year,
@@ -1484,7 +1491,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           _selectedTime.hour,
           _selectedTime.minute,
         );
-      case SessionTimeRelation.After:
+      case SessionTimeRelation.after:
         return sessionDateTime.add(Duration(hours: _timeOffset));
     }
   }
@@ -1502,12 +1509,12 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       // Calculer la date pour cette séance spécifique
       DateTime examDateTime;
       switch (_timeRelation) {
-        case SessionTimeRelation.Before:
+        case SessionTimeRelation.before:
           examDateTime = session.dateTime.subtract(
             Duration(hours: _timeOffset),
           );
           break;
-        case SessionTimeRelation.Same:
+        case SessionTimeRelation.same:
           examDateTime = DateTime(
             session.dateTime.year,
             session.dateTime.month,
@@ -1516,7 +1523,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
             _selectedTime.minute,
           );
           break;
-        case SessionTimeRelation.After:
+        case SessionTimeRelation.after:
           examDateTime = session.dateTime.add(Duration(hours: _timeOffset));
           break;
       }
@@ -1600,7 +1607,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
               : null,
       'isCompleted': widget.examination?.isCompleted == 1 ? 1 : 0,
       'prereqForSessionId':
-          _linkType == ExaminationLinkType.SingleSession
+          _linkType == ExaminationLinkType.singleSession
               ? _selectedSessionId
               : null,
       'examGroupId': null,

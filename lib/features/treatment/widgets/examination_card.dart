@@ -1,6 +1,7 @@
 // lib/features/treatment/widgets/examination_card.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/examination.dart';
 import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
 
@@ -28,6 +29,8 @@ class ExaminationCard extends StatelessWidget {
     // Déterminer la couleur de fond et la bordure
     Color backgroundColor;
     BorderSide? border;
+
+    Log.d('examination n est pas null : [${examination?.toMap()}]');
 
     if (examination.type == ExaminationType.PriseDeSang) {
       backgroundColor = const Color(0xFFFFF9C4); // Jaune très pâle

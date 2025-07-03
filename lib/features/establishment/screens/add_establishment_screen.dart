@@ -1,9 +1,9 @@
-// lib/features/treatment/screens/add_establishment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddEstablishmentScreen extends StatefulWidget {
   final Establishment? establishment; // Établissement existant pour la modification
@@ -231,11 +231,7 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
           "AddEstablishmentScreen: Erreur lors de la ${_isEditing ? 'modification' : 'création'} de l'établissement: $e",
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors de la ${_isEditing ? 'modification' : 'création'} de l\'établissement: $e'),
-            ),
-          );
+          UniversalSnackBar.show(context, title: 'Erreur lors de la ${_isEditing ? 'modification' : 'création'} de l\'établissement: $e');
         }
       }
     } else {

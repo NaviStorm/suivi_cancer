@@ -1,10 +1,10 @@
-// lib/widgets/ps_list_widget.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart'; // Nouveau modèle
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class PSListWidget extends StatefulWidget {
   const PSListWidget({super.key});
@@ -237,11 +237,7 @@ class PSListWidgetState extends State<PSListWidget> {
     try {
       await launchUrl(uri);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Impossible de passer un appel au $phoneNumber'),
-        ),
-      );
+      UniversalSnackBar.show(context, title: 'Impossible de passer un appel au $phoneNumber');
     }
   }
 
@@ -251,9 +247,7 @@ class PSListWidgetState extends State<PSListWidget> {
     try {
       await launchUrl(uri);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Impossible d\'envoyer un email à $email')),
-      );
+      UniversalSnackBar.show(context, title: 'Impossible d\'envoyer un email à $email');
     }
   }
 
@@ -293,13 +287,9 @@ class PSListWidgetState extends State<PSListWidget> {
       // Rafraîchir la liste après suppression
       loadPS();
       // Afficher un message de confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Professionnel supprimé avec succès')),
-      );
+      UniversalSnackBar.show(context, title: 'Professionnel supprimé avec succès');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la suppression: $e')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors de la suppression: $e');
     }
   }
 }

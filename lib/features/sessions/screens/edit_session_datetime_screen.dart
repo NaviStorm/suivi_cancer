@@ -5,6 +5,7 @@ import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class EditSessionDateTimeScreen extends StatefulWidget {
   final Session session;
@@ -110,16 +111,12 @@ class _EditSessionDateTimeScreenState extends State<EditSessionDateTimeScreen> {
 
       await dbHelper.updateSession(sessionData);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Date et heure modifiées avec succès')),
-      );
+      UniversalSnackBar.show(context, title: 'Date et heure modifiées avec succès');
 
       Navigator.pop(context, true);
     } catch (e) {
       Log.d('Erreur lors de la modification de la date: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la modification: $e')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors de la modification: $e');
       setState(() {
         _isSaving = false;
       });

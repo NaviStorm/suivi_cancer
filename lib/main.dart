@@ -1,8 +1,7 @@
-// ===== $HOME/suivi_cancer/lib/main.dart =====
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
-import 'common/theme/app_theme.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'features/home/home_screen.dart';
@@ -21,6 +20,12 @@ void main() async {
   // Initialiser les services qui ne dépendent pas de la BDD
   final notificationService = NotificationService();
   await notificationService.initialize();
+
+  if (Platform.isIOS) {
+    await notificationService.requestIOSPermissions();
+  } else if (Platform.isAndroid) {
+    await notificationService.requestAndroidPermissions();
+  }
 
   // Définir l'orientation de l'application
   await SystemChrome.setPreferredOrientations([

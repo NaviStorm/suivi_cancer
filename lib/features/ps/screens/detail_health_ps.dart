@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class HealthProfessionalDetailScreen extends StatefulWidget {
   final String professionalId;
@@ -76,9 +77,7 @@ class _HealthProfessionalDetailScreenState
           true,
         ); // Retourner à l'écran précédent avec résultat
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la suppression')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de la suppression');
       }
     }
   }

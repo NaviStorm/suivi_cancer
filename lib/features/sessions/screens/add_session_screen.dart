@@ -10,6 +10,7 @@ import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/common/widgets/date_time_picker.dart';
 import 'package:suivi_cancer/features/treatment/utils/event_formatter.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddSessionScreen extends StatefulWidget {
   final Cycle cycle;
@@ -79,9 +80,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des données')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors du chargement des données');
     }
   }
 
@@ -349,9 +348,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             rinsingProductIds,
           );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Séance mise à jour avec succès')),
-          );
+          UniversalSnackBar.show(context, title: 'Séance mise à jour avec succès');
         } else {
           await dbHelper.insertSession(sessionData);
 
@@ -362,17 +359,13 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
             rinsingProductIds,
           );
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Séance ajoutée avec succès')));
+          UniversalSnackBar.show(context, title: 'Séance ajoutée avec succès');
         }
 
         Navigator.pop(context, true);
       } catch (e) {
         Log.d('Erreur lors de l\'enregistrement: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'enregistrement: $e')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de l\'enregistrement: $e');
         setState(() {
           _isSaving = false;
         });

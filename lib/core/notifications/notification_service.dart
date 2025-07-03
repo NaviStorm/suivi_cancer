@@ -1,83 +1,93 @@
 // lib/core/notifications/notification_service.dart
-import 'package:flutter/foundation.dart'; // Pour kReleaseMode si besoin de logs conditionnels
+import 'package:flutter/foundation.dart';
 import 'package:timezone/timezone.dart' as tz;
-// Attention à l'import de 'timezone/data/latest.dart'
-// Il est préférable de l'importer avec un préfixe différent si vous utilisez déjà 'tz' pour timezone.dart
-// ou d'utiliser 'package:timezone/data/latest_all.dart' pour inclure tous les fuseaux horaires.
-// Pour cet exemple, je vais supposer que vous voulez tous les fuseaux, ce qui est plus sûr.
-import 'package:timezone/data/latest_all.dart' as tz_data; // Ou latest.dart si vous filtrez les données
+import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart'; // Pour obtenir le fuseau horaire local
-
+import 'package:flutter_timezone/flutter_timezone.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  static bool _isTimeZoneConfigured = false;
 
-  // Pour une initialisation correcte des fuseaux horaires, il est mieux de le faire une fois au démarrage.
-  // Cette méthode peut être appelée dans main.dart
+  /// Configure le fuseau horaire local pour les notifications
   static Future<void> configureLocalTimeZone() async {
-    tz_data.initializeTimeZones(); // Initialise la base de données des fuseaux horaires
+    if (_isTimeZoneConfigured) return; // Éviter la double initialisation
+
     try {
+      tz_data.initializeTimeZones();
       final String timeZoneName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName)); // Définit le fuseau horaire local pour le package timezone
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      _isTimeZoneConfigured = true;
+
+      if (kDebugMode) {
+        print('Fuseau horaire configuré: ${tz.local.name}');
+      }
     } catch (e) {
-      if (kDebugMode) { // Affiche l'erreur seulement en mode debug
-        print('Impossible d\'obtenir le fuseau horaire local via flutter_timezone: $e');
+      if (kDebugMode) {
+        print('Impossible d\'obtenir le fuseau horaire local: $e');
       }
       // Fallback sur UTC si la détection échoue
-      tz.setLocalLocation(tz.getLocation('Etc/UTC'));
+      try {
+        tz.setLocalLocation(tz.getLocation('Etc/UTC'));
+        _isTimeZoneConfigured = true;
+      } catch (fallbackError) {
+        _isTimeZoneConfigured = false;
+        if (kDebugMode) {
+          print('Impossible de configurer même UTC: $fallbackError');
+        }
+      }
     }
   }
 
+  /// Getter pour vérifier si le fuseau horaire est configuré
+  static bool get isTimeZoneConfigured => _isTimeZoneConfigured;
 
+  /// Vérifie si les notifications peuvent être planifiées
+  static bool canScheduleNotifications() {
+    if (!_isTimeZoneConfigured) return false;
+
+    try {
+      tz.TZDateTime.now(tz.local);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Initialise le service de notifications
   Future<void> initialize() async {
-    // L'initialisation des fuseaux horaires (tz_data.initializeTimeZones() et tz.setLocalLocation())
-    // devrait idéalement être faite une seule fois au démarrage de l'application, par exemple dans main.dart
-    // en appelant NotificationService.configureLocalTimeZone().
-    // Si vous l'appelez ici, assurez-vous que ce n'est pas redondant.
-    // Pour cet exemple, je vais supposer que configureLocalTimeZone a déjà été appelé.
-
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher'); // Assurez-vous que ce fichier existe
+    AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // Pour iOS, il est bon de demander les permissions explicitement
     const DarwinInitializationSettings initializationSettingsIOS =
     DarwinInitializationSettings(
-      requestAlertPermission: true, // Ou false et les demander plus tard via requestIOSPermissions()
+      requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      // onDidReceiveLocalNotification: onDidReceiveLocalNotification, // Pour iOS < 10
     );
 
     final InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
-      // macOS: DarwinInitializationSettings(...), // Si vous ciblez macOS
     );
 
-    // Créer le canal de notification Android AVANT d'initialiser si possible,
-    // ou s'assurer qu'il est créé.
     await _createAndroidNotificationChannel();
 
     await _notificationsPlugin.initialize(
       initializationSettings,
-      // Callback quand une notification est reçue alors que l'app est au premier plan,
-      // ou quand l'utilisateur tape sur une notification (app ouverte ou en arrière-plan).
       onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-      // Callback pour gérer les notifications reçues lorsque l'application est terminée (background).
       onDidReceiveBackgroundNotificationResponse: onDidReceiveBackgroundNotificationResponse,
     );
   }
 
-  /// Crée un canal de notification pour Android (nécessaire pour Android 8.0+).
+  /// Crée un canal de notification pour Android
   Future<void> _createAndroidNotificationChannel() async {
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'treatment_channel', // ID du canal (doit correspondre à celui utilisé dans AndroidNotificationDetails)
-      'Traitement',       // Nom du canal (visible par l'utilisateur dans les paramètres de l'app)
-      description: 'Notifications pour les traitements et rendez-vous', // Description du canal
-      importance: Importance.high, // Importance de la notification
+      'treatment_channel',
+      'Traitement',
+      description: 'Notifications pour les traitements et rendez-vous',
+      importance: Importance.high,
       playSound: true,
-      // sound: RawResourceAndroidNotificationSound('nom_du_son_personnalise'), // Si son personnalisé
     );
 
     await _notificationsPlugin
@@ -85,7 +95,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
   }
 
-  /// Demande les permissions de notification sur iOS.
+  /// Demande les permissions de notification sur iOS
   Future<bool?> requestIOSPermissions() async {
     return _notificationsPlugin
         .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
@@ -96,81 +106,106 @@ class NotificationService {
     );
   }
 
-  /// Demande les permissions de notification sur Android (pour Android 13+).
+  /// Demande les permissions de notification sur Android (pour Android 13+)
   Future<bool?> requestAndroidPermissions() async {
     final AndroidFlutterLocalNotificationsPlugin? platformImplementation =
     _notificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (platformImplementation != null) {
       return await platformImplementation.requestNotificationsPermission();
     }
-    return false; // Si ce n'est pas Android ou si l'implémentation n'est pas trouvée
+    return false;
   }
 
-
+  /// Planifie une notification à une date donnée
   Future<void> scheduleNotification({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
   }) async {
-    // S'assurer que tz.local est initialisé.
-    if (tz.local == null) {
+    if (!NotificationService.isTimeZoneConfigured || !NotificationService.canScheduleNotifications()) {
       if (kDebugMode) {
-        print("ERREUR: tz.local n'est pas initialisé. Appelez NotificationService.configureLocalTimeZone() dans main.dart.");
+        print("ERREUR: Le fuseau horaire n'est pas configuré. Appelez NotificationService.configureLocalTimeZone() dans main.dart.");
       }
-      // Vous pourriez tenter de le reconfigurer ici en fallback, mais c'est moins propre.
-      // await NotificationService.configureLocalTimeZone();
-      // if (tz.local == null) return; // Si toujours null, ne pas planifier
       return;
     }
 
-    final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+    try {
+      final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
 
-    // Vérifier si la date planifiée est dans le futur
-    if (tzScheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
-      if (kDebugMode) {
-        print("Notification (ID: $id, Titre: $title) non planifiée car la date est dans le passé: $tzScheduledDate");
+      // Vérifier si la date planifiée est dans le futur
+      if (tzScheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+        if (kDebugMode) {
+          print("Notification (ID: $id, Titre: $title) non planifiée car la date est dans le passé: $tzScheduledDate");
+        }
+        return;
       }
-      return; // Ne pas planifier une notification pour le passé
-    }
 
-    await _notificationsPlugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tzScheduledDate,
-      const NotificationDetails( // Rendre const si possible
-        android: AndroidNotificationDetails(
-          'treatment_channel', // Doit correspondre à l'ID du canal créé
-          'Traitement',       // Nom du canal
-          channelDescription: 'Notifications pour les traitements et rendez-vous',
-          importance: Importance.max, // Utiliser Importance.max pour une visibilité maximale
-          priority: Priority.high,
-          // icon: '@mipmap/ic_notification', // Icône spécifique pour la notif si différente de l'icône de l'app
-          // largeIcon: FilePathAndroidBitmap('chemin_vers_grande_icone'),
-          // styleInformation: BigTextStyleInformation(''), // Pour texte long
+      await _notificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tzScheduledDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'treatment_channel',
+            'Traitement',
+            channelDescription: 'Notifications pour les traitements et rendez-vous',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-          // sound: 'custom_sound.caf', // Si son personnalisé
-        ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Pour la précision sur Android
-      // DÉCOMMENTER ET UTILISER CE PARAMÈTRE OBLIGATOIRE :
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      // Pour gérer le clic sur la notification quand l'app est terminée (payload)
-      // payload: 'notification_id=$id&title=$title',
-      // Pour les notifications récurrentes (ex: quotidien à la même heure)
-      // matchDateTimeComponents: DateTimeComponents.time,
-    );
-    if (kDebugMode) {
-      print("Notification (ID: $id, Titre: $title) planifiée pour: $tzScheduledDate");
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      if (kDebugMode) {
+        print("Notification (ID: $id, Titre: $title) planifiée pour: $tzScheduledDate");
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Erreur lors de la planification de la notification: $e");
+      }
     }
   }
 
-  /// Annule une notification spécifique par son ID.
+  /// Affiche une notification immédiate
+  Future<void> showNotification({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'treatment_channel',
+        'Traitement',
+        channelDescription: 'Notifications pour les traitements et rendez-vous',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _notificationsPlugin.show(
+      id,
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: payload,
+    );
+  }
+
+  /// Annule une notification spécifique par son ID
   Future<void> cancelNotification(int id) async {
     await _notificationsPlugin.cancel(id);
     if (kDebugMode) {
@@ -178,21 +213,21 @@ class NotificationService {
     }
   }
 
-  /// Annule toutes les notifications planifiées.
+  /// Annule toutes les notifications planifiées
   Future<void> cancelAllNotifications() async {
     await _notificationsPlugin.cancelAll();
     if (kDebugMode) {
       print("Toutes les notifications ont été annulées.");
     }
   }
+
+  /// Récupère toutes les notifications en attente
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return await _notificationsPlugin.pendingNotificationRequests();
+  }
 }
 
-// Callbacks statiques ou top-level pour la gestion des réponses aux notifications.
-// Ces fonctions doivent être en dehors de la classe si elles sont utilisées comme points d'entrée
-// pour le background isolate (onDidReceiveBackgroundNotificationResponse).
-
 /// Callback pour gérer la réponse lorsqu'une notification est cliquée
-/// (app ouverte, en arrière-plan, ou terminée - mais pour terminée, onDidReceiveBackgroundNotificationResponse est clé).
 void onDidReceiveNotificationResponse(NotificationResponse notificationResponse) {
   if (kDebugMode) {
     print('Notification cliquée (onDidReceiveNotificationResponse):');
@@ -202,27 +237,24 @@ void onDidReceiveNotificationResponse(NotificationResponse notificationResponse)
     print('  Payload: ${notificationResponse.payload}');
     print('  Notification Type: ${notificationResponse.notificationResponseType}');
   }
-  // Mettez ici votre logique de navigation ou d'action basée sur le payload.
-  // Par exemple, si le payload contient l'ID d'un traitement, naviguez vers l'écran de ce traitement.
+
+  // Ajoutez ici votre logique de navigation basée sur le payload
+  // Exemple :
   // final String? payload = notificationResponse.payload;
-  // if (payload != null && payload.startsWith('treatment_id=')) {
-  //   final treatmentId = payload.split('=')[1];
-  //   // MyApp.navigatorKey.currentState?.pushNamed('/treatmentDetail', arguments: treatmentId);
+  // if (payload != null) {
+  //   // Navigation vers l'écran approprié
   // }
 }
 
-/// Callback pour gérer les notifications reçues lorsque l'application est terminée.
-/// Important: Ce callback s'exécute dans un isolate séparé sur Android.
-@pragma('vm:entry-point') // Nécessaire pour que le tree shaking ne le supprime pas.
+/// Callback pour gérer les notifications reçues lorsque l'application est terminée
+@pragma('vm:entry-point')
 void onDidReceiveBackgroundNotificationResponse(NotificationResponse notificationResponse) {
   if (kDebugMode) {
-    print('Notification cliquée (BACKGROUND - onDidReceiveBackgroundNotificationResponse):');
+    print('Notification cliquée (BACKGROUND):');
     print('  ID: ${notificationResponse.id}');
     print('  Payload: ${notificationResponse.payload}');
   }
-  // N'essayez PAS de mettre à jour l'UI Flutter directement depuis cet isolate.
-  // Vous pouvez:
-  // 1. Stocker l'information (ex: SharedPreferences) pour que l'app la lise au prochain démarrage.
-  // 2. Utiliser des plugins comme flutter_isolate ou des SendPort/ReceivePort pour communiquer avec l'isolate principal.
-  // 3. Effectuer des tâches en arrière-plan qui n'impliquent pas l'UI.
+
+  // N'essayez PAS de mettre à jour l'UI Flutter directement depuis cet isolate
+  // Utilisez SharedPreferences ou d'autres méthodes de persistance
 }

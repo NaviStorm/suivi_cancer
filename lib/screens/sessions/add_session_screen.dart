@@ -1,4 +1,3 @@
-// lib/features/treatment/screens/add_session_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -8,6 +7,7 @@ import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/services/treatment_service.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class AddSessionScreen extends StatefulWidget {
   final Cycle cycle;
@@ -328,9 +328,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
   Future<void> _saveSession() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedEstablishment == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Veuillez sélectionner un établissement')),
-        );
+        UniversalSnackBar.show(context, title: 'Veuillez sélectionner un établissement');
         return;
       }
 
@@ -393,9 +391,7 @@ class _AddSessionScreenState extends State<AddSessionScreen> {
         Navigator.pop(context, true);
       } catch (e) {
         Log.d("AddSessionScreen: Erreur lors de la création de la session: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la création de la session')),
-        );
+        UniversalSnackBar.show(context, title: 'Erreur lors de la création de la session');
       } finally {
         setState(() {
           _isLoading = false;

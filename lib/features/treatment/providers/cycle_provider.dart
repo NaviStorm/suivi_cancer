@@ -25,7 +25,7 @@ class CycleProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isCompletingCycle = false;
-  bool _hideCompletedEvents = false;
+  bool _hideCompletedEvents = true;
 
   // Getters
   Cycle? get cycle => _cycle;
@@ -210,6 +210,7 @@ class CycleProvider extends ChangeNotifier {
       );
       _examinations =
           examinationMaps.map((map) => Examination.fromMap(map)).toList();
+      Log.d('Chargement exam : [${_examinations.toList()}]');
     } catch (e) {
       Log.e("Erreur lors du chargement des examens: $e");
     }

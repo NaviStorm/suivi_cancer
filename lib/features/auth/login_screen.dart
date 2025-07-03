@@ -1,9 +1,9 @@
-// lib/features/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:suivi_cancer/features/home/home_screen.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:suivi_cancer/core/encryption/encryption_service.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,21 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (_failedAttempts >= 10) {
         // Supprimer toutes les données
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Trop de tentatives. Toutes les données ont été supprimées.',
-            ),
-          ),
-        );
+        UniversalSnackBar.show(context, title: 'Trop de tentatives. Toutes les données ont été supprimées.');
       } else if (_failedAttempts >= 8) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Attention! Après 10 tentatives échouées, toutes les données seront supprimées.',
-            ),
-          ),
-        );
+        UniversalSnackBar.show(context, title: 'Attention! Après 10 tentatives échouées, toutes les données seront supprimées.');
         _setLockout();
       } else if (_failedAttempts >= 3) {
         _setLockout();

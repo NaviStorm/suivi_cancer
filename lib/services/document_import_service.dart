@@ -2,15 +2,16 @@
 
 import 'dart:io';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
-import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class DocumentImportService {
   // Singleton pattern
@@ -718,14 +719,10 @@ class DocumentImportService {
 
   // Affichage des messages
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    UniversalSnackBar.show(context, title: message);
   }
 
   void _showErrorMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    UniversalSnackBar.show(context, title: message);
   }
 }

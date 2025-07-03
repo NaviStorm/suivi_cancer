@@ -1,4 +1,3 @@
-// lib/features/treatment/screens/session_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,6 +7,7 @@ import 'package:suivi_cancer/features/treatment/models/cycle.dart';
 import 'package:suivi_cancer/features/treatment/models/session.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/utils/logger.dart';
+import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -70,9 +70,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         _isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du chargement des détails')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors du chargement des détails');
     }
   }
 
@@ -335,9 +333,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
     // Ici, vous naviguerez vers un écran d'édition de session
     // Pour l'instant, nous allons simplement afficher un message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Fonctionnalité d\'édition à implémenter')),
-    );
+    UniversalSnackBar.show(context, title: 'Fonctionnalité d\'édition à implémenter');
   }
 
   void _markAsCompleted() async {
@@ -362,17 +358,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         widget.session.isCompleted = true;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Session marquée comme terminée')));
+      UniversalSnackBar.show(context, title: 'Session marquée comme terminée');
 
       // Indiquer à l'écran précédent que des modifications ont été apportées
       Navigator.pop(context, true);
     } catch (e) {
       Log.d("SessionDetailsScreen: Erreur lors du marquage de la session: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la mise à jour de la session')),
-      );
+      UniversalSnackBar.show(context, title: 'Erreur lors de la mise à jour de la session');
     }
   }
 }

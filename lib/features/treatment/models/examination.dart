@@ -2,6 +2,7 @@
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
 import 'package:suivi_cancer/features/treatment/models/document.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 enum ExaminationType {
   Consult,
@@ -106,6 +107,7 @@ class Examination {
   }
 
   factory Examination.fromMap(Map<String, dynamic> map) {
+    // Log.d('map:[${map.toString()}]');
     return Examination(
       id: map['id'],
       type: ExaminationType.values[map['type']],
