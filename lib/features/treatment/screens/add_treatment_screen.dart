@@ -59,8 +59,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   ); // Par défaut 30 jours après le début de la radiothérapie
 
   List<Establishment> _establishments = [];
-  List<PS> _selectedHealthProfessionals = [];
-  List<PS> _healthProfessionals = [];
+  List<HealthProfessional> _selectedHealthProfessionals = [];
+  List<HealthProfessional> _healthProfessionals = [];
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -89,7 +89,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
 
       // Charger les professionnels de santé au lieu des médecins
       final psMaps = await dbHelper.getPS();
-      _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+      _healthProfessionals = psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
 
       // Définir l'établissement par défaut
       if (_establishments.isNotEmpty) {
@@ -628,8 +628,8 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   }
 
   Widget _buildHealthProfessionalMultiSelect(
-      List<PS> selectedHealthProfessionals,
-      Function(List<PS>) onChanged,
+      List<HealthProfessional> selectedHealthProfessionals,
+      Function(List<HealthProfessional>) onChanged,
       ) {
     return Card(
       margin: EdgeInsets.only(bottom: 8),
@@ -666,7 +666,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
               ),
             // Dropdown pour ajouter un professionnel de santé
             if (_healthProfessionals.isNotEmpty)
-              DropdownButton<PS>(
+              DropdownButton<HealthProfessional>(
                 isExpanded: true,
                 hint: Text('Ajouter un professionnel de santé'),
                 items: _healthProfessionals
@@ -676,12 +676,12 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
                   ),
                 )
                     .map((ps) {
-                  return DropdownMenuItem<PS>(
+                  return DropdownMenuItem<HealthProfessional>(
                     value: ps,
                     child: Text(ps.fullName),
                   );
                 }).toList(),
-                onChanged: (PS? value) {
+                onChanged: (HealthProfessional? value) {
                   if (value != null) {
                     onChanged([...selectedHealthProfessionals, value]);
                   }
@@ -724,7 +724,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
       context,
       MaterialPageRoute(builder: (context) => AddPSScreen()),
     );
-    if (result != null && result is PS) {
+    if (result != null && result is HealthProfessional) {
       // Recharger les données
       await _loadData();
       // Ajouter le professionnel de santé à la liste des professionnels sélectionnés

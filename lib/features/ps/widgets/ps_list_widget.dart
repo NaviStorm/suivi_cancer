@@ -14,7 +14,7 @@ class PSListWidget extends StatefulWidget {
 }
 
 class PSListWidgetState extends State<PSListWidget> {
-  List<PS> _professionals = [];
+  List<HealthProfessional> _professionals = [];
   bool _isLoading = true;
 
   @override
@@ -35,7 +35,7 @@ class PSListWidgetState extends State<PSListWidget> {
 
       if (!mounted) return;
       setState(() {
-        _professionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        _professionals = psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
         _isLoading = false;
       });
 
@@ -59,7 +59,7 @@ class PSListWidgetState extends State<PSListWidget> {
     }
   }
 
-  void _editPS(PS professional) async {
+  void _editPS(HealthProfessional professional) async {
     final psMap = professional.toMap();
 
     final result = await Navigator.push(
@@ -251,7 +251,7 @@ class PSListWidgetState extends State<PSListWidget> {
     }
   }
 
-  void _confirmDelete(BuildContext context, PS professional) {
+  void _confirmDelete(BuildContext context, HealthProfessional professional) {
     showDialog(
       context: context,
       builder:

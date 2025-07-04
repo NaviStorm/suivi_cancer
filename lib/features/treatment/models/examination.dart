@@ -32,8 +32,8 @@ class Examination {
   final String? title; // Titre de l'examen
   final DateTime dateTime;
   final Establishment establishment;
-  final PS? prescripteur; // Remplacer doctor par ps
-  final PS? executant;
+  final HealthProfessional? prescripteur; // Remplacer doctor par ps
+  final HealthProfessional? executant;
   final List<Document> documents;
   final String? notes;
   final bool isCompleted;
@@ -63,8 +63,8 @@ class Examination {
     String? title,
     DateTime? dateTime,
     Establishment? establishment,
-    PS? prescripteur,
-    PS? executant,
+    HealthProfessional? prescripteur,
+    HealthProfessional? executant,
     List<Document>? documents,
     String? notes,
     bool? isCompleted,
@@ -120,8 +120,8 @@ class Examination {
         id: map['establishmentId'] ?? 'unknown',
         name: 'Établissement inconnu',
       ),
-      prescripteur: map['prescripteur'] != null ? PS.fromMap(map['prescripteur']) : null,
-      executant: map['executant'] != null ? PS.fromMap(map['executant']) : null,
+      prescripteur: map['prescripteur'] != null ? HealthProfessional.fromMap(map['prescripteur']) : null,
+      executant: map['executant'] != null ? HealthProfessional.fromMap(map['executant']) : null,
       documents: map['documents'] != null
           ? List<Document>.from(map['documents'].map((x) => Document.fromMap(x)))
           : [],

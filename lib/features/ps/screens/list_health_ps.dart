@@ -17,7 +17,7 @@ class HealthProfessionalsListScreen extends StatefulWidget {
 
 class _HealthProfessionalsListScreenState
     extends State<HealthProfessionalsListScreen> {
-  List<PS> _professionals = [];
+  List<HealthProfessional> _professionals = [];
   bool _isLoading = true;
   bool _hasMadeChanges = false;
 
@@ -32,7 +32,7 @@ class _HealthProfessionalsListScreenState
     final psMaps = await DatabaseHelper().getPS();
     if (mounted) {
       setState(() {
-        _professionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        _professionals = psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
         _isLoading = false;
       });
     }
@@ -49,7 +49,7 @@ class _HealthProfessionalsListScreenState
     }
   }
 
-  void _navigateToEditPS(PS ps) async {
+  void _navigateToEditPS(HealthProfessional ps) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddPSScreen(ps: ps.toMap())),
@@ -87,7 +87,7 @@ class _HealthProfessionalsListScreenState
     }
   }
 
-  void _confirmDelete(BuildContext context, PS ps) async {
+  void _confirmDelete(BuildContext context, HealthProfessional ps) async {
     final confirm = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -154,7 +154,7 @@ class _HealthProfessionalsListScreenState
     );
   }
 
-  Widget _buildPSListItem(PS professional) {
+  Widget _buildPSListItem(HealthProfessional professional) {
     final phoneContact = professional.contacts?.firstWhere((c) => c.type == 0, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
     final emailContact = professional.contacts?.firstWhere((c) => c.type == 1, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
 

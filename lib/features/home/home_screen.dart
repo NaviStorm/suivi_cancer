@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
         id: treatmentId,
         label: treatmentMap['label'],
         startDate: DateTime.parse(treatmentMap['startDate']),
-        healthProfessionals: psMaps.map((map) => PS.fromMap(map)).toList(),
+        healthProfessionals: psMaps.map((map) => HealthProfessional.fromMap(map)).toList(),
         establishments:
             establishmentsMaps
                 .map((map) => Establishment.fromMap(map))
@@ -183,9 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return loadedData;
   }
 
-  Future<List<PS>> _loadHealthProfessionals(DatabaseHelper dbHelper) async {
+  Future<List<HealthProfessional>> _loadHealthProfessionals(DatabaseHelper dbHelper) async {
     final psMaps = await dbHelper.getPS();
-    return psMaps.map((map) => PS.fromMap(map)).toList();
+    return psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
   }
 
   Future<List<Establishment>> _loadEstablishments(
@@ -351,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  void _showPSActions(BuildContext context, PS ps) {
+  void _showPSActions(BuildContext context, HealthProfessional ps) {
     showCupertinoModalPopup(
       context: context,
       builder:
@@ -492,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemBuilder: (data) => _buildTreatmentCard(data),
                           onAdd: _navigateToAddTreatment,
                         ),
-                        _buildSection<PS>(
+                        _buildSection<HealthProfessional>(
                           title: "Professionnels",
                           data: _dashboardData['healthProfessionals'],
                           itemBuilder: (ps) => _buildPSListItem(ps),
@@ -903,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPSListItem(PS professional) {
+  Widget _buildPSListItem(HealthProfessional professional) {
     final phoneContact = professional.contacts?.firstWhere(
       (c) => c.type == 0,
       orElse:

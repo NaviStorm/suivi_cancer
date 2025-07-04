@@ -7,7 +7,7 @@ class Treatment {
   final String id;
   final String label;
   final DateTime startDate;
-  final List<PS> healthProfessionals;
+  final List<HealthProfessional> healthProfessionals;
   final List<Establishment> establishments;
   final List<Cycle> cycles;
 

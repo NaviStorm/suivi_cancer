@@ -66,9 +66,9 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
   Establishment? _selectedEstablishment;
   List<Establishment> _establishments = [];
-  PS? _selectedPrescripteur;
-  PS? _selectedExecutant; // Pour le médecin qui fera l'examen
-  List<PS> _healthProfessionals = [];
+  HealthProfessional? _selectedPrescripteur;
+  HealthProfessional? _selectedExecutant; // Pour le médecin qui fera l'examen
+  List<HealthProfessional> _healthProfessionals = [];
 
   // Variables pour les sessions et le type de lien
   String? _selectedSessionId;
@@ -142,7 +142,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
 
       // Charger les médecins
       final psMaps = await dbHelper.getPS();
-      _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+      _healthProfessionals = psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
 
       // Charger les séances du cycle
       if (_linkType == ExaminationLinkType.singleSession ||
@@ -786,7 +786,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   }
 
   Widget _buildPrescripteurSelector() {
-    return FormField<PS>(
+    return FormField<HealthProfessional>(
         initialValue: _selectedPrescripteur,
         validator: (value) {
           if (value == null) {
@@ -819,7 +819,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
                 ],
               ),
               SizedBox(height: 8),
-              _buildPickerButton<PS?>(
+              _buildPickerButton<HealthProfessional?>(
                 value: _selectedPrescripteur,
                 items: _healthProfessionals,
                 itemTextBuilder: (ps) => ps?.fullName ?? 'Sélectionner...',
@@ -851,7 +851,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
-        _buildPickerButton<PS?>(
+        _buildPickerButton<HealthProfessional?>(
           value: _selectedExecutant,
           items: [null, ..._healthProfessionals], // Add null for "Aucun"
           itemTextBuilder: (ps) => ps?.fullName ?? 'Aucun',
@@ -1140,7 +1140,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       context,
       CupertinoPageRoute(builder: (context) => AddPSScreen()),
     );
-    if (result != null && result is PS) {
+    if (result != null && result is HealthProfessional) {
       setState(() {
         _healthProfessionals.add(result);
         _selectedPrescripteur = result;
@@ -1149,7 +1149,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
       final dbHelper = DatabaseHelper();
       final psMaps = await dbHelper.getPS();
       setState(() {
-        _healthProfessionals = psMaps.map((map) => PS.fromMap(map)).toList();
+        _healthProfessionals = psMaps.map((map) => HealthProfessional.fromMap(map)).toList();
         if (_healthProfessionals.isNotEmpty) {
           _selectedPrescripteur = _healthProfessionals.last;
         }

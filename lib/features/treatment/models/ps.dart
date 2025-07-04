@@ -148,7 +148,7 @@ class HealthProfessionalEstablishment {
   }
 }
 
-class PS {
+class HealthProfessional {
   final String id;
   final String firstName;
   final String lastName;
@@ -160,7 +160,7 @@ class PS {
   final List<Map<String, dynamic>>? establishments;
   final Map<String, dynamic>? category;
 
-  PS({
+  HealthProfessional({
     required this.id,
     required this.firstName,
     required this.lastName,
@@ -173,8 +173,8 @@ class PS {
     this.category,
   });
 
-  factory PS.fromMap(Map<String, dynamic> map) {
-    return PS(
+  factory HealthProfessional.fromMap(Map<String, dynamic> map) {
+    return HealthProfessional(
       id: map['id'],
       firstName: map['firstName'],
       lastName: map['lastName'],
