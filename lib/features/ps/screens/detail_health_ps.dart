@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+// lib/features/ps/screens/detail_health_ps.dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons; // Uniquement pour location_on si besoin
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
-import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
 class HealthProfessionalDetailScreen extends StatefulWidget {
@@ -17,341 +18,261 @@ class HealthProfessionalDetailScreen extends StatefulWidget {
       _HealthProfessionalDetailScreenState();
 }
 
-class _HealthProfessionalDetailScreenState
-    extends State<HealthProfessionalDetailScreen> {
+class _HealthProfessionalDetailScreenState extends State<HealthProfessionalDetailScreen> {
   Map<String, dynamic>? _professional;
   bool _isLoading = true;
 
   @override
   void initState() {
-    Log.d('Début');
     super.initState();
     _loadProfessional();
   }
 
   Future<void> _loadProfessional() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final professional = await DatabaseHelper().getHealthProfessional(
-      widget.professionalId,
-    );
-
-    setState(() {
-      _professional = professional;
-      _isLoading = false;
-    });
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    final professional = await DatabaseHelper().getHealthProfessional(widget.professionalId);
+    if (mounted) {
+      setState(() {
+        _professional = professional;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _deleteProfessional() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Confirmer la suppression'),
-            content: Text(
-              'Voulez-vous vraiment supprimer ce professionnel de santé ? Cette action est irréversible.',
-            ),
-            actions: [
-              TextButton(
-                child: Text('Annuler'),
-                onPressed: () => Navigator.pop(context, false),
-              ),
-              TextButton(
-                child: Text('Supprimer', style: TextStyle(color: Colors.red)),
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: const Text(
+          'Voulez-vous vraiment supprimer ce professionnel de santé ? Cette action est irréversible.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Annuler'),
+            onPressed: () => Navigator.pop(context, false),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Supprimer'),
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
-      final result = await DatabaseHelper().deleteHealthProfessional(
-        widget.professionalId,
-      );
-
-      if (result > 0) {
-        Navigator.pop(
-          context,
-          true,
-        ); // Retourner à l'écran précédent avec résultat
-      } else {
-        UniversalSnackBar.show(context, title: 'Erreur lors de la suppression');
+      final result = await DatabaseHelper().deleteHealthProfessional(widget.professionalId);
+      if (mounted) {
+        if (result > 0) {
+          Navigator.pop(context, true); // Retourner à l'écran précédent avec résultat
+        } else {
+          UniversalSnackBar.show(context, title: 'Erreur lors de la suppression');
+        }
       }
+    }
+  }
+
+  Future<void> _navigateToEdit() async {
+    final result = await Navigator.push<bool>(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => AddHealthProfessionalScreen(ps: _professional),
+      ),
+    );
+    if (result == true) {
+      _loadProfessional();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(
-          _isLoading
-              ? 'Chargement...'
-              : '${_professional!['firstName']} ${_professional!['lastName']}',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        iconTheme: IconThemeData(color: Colors.blue),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit, color: Colors.blue),
-            onPressed:
-                _isLoading
-                    ? null
-                    : () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddHealthProfessionalScreen(ps: _professional),
-                        ),
-                      );
-
-                      if (result == true) {
-                        _loadProfessional();
-                      }
-                    },
-          ),
-          IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: _isLoading ? null : _deleteProfessional,
-          ),
-        ],
-      ),
-      body:
-          _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // En-tête avec informations principales
-                    Container(
-                      padding: EdgeInsets.all(16),
-                      color: Colors.white,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Colors.blue[100],
-                                child: Text(
-                                  '${_professional!['firstName'][0]}${_professional!['lastName'][0]}',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    color: Colors.blue[800],
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${_professional!['firstName']} ${_professional!['lastName']}',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      _professional!['category'] != null
-                                          ? _professional!['category']['name']
-                                          : 'Catégorie inconnue',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_professional!['specialtyDetails'] != null &&
-                              _professional!['specialtyDetails']
-                                  .toString()
-                                  .isNotEmpty)
-                            Padding(
-                              padding: EdgeInsets.only(top: 16),
-                              child: Text(
-                                _professional!['specialtyDetails'],
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(height: 16),
-
-                    // Section Contacts
-                    if (_professional!['contacts'] != null &&
-                        (_professional!['contacts'] as List).isNotEmpty)
-                      _buildSection(
-                        title: 'Contacts',
-                        children:
-                            (_professional!['contacts'] as List).map((contact) {
-                              IconData icon;
-                              String label = contact['label'] ?? '';
-
-                              switch (contact['type']) {
-                                case 0:
-                                  icon = Icons.phone;
-                                  break;
-                                case 1:
-                                  icon = Icons.email;
-                                  break;
-                                case 2:
-                                  icon = Icons.print;
-                                  break;
-                                default:
-                                  icon = Icons.contact_phone;
-                              }
-
-                              return ListTile(
-                                leading: Icon(icon, color: Colors.blue),
-                                title: Text(contact['value']),
-                                subtitle: label.isNotEmpty ? Text(label) : null,
-                                trailing:
-                                    contact['isPrimary'] == 1
-                                        ? Chip(
-                                          label: Text('Principal'),
-                                          backgroundColor: Colors.blue[50],
-                                          labelStyle: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blue,
-                                          ),
-                                        )
-                                        : null,
-                              );
-                            }).toList(),
-                      ),
-
-                    SizedBox(height: 16),
-
-                    // Section Adresses
-                    if (_professional!['addresses'] != null &&
-                        (_professional!['addresses'] as List).isNotEmpty)
-                      _buildSection(
-                        title: 'Adresses',
-                        children:
-                            (_professional!['addresses'] as List).map((
-                              address,
-                            ) {
-                              String formattedAddress = [
-                                    address['street'],
-                                    '${address['postalCode']} ${address['city']}',
-                                    address['country'],
-                                  ]
-                                  .where(
-                                    (s) => s != null && s.toString().isNotEmpty,
-                                  )
-                                  .join('\n');
-
-                              return ListTile(
-                                leading: Icon(
-                                  Icons.location_on,
-                                  color: Colors.blue,
-                                ),
-                                title: Text(formattedAddress),
-                                subtitle:
-                                    address['label'] != null
-                                        ? Text(address['label'])
-                                        : null,
-                                trailing:
-                                    address['isPrimary'] == 1
-                                        ? Chip(
-                                          label: Text('Principal'),
-                                          backgroundColor: Colors.blue[50],
-                                          labelStyle: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blue,
-                                          ),
-                                        )
-                                        : null,
-                              );
-                            }).toList(),
-                      ),
-
-                    SizedBox(height: 16),
-
-                    // Section Établissements
-                    if (_professional!['establishments'] != null &&
-                        (_professional!['establishments'] as List).isNotEmpty)
-                      _buildSection(
-                        title: 'Établissements',
-                        children:
-                            (_professional!['establishments'] as List).map((
-                              establishment,
-                            ) {
-                              return ListTile(
-                                leading: Icon(
-                                  Icons.business,
-                                  color: Colors.blue,
-                                ),
-                                title: Text(establishment['name']),
-                                subtitle:
-                                    establishment['role'] != null
-                                        ? Text(establishment['role'])
-                                        : null,
-                              );
-                            }).toList(),
-                      ),
-
-                    SizedBox(height: 16),
-
-                    // Section Notes
-                    if (_professional!['notes'] != null &&
-                        _professional!['notes'].toString().isNotEmpty)
-                      _buildSection(
-                        title: 'Notes',
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(_professional!['notes']),
-                          ),
-                        ],
-                      ),
-
-                    SizedBox(height: 32),
-                  ],
-                ),
-              ),
+    return CupertinoPageScaffold(
+      child: _isLoading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _professional == null
+          ? const Center(child: Text('Professionnel non trouvé.'))
+          : _buildDetailView(),
     );
   }
 
-  Widget _buildSection({
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDetailView() {
+    return CustomScrollView(
+      slivers: [
+        CupertinoSliverNavigationBar(
+          largeTitle: Text(
+            '${_professional!['firstName']} ${_professional!['lastName']}',
+          ),
+          previousPageTitle: 'Professionnels',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _navigateToEdit,
+                child: const Icon(CupertinoIcons.pencil),
+              ),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _deleteProfessional,
+                child: const Icon(CupertinoIcons.trash, color: CupertinoColors.systemRed),
+              ),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              _buildHeader(),
+              if ((_professional!['contacts'] as List?)?.isNotEmpty ?? false)
+                _buildContactSection(),
+              if ((_professional!['addresses'] as List?)?.isNotEmpty ?? false)
+                _buildAddressSection(),
+              if ((_professional!['establishments'] as List?)?.isNotEmpty ?? false)
+                _buildEstablishmentSection(),
+              if ((_professional!['notes'] as String?)?.isNotEmpty ?? false)
+                _buildNotesSection(),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    final String firstName = _professional!['firstName'] as String;
+    final String lastName = _professional!['lastName'] as String;
+    final String categoryName = (_professional!['category'] as Map?)?['name'] as String? ?? 'Catégorie inconnue';
+    final String? specialty = _professional!['specialtyDetails'] as String?;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
         children: [
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: CupertinoColors.systemGrey5.resolveFrom(context),
+            ),
+            child: Center(
+              child: Text(
+                '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}',
+                style: TextStyle(
+                  fontSize: 28,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                ),
               ),
             ),
           ),
-          Divider(height: 1),
-          ...children,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$firstName $lastName',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  categoryName,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                  ),
+                ),
+                if (specialty != null && specialty.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    specialty,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildContactSection() {
+    final contacts = _professional!['contacts'] as List;
+    return CupertinoFormSection.insetGrouped(
+      header: const Text('CONTACTS'),
+      children: contacts.map((contact) {
+        IconData icon;
+        switch (contact['type'] as int) {
+          case 0: icon = CupertinoIcons.phone_fill; break;
+          case 1: icon = CupertinoIcons.mail_solid; break;
+          case 2: icon = CupertinoIcons.printer_fill; break;
+          default: icon = CupertinoIcons.profile_circled;
+        }
+        return CupertinoListTile(
+          leading: Icon(icon, color: CupertinoColors.activeBlue),
+          title: Text(contact['value'] as String),
+          subtitle: contact['label'] != null ? Text(contact['label'] as String) : null,
+          trailing: contact['isPrimary'] == 1 ? const Icon(CupertinoIcons.star_fill, color: CupertinoColors.systemYellow, size: 18) : null,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAddressSection() {
+    final addresses = _professional!['addresses'] as List;
+    return CupertinoFormSection.insetGrouped(
+      header: const Text('ADRESSES'),
+      children: addresses.map((address) {
+        String formattedAddress = [
+          address['street'],
+          '${address['postalCode'] ?? ''} ${address['city'] ?? ''}'.trim(),
+          address['country'],
+        ].where((s) => s != null && s.isNotEmpty).join(', ');
+        return CupertinoListTile(
+          leading: const Icon(Icons.location_on, color: CupertinoColors.activeBlue),
+          title: Text(formattedAddress),
+          subtitle: address['label'] != null ? Text(address['label'] as String) : null,
+          trailing: address['isPrimary'] == 1 ? const Icon(CupertinoIcons.star_fill, color: CupertinoColors.systemYellow, size: 18) : null,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEstablishmentSection() {
+    final establishments = _professional!['establishments'] as List;
+    return CupertinoFormSection.insetGrouped(
+      header: const Text('ÉTABLISSEMENTS'),
+      children: establishments.map((establishment) {
+        return CupertinoListTile(
+          leading: const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.activeBlue),
+          title: Text(establishment['name'] as String),
+          subtitle: establishment['role'] != null ? Text(establishment['role'] as String) : null,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildNotesSection() {
+    return CupertinoFormSection.insetGrouped(
+      header: const Text('NOTES'),
+      children: [
+        CupertinoListTile(
+          title: Text(
+            _professional!['notes'] as String,
+            style: TextStyle(color: CupertinoColors.label.resolveFrom(context)),
+          ),
+        ),
+      ],
     );
   }
 }

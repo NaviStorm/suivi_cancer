@@ -1,8 +1,8 @@
+// lib/features/ps/screens/contact.dart
 import 'package:uuid/uuid.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-// Formulaire de contact (modal bottom sheet)
+// Formulaire de contact (modal)
 class ContactFormSheet extends StatefulWidget {
   final Map<String, dynamic>? contact;
   final Function(Map<String, dynamic>) onSave;
@@ -24,7 +24,6 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
   @override
   void initState() {
     super.initState();
-
     if (widget.contact != null) {
       _valueController.text = widget.contact!['value'];
       _labelController.text = widget.contact!['label'] ?? '';
@@ -39,11 +38,11 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
         'id': widget.contact != null ? widget.contact!['id'] : Uuid().v4(),
         'type': _contactType,
         'value': _valueController.text,
-        'label': _labelController.text,
+        'label': _labelController.text.isNotEmpty ? _labelController.text : null,
         'isPrimary': _isPrimary ? 1 : 0,
       };
-
       widget.onSave(contact);
+      Navigator.pop(context);
     }
   }
 
@@ -53,87 +52,77 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
       navigationBar: CupertinoNavigationBar(
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: Text('Annuler'),
+          child: const Text('Annuler'),
           onPressed: () => Navigator.pop(context),
         ),
-        middle: Text(
-          widget.contact != null ? 'Modifier le contact' : 'Ajouter un contact',
-        ),
+        middle: Text(widget.contact != null ? 'Modifier le contact' : 'Ajouter un contact'),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _save,
-          child: Text('Enregistrer'),
+          child: const Text('Enregistrer'),
         ),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CupertinoSegmentedControl(
-                  children: {
-                    0: Text('Téléphone'),
-                    1: Text('Email'),
-                    2: Text('Fax'),
-                  },
-                  groupValue: _contactType,
-                  onValueChanged: (value) {
-                    setState(() {
-                      _contactType = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _valueController,
-                  decoration: InputDecoration(
-                    labelText:
-                        _contactType == 0
-                            ? 'Numéro de téléphone'
-                            : _contactType == 1
-                            ? 'Adresse email'
-                            : 'Numéro de fax',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType:
-                      _contactType == 1
-                          ? TextInputType.emailAddress
-                          : TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ce champ est requis';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _labelController,
-                  decoration: InputDecoration(
-                    labelText: 'Étiquette (ex: Professionnel, Personnel)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _isPrimary,
-                      onChanged: (value) {
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              CupertinoFormSection.insetGrouped(
+                header: const Text('Type de contact'),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: CupertinoSegmentedControl<int>(
+                      children: const {
+                        0: Padding(padding: EdgeInsets.all(8), child: Text('Téléphone')),
+                        1: Padding(padding: EdgeInsets.all(8), child: Text('Email')),
+                        2: Padding(padding: EdgeInsets.all(8), child: Text('Fax')),
+                      },
+                      groupValue: _contactType,
+                      onValueChanged: (value) {
                         setState(() {
-                          _isPrimary = value ?? false;
+                          _contactType = value;
                         });
                       },
                     ),
-                    Text('Contact principal'),
-                  ],
-                ),
-              ],
-            ),
+                  )
+                ],
+              ),
+              CupertinoFormSection.insetGrouped(
+                header: const Text('Informations'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    controller: _valueController,
+                    prefix: Text(_contactType == 0 ? 'Numéro' : _contactType == 1 ? 'Email' : 'Fax'),
+                    placeholder: 'Saisir la valeur',
+                    keyboardType: _contactType == 1 ? TextInputType.emailAddress : TextInputType.phone,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ce champ est requis';
+                      }
+                      return null;
+                    },
+                  ),
+                  CupertinoTextFormFieldRow(
+                    controller: _labelController,
+                    prefix: const Text('Étiquette'),
+                    placeholder: 'Ex: Professionnel, Domicile',
+                  ),
+                  CupertinoListTile(
+                    title: const Text('Contact principal'),
+                    trailing: CupertinoSwitch(
+                      value: _isPrimary,
+                      onChanged: (value) {
+                        setState(() {
+                          _isPrimary = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -141,7 +130,7 @@ class _ContactFormSheetState extends State<ContactFormSheet> {
   }
 }
 
-// Formulaire d'adresse (modal bottom sheet)
+// Formulaire d'adresse (modal)
 class AddressFormSheet extends StatefulWidget {
   final Map<String, dynamic>? address;
   final Function(Map<String, dynamic>) onSave;
@@ -165,7 +154,6 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
   @override
   void initState() {
     super.initState();
-
     if (widget.address != null) {
       _streetController.text = widget.address!['street'] ?? '';
       _cityController.text = widget.address!['city'] ?? '';
@@ -182,15 +170,15 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
     if (_formKey.currentState!.validate()) {
       final address = {
         'id': widget.address != null ? widget.address!['id'] : Uuid().v4(),
-        'street': _streetController.text,
+        'street': _streetController.text.isNotEmpty ? _streetController.text : null,
         'city': _cityController.text,
-        'postalCode': _postalCodeController.text,
-        'country': _countryController.text,
-        'label': _labelController.text,
+        'postalCode': _postalCodeController.text.isNotEmpty ? _postalCodeController.text : null,
+        'country': _countryController.text.isNotEmpty ? _countryController.text : 'France',
+        'label': _labelController.text.isNotEmpty ? _labelController.text : null,
         'isPrimary': _isPrimary ? 1 : 0,
       };
-
       widget.onSave(address);
+      Navigator.pop(context);
     }
   }
 
@@ -200,100 +188,71 @@ class _AddressFormSheetState extends State<AddressFormSheet> {
       navigationBar: CupertinoNavigationBar(
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
-          child: Text('Annuler'),
+          child: const Text('Annuler'),
           onPressed: () => Navigator.pop(context),
         ),
-        middle: Text(
-          widget.address != null
-              ? 'Modifier l\'adresse'
-              : 'Ajouter une adresse',
-        ),
+        middle: Text(widget.address != null ? 'Modifier l\'adresse' : 'Ajouter une adresse'),
         trailing: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: _save,
-          child: Text('Enregistrer'),
+          child: const Text('Enregistrer'),
         ),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _streetController,
-                  decoration: InputDecoration(
-                    labelText: 'Rue',
-                    border: OutlineInputBorder(),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              CupertinoFormSection.insetGrouped(
+                header: const Text('Détails de l\'adresse'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    controller: _streetController,
+                    prefix: const Text('Rue'),
+                    placeholder: '123 Rue de la République',
                   ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: TextFormField(
-                        controller: _postalCodeController,
-                        decoration: InputDecoration(
-                          labelText: 'Code postal',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _cityController,
-                        decoration: InputDecoration(
-                          labelText: 'Ville',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Ce champ est requis';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _countryController,
-                  decoration: InputDecoration(
-                    labelText: 'Pays',
-                    border: OutlineInputBorder(),
+                  CupertinoTextFormFieldRow(
+                    controller: _postalCodeController,
+                    prefix: const Text('Code Postal'),
+                    placeholder: '75001',
+                    keyboardType: TextInputType.number,
                   ),
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: _labelController,
-                  decoration: InputDecoration(
-                    labelText: 'Étiquette (ex: Cabinet principal)',
-                    border: OutlineInputBorder(),
+                  CupertinoTextFormFieldRow(
+                    controller: _cityController,
+                    prefix: const Text('Ville'),
+                    placeholder: 'Paris',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'La ville est requise';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Checkbox(
+                  CupertinoTextFormFieldRow(
+                    controller: _countryController,
+                    prefix: const Text('Pays'),
+                    placeholder: 'France',
+                  ),
+                  CupertinoTextFormFieldRow(
+                    controller: _labelController,
+                    prefix: const Text('Étiquette'),
+                    placeholder: 'Ex: Cabinet Principal',
+                  ),
+                  CupertinoListTile(
+                    title: const Text('Adresse principale'),
+                    trailing: CupertinoSwitch(
                       value: _isPrimary,
                       onChanged: (value) {
                         setState(() {
-                          _isPrimary = value ?? false;
+                          _isPrimary = value;
                         });
                       },
                     ),
-                    Text('Adresse principale'),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
