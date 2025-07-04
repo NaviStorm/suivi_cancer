@@ -1,11 +1,12 @@
-// ===== $HOME/suivi_cancer/lib/features/ps/screens/list_health_ps.dart =====
-import 'package:flutter/material.dart';
+// lib/features/ps/screens/list_health_ps.dart
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_slidable/flutter_slidable.dart'; // NOUVEAU: Import du package
+import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/features/ps/screens/edit_ps_creen.dart';
 import 'package:suivi_cancer/features/ps/screens/detail_health_ps.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/treatment/models/ps.dart';
-import 'package:url_launcher/url_launcher.dart'; // Pour les actions téléphone/email
+import 'package:suivi_cancer/utils/logger.dart';
 
 class HealthProfessionalsListScreen extends StatefulWidget {
   const HealthProfessionalsListScreen({super.key});
@@ -23,6 +24,7 @@ class _HealthProfessionalsListScreenState
 
   @override
   void initState() {
+    Log.d('Ecran HealthProfessionalsListScreen initialisé.');
     super.initState();
     _loadProfessionals();
   }
@@ -41,7 +43,7 @@ class _HealthProfessionalsListScreenState
   void _navigateToAddPS() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddHealthProfessionalScreen()),
+      CupertinoPageRoute(builder: (context) => const AddHealthProfessionalScreen()),
     );
     if (result == true) {
       _loadProfessionals();
@@ -52,7 +54,7 @@ class _HealthProfessionalsListScreenState
   void _navigateToEditPS(HealthProfessional ps) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen(ps: ps.toMap())),
+      CupertinoPageRoute(builder: (context) => AddHealthProfessionalScreen(ps: ps.toMap())),
     );
     if (result == true) {
       _loadProfessionals();
@@ -63,7 +65,7 @@ class _HealthProfessionalsListScreenState
   void _navigateToPSDetails(String psId) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)),
+      CupertinoPageRoute(builder: (context) => HealthProfessionalDetailScreen(professionalId: psId)),
     );
     if (result == true) {
       _loadProfessionals();
@@ -73,6 +75,7 @@ class _HealthProfessionalsListScreenState
 
   void _makePhoneCall(String? phoneNumber) async {
     if (phoneNumber == null || phoneNumber.isEmpty) return;
+    Log.d('Lancement de l\'appel vers le numéro : $phoneNumber');
     final Uri uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -81,10 +84,71 @@ class _HealthProfessionalsListScreenState
 
   void _sendEmail(String? email) async {
     if (email == null || email.isEmpty) return;
+    Log.d('Lancement de l\'email vers l\'adresse : $email');
     final Uri uri = Uri.parse('mailto:$email');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  void _handlePhoneAction(HealthProfessional professional) {
+    final phoneContacts = professional.contacts?.where((c) => c.type == 0).toList() ?? [];
+    if (phoneContacts.isEmpty) return;
+    if (phoneContacts.length == 1) {
+      _makePhoneCall(phoneContacts.first.value);
+      return;
+    }
+    final primaryContacts = phoneContacts.where((c) => c.isPrimary == 1).toList();
+    if (primaryContacts.length == 1) {
+      _makePhoneCall(primaryContacts.first.value);
+    } else {
+      _showContactActionSheet('Choisir un numéro', phoneContacts, (contact) {
+        _makePhoneCall(contact.value);
+      });
+    }
+  }
+
+  void _handleEmailAction(HealthProfessional professional) {
+    final emailContacts = professional.contacts?.where((c) => c.type == 1).toList() ?? [];
+    if (emailContacts.isEmpty) return;
+    if (emailContacts.length == 1) {
+      _sendEmail(emailContacts.first.value);
+      return;
+    }
+    final primaryContacts = emailContacts.where((c) => c.isPrimary == 1).toList();
+    if (primaryContacts.length == 1) {
+      _sendEmail(primaryContacts.first.value);
+    } else {
+      _showContactActionSheet('Choisir une adresse email', emailContacts, (contact) {
+        _sendEmail(contact.value);
+      });
+    }
+  }
+
+  void _showContactActionSheet(String title, List<HealthProfessionalContact> contacts, Function(HealthProfessionalContact) onSelected) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text(title),
+        actions: contacts.map((contact) {
+          String text = contact.value;
+          if (contact.label != null && contact.label!.isNotEmpty) {
+            text = '${contact.label}: ${contact.value}';
+          }
+          return CupertinoActionSheetAction(
+            child: Text(text),
+            onPressed: () {
+              Navigator.pop(context);
+              onSelected(contact);
+            },
+          );
+        }).toList(),
+        cancelButton: CupertinoActionSheetAction(
+          child: const Text('Annuler'),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+    );
   }
 
   void _confirmDelete(BuildContext context, HealthProfessional ps) async {
@@ -110,13 +174,9 @@ class _HealthProfessionalsListScreenState
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // 1. On DÉSACTIVE le pop automatique pour prendre le contrôle.
       canPop: false,
-      onPopInvokedWithResult: (bool didPop, dynamic result) {
-        // 3. `didPop` sera `false` car on a bloqué le pop.
+      onPopInvoked: (bool didPop) {
         if (didPop) return;
-
-        // 4. On exécute le pop MANUELLEMENT, avec notre valeur de retour.
         Navigator.pop(context, _hasMadeChanges);
       },
       child: CupertinoPageScaffold(
@@ -136,16 +196,14 @@ class _HealthProfessionalsListScreenState
                 ? const SliverFillRemaining(child: Center(child: CupertinoActivityIndicator()))
                 : _professionals.isEmpty
                 ? SliverFillRemaining(child: _buildEmptyState())
-                : SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    final professional = _professionals[index];
-                    return _buildPSListItem(professional);
-                  },
-                  childCount: _professionals.length,
-                ),
+                : SliverList( // MODIFIÉ: Utilisation de SliverList au lieu de SliverPadding + SliverList
+              delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                  final professional = _professionals[index];
+                  // NOUVEAU: Chaque item est maintenant un Slidable
+                  return _buildSlidableProfessionalTile(professional);
+                },
+                childCount: _professionals.length,
               ),
             ),
           ],
@@ -154,79 +212,101 @@ class _HealthProfessionalsListScreenState
     );
   }
 
-  Widget _buildPSListItem(HealthProfessional professional) {
-    final phoneContact = professional.contacts?.firstWhere((c) => c.type == 0, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
-    final emailContact = professional.contacts?.firstWhere((c) => c.type == 1, orElse: () => HealthProfessionalContact(id: '', healthProfessionalId: '', type: -1, value: ''));
-
-    final hasPhone = phoneContact != null && phoneContact.value.isNotEmpty;
-    final hasEmail = emailContact != null && emailContact.value.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _navigateToPSDetails(professional.id),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: CupertinoColors.systemBlue.withOpacity(0.1),
-                      child: Text(
-                        '${professional.firstName.isNotEmpty ? professional.firstName[0] : ''}${professional.lastName.isNotEmpty ? professional.lastName[0] : ''}',
-                        style: const TextStyle(color: CupertinoColors.systemBlue, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            professional.fullName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              color: CupertinoTheme.of(context).textTheme.textStyle.color, // Forcer la couleur neutre
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            professional.category?['name'] ?? 'Catégorie non spécifiée',
-                            style: const TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    CupertinoButton(child: Icon(CupertinoIcons.phone, size: 22, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(phoneContact?.value)),
-                    CupertinoButton(child: Icon(CupertinoIcons.envelope, size: 22, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(emailContact?.value)),
-                    CupertinoButton(child: const Icon(CupertinoIcons.pencil, size: 22, color: CupertinoColors.systemBlue), onPressed: () => _navigateToEditPS(professional)),
-                    CupertinoButton(child: const Icon(CupertinoIcons.trash, size: 22, color: CupertinoColors.systemRed), onPressed: () => _confirmDelete(context, professional)),
-                  ],
-                ),
-              ],
-            ),
+  // NOUVEAU: Widget pour la carte avec actions de balayage
+  Widget _buildSlidableProfessionalTile(HealthProfessional professional) {
+    return Slidable(
+      key: ValueKey(professional.id),
+      // Actions qui apparaissent à droite
+      endActionPane: ActionPane(
+        motion: const StretchMotion(), // Effet d'étirement
+        children: [
+          SlidableAction(
+            onPressed: (context) => _navigateToEditPS(professional),
+            backgroundColor: CupertinoColors.systemBlue,
+            foregroundColor: CupertinoColors.white,
+            icon: CupertinoIcons.pencil,
+            label: 'Modifier',
           ),
+          SlidableAction(
+            onPressed: (context) => _confirmDelete(context, professional),
+            backgroundColor: CupertinoColors.systemRed,
+            foregroundColor: CupertinoColors.white,
+            icon: CupertinoIcons.trash,
+            label: 'Supprimer',
+          ),
+        ],
+      ),
+      // Le contenu visible de la carte
+      child: _buildProfessionalTileContent(professional),
+    );
+  }
+
+  // MODIFIÉ: Le contenu de la carte est maintenant dans son propre widget
+  Widget _buildProfessionalTileContent(HealthProfessional professional) {
+    final bool hasPhone = professional.contacts?.any((c) => c.type == 0) ?? false;
+    final bool hasEmail = professional.contacts?.any((c) => c.type == 1) ?? false;
+
+    return GestureDetector(
+      onTap: () => _navigateToPSDetails(professional.id),
+      child: Container(
+        color: CupertinoColors.secondarySystemGroupedBackground, // Fond pour la carte
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemBlue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${professional.firstName.isNotEmpty ? professional.firstName[0] : ''}${professional.lastName.isNotEmpty ? professional.lastName[0] : ''}',
+                  style: const TextStyle(color: CupertinoColors.systemBlue, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    professional.fullName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      color: CupertinoColors.label.resolveFrom(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    professional.category?['name'] as String? ?? 'Catégorie non spécifiée',
+                    style: const TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
+                  ),
+                ],
+              ),
+            ),
+            // Actions rapides (téléphone/email) directement sur la carte
+            if (hasPhone)
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: () => _handlePhoneAction(professional),
+                child: const Icon(CupertinoIcons.phone_fill, color: CupertinoColors.activeGreen),
+              ),
+            if (hasEmail)
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: () => _handleEmailAction(professional),
+                child: const Icon(CupertinoIcons.mail_solid, color: CupertinoColors.activeBlue),
+              ),
+          ],
         ),
       ),
     );
   }
+
 
   Widget _buildEmptyState() {
     return Center(

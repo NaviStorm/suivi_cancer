@@ -1,10 +1,11 @@
-// ===== $HOME/suivi_cancer/lib/features/establishment/screens/list_establishment_screen.dart =====
+// lib/features/establishment/screens/list_establishment_screen.dart
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:suivi_cancer/core/storage/database_helper.dart';
 import 'package:suivi_cancer/features/establishment/screens/add_establishment_screen.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:suivi_cancer/utils/logger.dart';
 
 class EstablishmentListScreen extends StatefulWidget {
   const EstablishmentListScreen({super.key});
@@ -20,6 +21,7 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
 
   @override
   void initState() {
+    Log.d('Ecran EstablishmentListScreen initialisé.');
     super.initState();
     _loadEstablishments();
   }
@@ -39,7 +41,7 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
   void _navigateToAddEstablishment() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddEstablishmentScreen()),
+      CupertinoPageRoute(builder: (context) => const AddEstablishmentScreen()),
     );
     if (result == true) {
       _loadEstablishments();
@@ -50,7 +52,7 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
   void _navigateToEditEstablishment(Establishment establishment) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)),
+      CupertinoPageRoute(builder: (context) => AddEstablishmentScreen(establishment: establishment)),
     );
     if (result == true) {
       _loadEstablishments();
@@ -60,6 +62,7 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
 
   void _makePhoneCall(String? phoneNumber) async {
     if (phoneNumber == null || phoneNumber.isEmpty) return;
+    Log.d('Lancement de l\'appel vers le numéro : $phoneNumber');
     final Uri uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -68,6 +71,7 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
 
   void _sendEmail(String? email) async {
     if (email == null || email.isEmpty) return;
+    Log.d('Lancement de l\'email vers l\'adresse : $email');
     final Uri uri = Uri.parse('mailto:$email');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -97,20 +101,11 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // 1. On DÉSACTIVE le pop automatique pour prendre le contrôle.
       canPop: false,
-
-      // 2. On utilise `onPopInvokedWithResult` pour satisfaire le linter de votre version de Flutter.
-      //    Le paramètre `result` ne sera pas utilisé dans notre cas, mais il doit être présent.
-      onPopInvokedWithResult: (bool didPop, dynamic result) {
-        // 3. `didPop` sera `false` car on a bloqué le pop automatique.
-        //    Cette vérification est une sécurité.
+      onPopInvoked: (bool didPop) {
         if (didPop) return;
-
-        // 4. On effectue le pop MANUELLEMENT, en passant notre valeur de retour.
         Navigator.pop(context, _hasMadeChanges);
       },
-
       child: CupertinoPageScaffold(
         backgroundColor: CupertinoColors.systemGroupedBackground,
         child: CustomScrollView(
@@ -128,16 +123,13 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
                 ? const SliverFillRemaining(child: Center(child: CupertinoActivityIndicator()))
                 : _establishments.isEmpty
                 ? SliverFillRemaining(child: _buildEmptyState())
-                : SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    final establishment = _establishments[index];
-                    return _buildEstablishmentListItem(establishment);
-                  },
-                  childCount: _establishments.length,
-                ),
+                : SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                  final establishment = _establishments[index];
+                  return _buildSlidableEstablishmentTile(establishment);
+                },
+                childCount: _establishments.length,
               ),
             ),
           ],
@@ -146,71 +138,83 @@ class _EstablishmentListScreenState extends State<EstablishmentListScreen> {
     );
   }
 
-  Widget _buildEstablishmentListItem(Establishment establishment) {
-    final hasPhone = establishment.phone != null && establishment.phone!.isNotEmpty;
-    final hasEmail = establishment.email != null && establishment.email!.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: CupertinoColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildSlidableEstablishmentTile(Establishment establishment) {
+    return Slidable(
+      key: ValueKey(establishment.id),
+      endActionPane: ActionPane(
+        motion: const StretchMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (context) => _navigateToEditEstablishment(establishment),
+            backgroundColor: CupertinoColors.systemBlue,
+            foregroundColor: CupertinoColors.white,
+            icon: CupertinoIcons.pencil,
+            label: 'Modifier',
+          ),
+          SlidableAction(
+            onPressed: (context) => _confirmDelete(context, establishment),
+            backgroundColor: CupertinoColors.systemRed,
+            foregroundColor: CupertinoColors.white,
+            icon: CupertinoIcons.trash,
+            label: 'Supprimer',
+          ),
+        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _navigateToEditEstablishment(establishment),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.systemGrey, size: 36),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            establishment.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                              color: CupertinoTheme.of(context).textTheme.textStyle.color,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (establishment.address != null && establishment.address!.isNotEmpty)
-                            Text(
-                              '${establishment.address}, ${establishment.city ?? ''}',
-                              style: const TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
+      child: _buildEstablishmentTileContent(establishment),
+    );
+  }
+
+  Widget _buildEstablishmentTileContent(Establishment establishment) {
+    final hasPhone = establishment.phone?.isNotEmpty ?? false;
+    final hasEmail = establishment.email?.isNotEmpty ?? false;
+
+    return GestureDetector(
+      onTap: () => _navigateToEditEstablishment(establishment),
+      child: Container(
+        color: CupertinoColors.secondarySystemGroupedBackground,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.secondaryLabel, size: 32),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    establishment.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
+                      color: CupertinoColors.label.resolveFrom(context),
+                    ),
+                  ),
+                  if (establishment.address != null && establishment.address!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      '${establishment.address}, ${establishment.city ?? ''}',
+                      style: const TextStyle(fontSize: 14, color: CupertinoColors.secondaryLabel),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    CupertinoButton(child: Icon(CupertinoIcons.phone, size: 22, color: hasPhone ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _makePhoneCall(establishment.phone)),
-                    CupertinoButton(child: Icon(CupertinoIcons.envelope, size: 22, color: hasEmail ? CupertinoColors.systemBlue : CupertinoColors.systemGrey3), onPressed: () => _sendEmail(establishment.email)),
-                    // CORRECTION : Icône restaurée
-                    CupertinoButton(child: const Icon(CupertinoIcons.pencil, size: 22, color: CupertinoColors.systemBlue), onPressed: () => _navigateToEditEstablishment(establishment)),
-                    CupertinoButton(child: const Icon(CupertinoIcons.trash, size: 22, color: CupertinoColors.systemRed), onPressed: () => _confirmDelete(context, establishment)),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            if (hasPhone)
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: () => _makePhoneCall(establishment.phone),
+                child: const Icon(CupertinoIcons.phone_fill, color: CupertinoColors.activeGreen),
+              ),
+            if (hasEmail)
+              CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                onPressed: () => _sendEmail(establishment.email),
+                child: const Icon(CupertinoIcons.mail_solid, color: CupertinoColors.activeBlue),
+              ),
+          ],
         ),
       ),
     );

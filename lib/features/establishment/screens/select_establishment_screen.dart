@@ -20,6 +20,7 @@ class _SelectEstablishmentScreenState extends State<SelectEstablishmentScreen> {
 
   @override
   void initState() {
+    Log.d('SelectEstablishmentScreen: initState');
     super.initState();
     _loadEstablishments();
   }

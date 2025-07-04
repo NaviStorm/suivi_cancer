@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+// lib/features/establishment/screens/add_establishment_screen.dart
+import 'package:flutter/cupertino.dart';
 import 'package:uuid/uuid.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/features/treatment/models/establishment.dart';
@@ -58,131 +59,98 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
   @override
   Widget build(BuildContext context) {
     Log.d('build');
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            _isEditing ? 'Modifier l\'établissement' : 'Ajouter un établissement',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+    // **CORRECTION**: Utilisation de CupertinoPageScaffold avec une navigationBar fixe.
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(_isEditing ? "Modifier l'établissement" : 'Nouvel Établissement'),
+        previousPageTitle: 'Établissements',
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: _saveEstablishment,
+          child: const Text('Enregistrer', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        iconTheme: IconThemeData(color: Colors.blue),
-        actions: [
-          TextButton(
-            onPressed: _saveEstablishment,
-            child: Text(
-              'Enregistrer',
-              style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Nom
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nom de l\'établissement',
-                border: OutlineInputBorder(),
+      child: SafeArea( // SafeArea pour ne pas que le contenu passe sous la barre de navigation
+        child: Form(
+          key: _formKey,
+          // **CORRECTION**: Utilisation d'un ListView pour le contenu scrollable.
+          child: ListView(
+            children: [
+              CupertinoFormSection.insetGrouped(
+                header: const Text('NOM DE L\'ÉTABLISSEMENT'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Nom :'),
+                    controller: _nameController,
+                    placeholder: 'Nom de l\'établissement',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Veuillez entrer un nom';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Veuillez entrer un nom';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Adresse
-            TextFormField(
-              controller: _addressController,
-              decoration: const InputDecoration(
-                labelText: 'Adresse',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Code postal et ville (sur la même ligne)
-            Row(
-              children: [
-                // Code postal
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
+              CupertinoFormSection.insetGrouped(
+                header: const Text('ADRESSE'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Adresse :'),
+                    controller: _addressController,
+                    placeholder: '123 Rue de la République',
+                  ),
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Code postal :'),
                     controller: _postalCodeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Code postal',
-                      border: OutlineInputBorder(),
-                    ),
+                    placeholder: '75001',
                     keyboardType: TextInputType.number,
                   ),
-                ),
-                const SizedBox(width: 16),
-                // Ville
-                Expanded(
-                  flex: 3,
-                  child: TextFormField(
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Ville :'),
                     controller: _cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Ville',
-                      border: OutlineInputBorder(),
-                    ),
+                    placeholder: 'Paris',
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Téléphone
-            TextFormField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Téléphone',
-                border: OutlineInputBorder(),
+                ],
               ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-
-            // Email
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
+              CupertinoFormSection.insetGrouped(
+                header: const Text('CONTACT'),
+                children: [
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Téléphone :'),
+                    controller: _phoneController,
+                    placeholder: '01 23 45 67 89',
+                    keyboardType: TextInputType.phone,
+                  ),
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Email :'),
+                    controller: _emailController,
+                    placeholder: 'contact@hopital.fr',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  CupertinoTextFormFieldRow(
+                    prefix: const Text('Site web :'),
+                    controller: _websiteController,
+                    placeholder: 'www.hopital.fr',
+                    keyboardType: TextInputType.url,
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-
-            // Site web
-            TextFormField(
-              controller: _websiteController,
-              decoration: const InputDecoration(
-                labelText: 'Site web',
-                border: OutlineInputBorder(),
+              CupertinoFormSection.insetGrouped(
+                header: const Text('NOTES'),
+                children: [
+                  CupertinoTextField(
+                    controller: _notesController,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    placeholder: 'Notes supplémentaires...',
+                    maxLines: 5,
+                    minLines: 3,
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 16),
-
-            // Notes
-            TextFormField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 20), // Espace en bas
+            ],
+          ),
         ),
       ),
     );
@@ -190,11 +158,11 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
 
   Future<void> _saveEstablishment() async {
     Log.d("AddEstablishmentScreen: Tentative de sauvegarde de l'établissement");
-    if (_formKey.currentState!.validate()) { // [5, 9]
+    if (_formKey.currentState!.validate()) {
       Log.d("AddEstablishmentScreen: Formulaire validé");
       try {
         final establishment = Establishment(
-          id: _isEditing ? widget.establishment!.id : const Uuid().v4(), // Conserve l'ID si modification, sinon génère un nouveau [1]
+          id: _isEditing ? widget.establishment!.id : const Uuid().v4(),
           name: _nameController.text,
           address: _addressController.text.isNotEmpty ? _addressController.text : null,
           city: _cityController.text.isNotEmpty ? _cityController.text : null,
@@ -203,7 +171,7 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
           email: _emailController.text.isNotEmpty ? _emailController.text : null,
           website: _websiteController.text.isNotEmpty ? _websiteController.text : null,
           notes: _notesController.text.isNotEmpty ? _notesController.text : null,
-        ); // [2]
+        );
 
         Log.d(
           "AddEstablishmentScreen: Établissement ${_isEditing ? 'mis à jour' : 'créé'} avec ID: ${establishment.id}",
@@ -211,18 +179,13 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
 
         final dbHelper = DatabaseHelper();
         if (_isEditing) {
-          // Supposant l'existence d'une méthode updateEstablishment dans DatabaseHelper
-          // final result = await dbHelper.updateEstablishment(establishment.toMap());
-          // Log.d("AddEstablishmentScreen: Résultat de la mise à jour en base de données: $result");
-          // Pour l'exemple, on utilise insert qui peut faire un "insert or replace" selon l'implémentation de la BDD
-          final result = await dbHelper.updateEstablishment(establishment.toMap()); // Simule la mise à jour
+          final result = await dbHelper.updateEstablishment(establishment.toMap());
           Log.d("AddEstablishmentScreen: Résultat de la mise à jour en base de données: $result");
         } else {
-          final result = await dbHelper.insertEstablishment(establishment.toMap()); // [1]
+          final result = await dbHelper.insertEstablishment(establishment.toMap());
           Log.d("AddEstablishmentScreen: Résultat de l'insertion en base de données: $result");
         }
 
-        // Retourner à l'écran précédent avec un résultat positif
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -239,4 +202,3 @@ class _AddEstablishmentScreenState extends State<AddEstablishmentScreen> {
     }
   }
 }
-
