@@ -106,7 +106,7 @@ class _HealthProfessionalDetailScreenState
                       final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AddPSScreen(ps: _professional),
+                          builder: (context) => AddHealthProfessionalScreen(ps: _professional),
                         ),
                       );
 

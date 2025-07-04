@@ -722,7 +722,7 @@ class _AddTreatmentScreenState extends State<AddTreatmentScreen> {
   Future<void> _addNewHealthProfessional() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPSScreen()),
+      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen()),
     );
     if (result != null && result is HealthProfessional) {
       // Recharger les données

@@ -41,7 +41,7 @@ class _HealthProfessionalsListScreenState
   void _navigateToAddPS() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddPSScreen()),
+      MaterialPageRoute(builder: (context) => const AddHealthProfessionalScreen()),
     );
     if (result == true) {
       _loadProfessionals();
@@ -52,7 +52,7 @@ class _HealthProfessionalsListScreenState
   void _navigateToEditPS(HealthProfessional ps) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPSScreen(ps: ps.toMap())),
+      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen(ps: ps.toMap())),
     );
     if (result == true) {
       _loadProfessionals();

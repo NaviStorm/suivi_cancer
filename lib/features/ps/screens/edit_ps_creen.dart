@@ -8,16 +8,16 @@ import 'package:suivi_cancer/common/widgets/custom_text_field.dart';
 import 'package:suivi_cancer/utils/logger.dart';
 import 'package:suivi_cancer/core/widgets/common/universal_snack_bar.dart';
 
-class AddPSScreen extends StatefulWidget {
+class AddHealthProfessionalScreen extends StatefulWidget {
   final Map<String, dynamic>? ps;
 
-  const AddPSScreen({super.key, this.ps});
+  const AddHealthProfessionalScreen({super.key, this.ps});
 
   @override
-  _AddPSScreenState createState() => _AddPSScreenState();
+  _AddHealthProfessionalScreenState createState() => _AddHealthProfessionalScreenState();
 }
 
-class _AddPSScreenState extends State<AddPSScreen> {
+class _AddHealthProfessionalScreenState extends State<AddHealthProfessionalScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();

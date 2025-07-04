@@ -1138,7 +1138,7 @@ class _AddExaminationScreenState extends State<AddExaminationScreen> {
   Future<void> _addNewPS() async {
     final result = await Navigator.push(
       context,
-      CupertinoPageRoute(builder: (context) => AddPSScreen()),
+      CupertinoPageRoute(builder: (context) => AddHealthProfessionalScreen()),
     );
     if (result != null && result is HealthProfessional) {
       setState(() {

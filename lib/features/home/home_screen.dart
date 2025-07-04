@@ -215,7 +215,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         final result = await Navigator.push(
           context,
-          CupertinoPageRoute(builder: (context) => const AddPSScreen()),
+          CupertinoPageRoute(builder: (context) => const AddHealthProfessionalScreen()),
         );
         if (result == true) _loadDashboardData();
       }
@@ -365,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final result = await Navigator.push(
                     context,
                     CupertinoPageRoute(
-                      builder: (context) => AddPSScreen(ps: ps.toMap()),
+                      builder: (context) => AddHealthProfessionalScreen(ps: ps.toMap()),
                     ),
                   );
                   if (result == true) _loadDashboardData();

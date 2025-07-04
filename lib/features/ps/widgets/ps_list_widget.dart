@@ -64,7 +64,7 @@ class PSListWidgetState extends State<PSListWidget> {
 
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPSScreen(ps: psMap)),
+      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen(ps: psMap)),
     );
 
     if (result == true) {

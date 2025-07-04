@@ -74,7 +74,7 @@ class _HealthProfessionalsScreenState extends State<HealthProfessionalsScreen> {
                     Navigator.pop(context); // Fermer la bottom sheet
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => AddPSScreen()),
+                      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen()),
                     );
 
                     // Rafraîchir l'écran si un médecin a été ajouté

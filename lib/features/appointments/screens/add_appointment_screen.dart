@@ -169,7 +169,7 @@ class _AddAppointmentScreenState extends State<AddAppointmentScreen> {
   Future<void> _showAddPSDialog() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPSScreen()),
+      MaterialPageRoute(builder: (context) => AddHealthProfessionalScreen()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
